@@ -1602,9 +1602,9 @@ export default function KitchenViewer() {
         .filter((s) => s.category === 'peninsula_door')
         .forEach((s) => assignPart(s.id));
     } else if (zoneKey === 'vitrine_glass') {
-      ['door_g1', 'door_g2'].forEach((id) => assignPart(id));
+      ['door_oak_top_l', 'door_oak_top_r'].forEach((id) => assignPart(id));
     } else if (zoneKey === 'vitrine_body') {
-      ['door_sb_bot_l', 'door_sb_bot_r'].forEach((id) => assignPart(id));
+      ['door_oak_bot_l', 'door_oak_bot_r'].forEach((id) => assignPart(id));
       assignStatic('vitrine_carcass');
     } else if (zoneKey === 'countertop') {
       assignStatic('countertop');
