@@ -587,6 +587,97 @@
       </div>
     </div>
 
+    <!-- Import 3D Model (.glb / .gltf) & Placement / Resize / Material Studio -->
+    <div>
+      <div class="section-label">
+        <span data-i18n="glbStudioTitle">Import Modele 3D (.glb / .gltf)</span>
+        <span id="glb-count-badge" style="color:var(--accent);">0</span>
+      </div>
+      <div class="studio-box" style="border-color: rgba(56, 189, 248, 0.35);">
+        <label class="btn btn-primary" style="cursor:pointer; width:100%;">
+          📦 <span data-i18n="importGlbBtn">Importă Model 3D (.glb)</span>
+          <input type="file" id="input-upload-glb" accept=".glb,.gltf" multiple style="display:none;" />
+        </label>
+
+        <div id="glb-models-list" style="display:flex; flex-direction:column; gap:5px; max-height:135px; overflow-y:auto;"></div>
+
+        <div id="glb-inspector-panel" style="display:none; flex-direction:column; gap:7px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.09);">
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:4px;">
+            <button class="zone-chip active" data-gizmo="translate" data-i18n="gizmoMove">✥ Mută (W)</button>
+            <button class="zone-chip" data-gizmo="rotate" data-i18n="gizmoRotate">🔄 Rotește (E)</button>
+            <button class="zone-chip" data-gizmo="scale" data-i18n="gizmoScale">⤢ Mărime (R)</button>
+            <button class="zone-chip" data-gizmo="none">✕</button>
+          </div>
+
+          <button class="btn" id="btn-glb-place-surface" style="width:100%; padding:7px;">
+            📍 <span data-i18n="placeSurfaceBtn">Plasare cu Click pe Suprafață: OPRIT</span>
+          </button>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr 0.7fr 0.7fr; gap:4px;">
+            <button class="zone-chip" id="btn-glb-floor" data-i18n="snapFloorBtn">⬇️ Podea (Y=0)</button>
+            <button class="zone-chip" id="btn-glb-counter" data-i18n="snapCounterBtn">⬆️ Blat (Y=90cm)</button>
+            <button class="zone-chip" id="btn-glb-rot-l">↺ -45°</button>
+            <button class="zone-chip" id="btn-glb-rot-r">↻ +45°</button>
+          </div>
+
+          <div class="studio-controls-row">
+            <span data-i18n="posXLbl">Poziție X:</span>
+            <input type="range" id="slider-glb-x" min="-2.5" max="6.5" step="0.02" value="1.85" />
+            <span id="lbl-glb-x" style="min-width:44px; text-align:right; color:#ffd89b;">185 cm</span>
+          </div>
+          <div class="studio-controls-row">
+            <span data-i18n="posYLbl">Înălțime Y:</span>
+            <input type="range" id="slider-glb-y" min="0.0" max="3.2" step="0.01" value="0.0" />
+            <span id="lbl-glb-y" style="min-width:44px; text-align:right; color:#34d399;">0 cm</span>
+          </div>
+          <div class="studio-controls-row">
+            <span data-i18n="posZLbl">Adâncime Z:</span>
+            <input type="range" id="slider-glb-z" min="-2.0" max="5.5" step="0.02" value="2.15" />
+            <span id="lbl-glb-z" style="min-width:44px; text-align:right; color:#7dd3fc;">215 cm</span>
+          </div>
+          <div class="studio-controls-row">
+            <span data-i18n="rotYLbl">Rotire Y (360°):</span>
+            <input type="range" id="slider-glb-rot" min="-180" max="180" step="1" value="0" />
+            <span id="lbl-glb-rot" style="min-width:44px; text-align:right; color:#ffd89b;">0°</span>
+          </div>
+          <div class="studio-controls-row">
+            <span data-i18n="uniformScaleLbl">Scară Uniformă:</span>
+            <input type="range" id="slider-glb-scale" min="0.1" max="5.0" step="0.05" value="1.0" />
+            <span id="lbl-glb-scale" style="min-width:44px; text-align:right; color:#ffd89b;">1.00×</span>
+          </div>
+
+          <div class="grid-3" style="gap:5px;">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:10px; color:var(--text-muted);" data-i18n="widthCmLbl">Lățime (X cm)</span>
+              <input type="number" id="input-glb-w" min="1" max="1000" step="1" value="50" style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.18); color:#fbbf24; border-radius:6px; padding:4px 6px; font-size:11px; font-weight:700; width:100%;" />
+            </div>
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:10px; color:var(--text-muted);" data-i18n="heightCmLbl">Înălțime (Y cm)</span>
+              <input type="number" id="input-glb-h" min="1" max="1000" step="1" value="50" style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.18); color:#34d399; border-radius:6px; padding:4px 6px; font-size:11px; font-weight:700; width:100%;" />
+            </div>
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:10px; color:var(--text-muted);" data-i18n="depthCmLbl">Adâncime (Z cm)</span>
+              <input type="number" id="input-glb-d" min="1" max="1000" step="1" value="50" style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.18); color:#38bdf8; border-radius:6px; padding:4px 6px; font-size:11px; font-weight:700; width:100%;" />
+            </div>
+          </div>
+
+          <div style="font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.4px; margin-top:3px;" data-i18n="glbMatTitle">Editează Culorile & Materialele Modelului:</div>
+          <div style="display:flex; gap:5px;">
+            <button class="btn" id="btn-glb-paint-all" style="flex:1; font-size:11px; padding:6px 8px;">
+              🖌️ <span data-i18n="paintWholeGlbBtn">Aplică Materialul din Studio</span>
+            </button>
+            <label class="btn" style="cursor:pointer; position:relative; padding:6px 10px;" title="Alege culoare pentru tot modelul">
+              🎨
+              <input type="color" id="input-glb-color-all" value="#d4a359" style="opacity:0; position:absolute; inset:0; width:100%; height:100%; cursor:pointer;" />
+            </label>
+          </div>
+          <button class="btn" id="btn-glb-reset-mat" style="width:100%; font-size:11px; padding:6px 8px;" data-i18n="resetGlbMatBtn">🔄 Restaurează Materialele Originale .GLB</button>
+
+          <div id="glb-submeshes-list" style="display:flex; flex-direction:column; gap:4px; max-height:125px; overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Lighting Studio: Position, Color Tone (Kelvin) & Intensity -->
     <div>
       <div class="section-label">
@@ -754,6 +845,9 @@ window.KITCHEN_PAYLOAD = {"materials": ["6933 VL 18", "AGT 3019 Sahara Cream", "
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
@@ -857,7 +951,28 @@ const I18N = {
     cat_tall_door: "Right Tall Columns (5)",
     cat_peninsula_door: "Peninsula Bar Cabinets (4)",
     cat_sideboard_door: "Oak & MDF Sideboard (4)",
-    cat_left_door: "Left Pantry & Fridge Wall (5)"
+    cat_left_door: "Left Pantry & Fridge Wall (5)",
+    glbStudioTitle: "Import 3D Model (.glb / .gltf)",
+    importGlbBtn: "Import 3D Model (.glb)",
+    emptyGlbHint: "No imported 3D models yet. Upload any .glb file to place, resize & paint it.",
+    gizmoMove: "✥ Move (W)",
+    gizmoRotate: "🔄 Rotate (E)",
+    gizmoScale: "⤢ Resize (R)",
+    placeSurfaceBtn: "Click Surface to Place: OFF",
+    placeSurfaceActiveBtn: "Click any Floor / Countertop / Wall to Place!",
+    snapFloorBtn: "⬇️ Floor (Y=0)",
+    snapCounterBtn: "⬆️ Countertop (Y=90cm)",
+    posXLbl: "Position X:",
+    posYLbl: "Height Y:",
+    posZLbl: "Depth Z:",
+    rotYLbl: "Rotation Y (360°):",
+    uniformScaleLbl: "Uniform Scale:",
+    widthCmLbl: "Width (X cm)",
+    heightCmLbl: "Height (Y cm)",
+    depthCmLbl: "Depth (Z cm)",
+    glbMatTitle: "Edit Model Colors & Materials:",
+    paintWholeGlbBtn: "Apply Studio Material",
+    resetGlbMatBtn: "🔄 Restore Original .GLB Materials"
   },
   ru: {
     title: "3D Кухня",
@@ -957,7 +1072,28 @@ const I18N = {
     cat_tall_door: "Правые пеналы (5)",
     cat_peninsula_door: "Полуостров / барная стойка (4)",
     cat_sideboard_door: "Витрина Дуб Casella (4)",
-    cat_left_door: "Левый пенал и холодильник (5)"
+    cat_left_door: "Левый пенал и холодильник (5)",
+    glbStudioTitle: "Импорт 3D Моделей (.glb / .gltf)",
+    importGlbBtn: "Загрузить 3D модель (.glb)",
+    emptyGlbHint: "Нет загруженных 3D моделей. Загрузите файл .glb, чтобы разместить, изменить размер и материалы.",
+    gizmoMove: "✥ Двигать (W)",
+    gizmoRotate: "🔄 Вращать (E)",
+    gizmoScale: "⤢ Размер (R)",
+    placeSurfaceBtn: "Размещение кликом по поверхности: ВЫКЛ",
+    placeSurfaceActiveBtn: "Кликните на пол / столешницу / стену для размещения!",
+    snapFloorBtn: "⬇️ На пол (Y=0)",
+    snapCounterBtn: "⬆️ Столешница (Y=90см)",
+    posXLbl: "Позиция X:",
+    posYLbl: "Высота Y:",
+    posZLbl: "Глубина Z:",
+    rotYLbl: "Поворот Y (360°):",
+    uniformScaleLbl: "Масштаб:",
+    widthCmLbl: "Ширина (X см)",
+    heightCmLbl: "Высота (Y см)",
+    depthCmLbl: "Глубина (Z см)",
+    glbMatTitle: "Цвета и материалы 3D модели:",
+    paintWholeGlbBtn: "Применить материал из Студии",
+    resetGlbMatBtn: "🔄 Вернуть родные материалы .GLB"
   },
   ro: {
     title: "Bucătărie 3D",
@@ -1057,7 +1193,28 @@ const I18N = {
     cat_tall_door: "Coloane Dreapta (5)",
     cat_peninsula_door: "Peninsulă Bar (4)",
     cat_sideboard_door: "Vitrină Stejar Casella (4)",
-    cat_left_door: "Coloană Stânga & Frigider (5)"
+    cat_left_door: "Coloană Stânga & Frigider (5)",
+    glbStudioTitle: "Import Modele 3D (.glb / .gltf)",
+    importGlbBtn: "Importă Model 3D (.glb)",
+    emptyGlbHint: "Niciun model .glb importat. Încarcă orice fișier .glb pentru a-l plasa oriunde, redimensiona și vopsi.",
+    gizmoMove: "✥ Mută (W)",
+    gizmoRotate: "🔄 Rotește (E)",
+    gizmoScale: "⤢ Mărime (R)",
+    placeSurfaceBtn: "Plasare cu Click pe Suprafață: OPRIT",
+    placeSurfaceActiveBtn: "Apasă pe Podea / Blat / Perete pt. a plasa modelul!",
+    snapFloorBtn: "⬇️ Podea (Y=0)",
+    snapCounterBtn: "⬆️ Blat (Y=90cm)",
+    posXLbl: "Poziție X:",
+    posYLbl: "Înălțime Y:",
+    posZLbl: "Adâncime Z:",
+    rotYLbl: "Rotire Y (360°):",
+    uniformScaleLbl: "Scară Uniformă:",
+    widthCmLbl: "Lățime (X cm)",
+    heightCmLbl: "Înălțime (Y cm)",
+    depthCmLbl: "Adâncime (Z cm)",
+    glbMatTitle: "Editează Culorile & Materialele Modelului:",
+    paintWholeGlbBtn: "Aplică Materialul din Studio",
+    resetGlbMatBtn: "🔄 Restaurează Materialele Originale .GLB"
   }
 };
 
@@ -1805,6 +1962,194 @@ async function init() {
     mesh.material.needsUpdate = true;
   }
 
+  // ============================================================================
+  // IMPORTED 3D .GLB / .GLTF MODELS ENGINE (Placement, Resize, Materials & IndexedDB)
+  // ============================================================================
+  const importedRootGroup = new THREE.Group();
+  importedRootGroup.name = 'imported_glb_root';
+  scene.add(importedRootGroup);
+
+  const importedModelsList = []; // { id, name, b64Data, position, rotationYDeg, scale, baseDimsCm, subParts }
+  const importedMap = {}; // id -> { wrapperGroup, meshes, baseDimsCm, subPartsMeta }
+  const importedMeshes = [];
+  let selectedGlbId = null;
+  let gizmoMode = 'translate';
+  let placeOnSurfaceMode = false;
+
+  const transformControls = new TransformControls(camera, renderer.domElement);
+  transformControls.setSize(isMobileDevice ? 0.95 : 0.8);
+  transformControls.visible = false;
+  scene.add(transformControls);
+
+  const gltfLoader = new GLTFLoader();
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath('https://unpkg.com/three@0.164.1/examples/jsm/libs/draco/');
+  gltfLoader.setDRACOLoader(dracoLoader);
+
+  function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+  }
+
+  function base64ToArrayBuffer(b64) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes.buffer;
+  }
+
+  function ensureGlbBoxProjectedUVs(geom) {
+    if (!geom || geom.attributes.uv) return;
+    const posAttr = geom.attributes.position;
+    if (!posAttr) return;
+    if (!geom.attributes.normal) geom.computeVertexNormals();
+    const normAttr = geom.attributes.normal;
+    const count = posAttr.count;
+    const uvArr = new Float32Array(count * 2);
+    geom.computeBoundingBox();
+    const bb = geom.boundingBox;
+    const span = Math.max(
+      bb ? bb.max.x - bb.min.x : 1,
+      bb ? bb.max.y - bb.min.y : 1,
+      bb ? bb.max.z - bb.min.z : 1,
+      0.001
+    );
+    const uvScale = span > 20 ? 0.002 : 2.0;
+    for (let i = 0; i < count; i++) {
+      const px = posAttr.getX(i) * uvScale;
+      const py = posAttr.getY(i) * uvScale;
+      const pz = posAttr.getZ(i) * uvScale;
+      const nx = normAttr ? Math.abs(normAttr.getX(i)) : 0;
+      const ny = normAttr ? Math.abs(normAttr.getY(i)) : 1;
+      const nz = normAttr ? Math.abs(normAttr.getZ(i)) : 0;
+      if (ny > nx && ny > nz) { uvArr[i * 2] = px; uvArr[i * 2 + 1] = pz; }
+      else if (nx > nz) { uvArr[i * 2] = pz; uvArr[i * 2 + 1] = py; }
+      else { uvArr[i * 2] = px; uvArr[i * 2 + 1] = py; }
+    }
+    geom.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2));
+  }
+
+  function parseAndMountGlb(arrayBuffer, b64Data, modelId, modelName, initTransform = null, savedSubParts = null) {
+    return new Promise((resolve, reject) => {
+      gltfLoader.parse(arrayBuffer, '', (gltf) => {
+        const rawRoot = gltf.scene || gltf.scenes[0];
+        if (!rawRoot) return reject(new Error('Invalid GLB'));
+        rawRoot.updateMatrixWorld(true);
+        const rawBox = new THREE.Box3().setFromObject(rawRoot);
+        const rawSize = new THREE.Vector3();
+        const rawCenter = new THREE.Vector3();
+        rawBox.getSize(rawSize);
+        rawBox.getCenter(rawCenter);
+
+        const maxDim = Math.max(rawSize.x, rawSize.y, rawSize.z, 0.0001);
+        let unitFactor = 1.0;
+        if (maxDim > 18 && maxDim <= 150) unitFactor = 0.01;
+        else if (maxDim > 150) unitFactor = 0.001;
+
+        const innerGroup = new THREE.Group();
+        innerGroup.scale.set(unitFactor, unitFactor, unitFactor);
+        rawRoot.position.set(-rawCenter.x, -rawBox.min.y, -rawCenter.z);
+        innerGroup.add(rawRoot);
+
+        const wrapperGroup = new THREE.Group();
+        wrapperGroup.name = 'imported_glb_' + modelId;
+        wrapperGroup.add(innerGroup);
+
+        const baseDimsCm = {
+          w: Math.max(0.5, rawSize.x * unitFactor * 100),
+          h: Math.max(0.5, rawSize.y * unitFactor * 100),
+          d: Math.max(0.5, rawSize.z * unitFactor * 100)
+        };
+
+        const meshes = [];
+        const subPartsMeta = [];
+        let subIdx = 0;
+
+        rawRoot.traverse((child) => {
+          if (child.isMesh) {
+            ensureGlbBoxProjectedUVs(child.geometry);
+            child.castShadow = true;
+            child.receiveShadow = true;
+            const origMat = Array.isArray(child.material) ? child.material[0] : child.material;
+            const stdMat = new THREE.MeshStandardMaterial({
+              color: origMat && origMat.color ? origMat.color.clone() : new THREE.Color('#e5e7eb'),
+              map: origMat && origMat.map ? origMat.map : null,
+              roughness: origMat && typeof origMat.roughness === 'number' ? origMat.roughness : 0.4,
+              metalness: origMat && typeof origMat.metalness === 'number' ? origMat.metalness : 0.05,
+              transparent: Boolean(origMat && origMat.transparent),
+              opacity: origMat && typeof origMat.opacity === 'number' ? origMat.opacity : 1.0
+            });
+            const backupMat = stdMat.clone();
+            child.material = stdMat;
+            child.userData.originalGlbMaterial = backupMat;
+            child.userData.importedModelId = modelId;
+            child.userData.subMeshIdx = subIdx;
+
+            const partLabel = child.name || (origMat && origMat.name) || `Partea #${subIdx + 1}`;
+            subPartsMeta.push({
+              subIdx,
+              name: partLabel.slice(0, 26),
+              colorHex: '#' + stdMat.color.getHexString(),
+              assignedMatId: null
+            });
+            meshes.push(child);
+            importedMeshes.push(child);
+            paintableMeshes.push(child);
+            subIdx++;
+          }
+        });
+
+        const pos = (initTransform && initTransform.position) ? initTransform.position : [1.85, 0.0, 2.15];
+        const rotYDeg = (initTransform && typeof initTransform.rotationYDeg === 'number') ? initTransform.rotationYDeg : 0;
+        const scl = (initTransform && initTransform.scale) ? initTransform.scale : [1.0, 1.0, 1.0];
+
+        wrapperGroup.position.set(pos[0], pos[1], pos[2]);
+        wrapperGroup.rotation.set(0, THREE.MathUtils.degToRad(rotYDeg), 0);
+        wrapperGroup.scale.set(scl[0], scl[1], scl[2]);
+        importedRootGroup.add(wrapperGroup);
+
+        const finalSubParts = subPartsMeta.map((sp, idx) => {
+          const savedSp = savedSubParts && savedSubParts[idx] ? savedSubParts[idx] : null;
+          const mesh = meshes[idx];
+          if (savedSp && mesh) {
+            if (savedSp.assignedMatId) {
+              const matEntry = materialLibrary.find(m => m.id === savedSp.assignedMatId);
+              if (matEntry) {
+                applyMatEntryToMesh(mesh, matEntry);
+                return { ...sp, assignedMatId: matEntry.id, colorHex: matEntry.colorHex || sp.colorHex };
+              }
+            } else if (savedSp.colorHex) {
+              mesh.material.map = null;
+              mesh.material.color.set(savedSp.colorHex);
+              mesh.material.needsUpdate = true;
+              return { ...sp, colorHex: savedSp.colorHex, assignedMatId: null };
+            }
+          }
+          return sp;
+        });
+
+        importedMap[modelId] = { wrapperGroup, meshes, baseDimsCm, name: modelName };
+        const modelRecord = {
+          id: modelId,
+          name: modelName,
+          b64Data,
+          position: pos,
+          rotationYDeg: rotYDeg,
+          scale: scl,
+          baseDimsCm,
+          subParts: finalSubParts
+        };
+        importedModelsList.push(modelRecord);
+        resolve(modelRecord);
+      }, (err) => reject(err));
+    });
+  }
+
   function saveWorkspaceState() {
     if (isRestoringState) return;
     const serializedMats = materialLibrary.map(m => ({
@@ -1817,6 +2162,16 @@ async function init() {
       scale: m.scale,
       rotate90: m.rotate90,
       finishIdx: m.finishIdx
+    }));
+
+    const serializedImported = importedModelsList.map(im => ({
+      id: im.id,
+      name: im.name,
+      b64Data: im.b64Data,
+      position: im.position,
+      rotationYDeg: im.rotationYDeg,
+      scale: im.scale,
+      subParts: im.subParts
     }));
 
     const partAssignments = {};
@@ -1837,7 +2192,8 @@ async function init() {
       partAssignments,
       staticZoneAssignments: { ...staticZoneAssignments },
       openParts,
-      lightState: { ...lightState }
+      lightState: { ...lightState },
+      importedModels: serializedImported
     };
     writePersistedData(stateObj);
   }
@@ -1950,6 +2306,36 @@ async function init() {
       if (saved.lightState) {
         Object.assign(lightState, saved.lightState);
         updateLightingFromState();
+      }
+
+      // Restore imported 3D .glb / .gltf models
+      if (Array.isArray(saved.importedModels)) {
+        for (const im of saved.importedModels) {
+          if (!im.b64Data) continue;
+          try {
+            const buf = base64ToArrayBuffer(im.b64Data);
+            await parseAndMountGlb(
+              buf,
+              im.b64Data,
+              im.id,
+              im.name,
+              {
+                position: im.position || [1.85, 0.0, 2.15],
+                rotationYDeg: typeof im.rotationYDeg === 'number' ? im.rotationYDeg : 0,
+                scale: im.scale || [1.0, 1.0, 1.0]
+              },
+              im.subParts || null
+            );
+          } catch (err) {
+            console.warn('Could not restore GLB model:', im.name, err);
+          }
+        }
+        if (importedModelsList.length > 0 && !selectedGlbId) {
+          selectedGlbId = importedModelsList[importedModelsList.length - 1].id;
+        }
+        syncTransformGizmo();
+        renderGlbModelsUI();
+        syncGlbInspectorUI();
       }
     } finally {
       isRestoringState = false;
@@ -2320,6 +2706,500 @@ async function init() {
     syncStudioControlsUI();
     saveWorkspaceState();
     showMobileToast('🗑️ Toate materialele au fost șterse.');
+  });
+
+  // ============================================================================
+  // .GLB / .GLTF UI & TRANSFORM GIZMO WIRING
+  // ============================================================================
+  function getSelectedGlbRecord() {
+    return importedModelsList.find(m => m.id === selectedGlbId) || null;
+  }
+
+  function syncTransformGizmo() {
+    if (selectedGlbId && importedMap[selectedGlbId] && gizmoMode !== 'none') {
+      transformControls.attach(importedMap[selectedGlbId].wrapperGroup);
+      transformControls.setMode(gizmoMode);
+      transformControls.visible = true;
+    } else {
+      transformControls.detach();
+      transformControls.visible = false;
+    }
+    document.querySelectorAll('[data-gizmo]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.gizmo === gizmoMode);
+    });
+  }
+
+  transformControls.addEventListener('dragging-changed', (event) => {
+    controls.enabled = !event.value;
+    if (!event.value && selectedGlbId && importedMap[selectedGlbId]) {
+      const grp = importedMap[selectedGlbId].wrapperGroup;
+      const rec = getSelectedGlbRecord();
+      if (rec) {
+        rec.position = [
+          Number(grp.position.x.toFixed(3)),
+          Number(Math.max(0, grp.position.y).toFixed(3)),
+          Number(grp.position.z.toFixed(3))
+        ];
+        rec.rotationYDeg = Math.round(THREE.MathUtils.radToDeg(grp.rotation.y));
+        rec.scale = [
+          Number(Math.max(0.05, grp.scale.x).toFixed(3)),
+          Number(Math.max(0.05, grp.scale.y).toFixed(3)),
+          Number(Math.max(0.05, grp.scale.z).toFixed(3))
+        ];
+        renderGlbModelsUI();
+        syncGlbInspectorUI();
+        saveWorkspaceState();
+      }
+    }
+  });
+
+  function renderGlbModelsUI() {
+    const listEl = document.getElementById('glb-models-list');
+    const badgeEl = document.getElementById('glb-count-badge');
+    const inspectorEl = document.getElementById('glb-inspector-panel');
+    if (badgeEl) badgeEl.textContent = String(importedModelsList.length);
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    const dict = I18N[currentLang];
+    if (importedModelsList.length === 0) {
+      const empty = document.createElement('div');
+      empty.style.fontSize = '11px';
+      empty.style.color = 'var(--text-muted)';
+      empty.style.textAlign = 'center';
+      empty.style.padding = '6px 4px';
+      empty.textContent = dict.emptyGlbHint || 'Niciun model .glb importat încă.';
+      listEl.appendChild(empty);
+      if (inspectorEl) inspectorEl.style.display = 'none';
+      return;
+    }
+
+    for (const m of importedModelsList) {
+      const isSel = m.id === selectedGlbId;
+      const wCm = Math.round((m.baseDimsCm?.w || 50) * (m.scale?.[0] || 1));
+      const hCm = Math.round((m.baseDimsCm?.h || 50) * (m.scale?.[1] || 1));
+      const dCm = Math.round((m.baseDimsCm?.d || 50) * (m.scale?.[2] || 1));
+
+      const row = document.createElement('div');
+      row.className = 'part-row' + (isSel ? ' open' : '');
+      row.style.padding = '6px 8px';
+      row.innerHTML = `
+        <span style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; font-size:11px;">📦 ${m.name}</span>
+        <div class="part-actions" style="gap:4px;">
+          <span class="part-dim-tag">${wCm}×${hCm}×${dCm}cm</span>
+          <button class="part-paint-btn" data-dup="${m.id}" title="${dict.duplicateGlbBtn || 'Duplică'}">📋</button>
+          <button class="part-paint-btn" data-del="${m.id}" title="${dict.deleteGlbBtn || 'Șterge'}" style="color:#fca5a5;">🗑️</button>
+        </div>
+      `;
+      row.addEventListener('click', () => {
+        selectedGlbId = m.id;
+        syncTransformGizmo();
+        renderGlbModelsUI();
+        syncGlbInspectorUI();
+      });
+      row.querySelector('[data-dup]').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await duplicateGlbModel(m.id);
+      });
+      row.querySelector('[data-del]').addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteGlbModel(m.id);
+      });
+      listEl.appendChild(row);
+    }
+
+    if (inspectorEl) {
+      inspectorEl.style.display = getSelectedGlbRecord() ? 'flex' : 'none';
+    }
+  }
+
+  function syncGlbInspectorUI() {
+    const rec = getSelectedGlbRecord();
+    const inspectorEl = document.getElementById('glb-inspector-panel');
+    if (!rec) {
+      if (inspectorEl) inspectorEl.style.display = 'none';
+      return;
+    }
+    if (inspectorEl) inspectorEl.style.display = 'flex';
+
+    const dict = I18N[currentLang];
+    const placeBtn = document.getElementById('btn-glb-place-surface');
+    if (placeBtn) {
+      placeBtn.classList.toggle('active-paint', placeOnSurfaceMode);
+      placeBtn.innerHTML = `📍 <span>${placeOnSurfaceMode ? dict.placeSurfaceActive : dict.placeSurfaceBtn}</span>`;
+    }
+
+    const pos = rec.position || [1.85, 0, 2.15];
+    const rotY = rec.rotationYDeg || 0;
+    const scl = rec.scale || [1, 1, 1];
+
+    const sx = document.getElementById('slider-glb-x');
+    const lx = document.getElementById('lbl-glb-x');
+    if (sx && lx) { sx.value = String(pos[0]); lx.textContent = `${Math.round(pos[0] * 100)} cm`; }
+
+    const sy = document.getElementById('slider-glb-y');
+    const ly = document.getElementById('lbl-glb-y');
+    if (sy && ly) { sy.value = String(pos[1]); ly.textContent = `${Math.round(pos[1] * 100)} cm`; }
+
+    const sz = document.getElementById('slider-glb-z');
+    const lz = document.getElementById('lbl-glb-z');
+    if (sz && lz) { sz.value = String(pos[2]); lz.textContent = `${Math.round(pos[2] * 100)} cm`; }
+
+    const sr = document.getElementById('slider-glb-rot');
+    const lr = document.getElementById('lbl-glb-rot');
+    if (sr && lr) { sr.value = String(rotY); lr.textContent = `${rotY}°`; }
+
+    const ss = document.getElementById('slider-glb-scale');
+    const ls = document.getElementById('lbl-glb-scale');
+    if (ss && ls) { ss.value = String(scl[0]); ls.textContent = `${Number(scl[0]).toFixed(2)}×`; }
+
+    const iw = document.getElementById('input-glb-w');
+    const ih = document.getElementById('input-glb-h');
+    const id = document.getElementById('input-glb-d');
+    if (iw) iw.value = String(Math.max(1, Math.round((rec.baseDimsCm?.w || 50) * scl[0])));
+    if (ih) ih.value = String(Math.max(1, Math.round((rec.baseDimsCm?.h || 50) * scl[1])));
+    if (id) id.value = String(Math.max(1, Math.round((rec.baseDimsCm?.d || 50) * scl[2])));
+
+    // Sub-meshes list
+    const subListEl = document.getElementById('glb-submeshes-list');
+    if (subListEl) {
+      subListEl.innerHTML = '';
+      if (Array.isArray(rec.subParts) && rec.subParts.length > 0) {
+        rec.subParts.forEach((sp, idx) => {
+          const matObj = materialLibrary.find(m => m.id === sp.assignedMatId);
+          const dotBg = matObj ? matObj.thumbCss : (sp.colorHex || '#e5e7eb');
+          const sRow = document.createElement('div');
+          sRow.style.display = 'flex';
+          sRow.style.alignItems = 'center';
+          sRow.style.justifyContent = 'space-between';
+          sRow.style.gap = '5px';
+          sRow.style.padding = '3px 6px';
+          sRow.style.background = 'rgba(0,0,0,0.28)';
+          sRow.style.borderRadius = '6px';
+          sRow.style.fontSize = '10px';
+          sRow.innerHTML = `
+            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#cbd5e1;">#${idx + 1} ${sp.name}</span>
+            <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+              <span class="part-mat-dot" style="background:${dotBg};"></span>
+              <label class="part-paint-btn" style="position:relative; cursor:pointer;" title="Culoare">
+                🎨
+                <input type="color" value="${sp.colorHex || '#d4a359'}" style="opacity:0; position:absolute; inset:0; width:100%; height:100%; cursor:pointer;" />
+              </label>
+              <button class="part-paint-btn" title="Aplică Materialul din Studio">🖌️</button>
+            </div>
+          `;
+          sRow.querySelector('input[type="color"]').addEventListener('change', (e) => {
+            colorGlbSubMesh(rec.id, idx, e.target.value);
+          });
+          sRow.querySelector('button').addEventListener('click', () => {
+            paintGlbSubMesh(rec.id, idx);
+          });
+          subListEl.appendChild(sRow);
+        });
+      }
+    }
+  }
+
+  function applyTransformToSelectedGlb(patch) {
+    const rec = getSelectedGlbRecord();
+    if (!rec || !importedMap[rec.id]) return;
+    const grp = importedMap[rec.id].wrapperGroup;
+    if (patch.position) {
+      rec.position = patch.position;
+      grp.position.set(patch.position[0], patch.position[1], patch.position[2]);
+    }
+    if (typeof patch.rotationYDeg === 'number') {
+      rec.rotationYDeg = patch.rotationYDeg;
+      grp.rotation.set(0, THREE.MathUtils.degToRad(patch.rotationYDeg), 0);
+    }
+    if (patch.scale) {
+      rec.scale = patch.scale;
+      grp.scale.set(patch.scale[0], patch.scale[1], patch.scale[2]);
+    }
+    renderGlbModelsUI();
+    syncGlbInspectorUI();
+    saveWorkspaceState();
+  }
+
+  async function duplicateGlbModel(modelId) {
+    const orig = importedModelsList.find(m => m.id === modelId);
+    if (!orig || !orig.b64Data) return;
+    const newId = 'glb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    const newPos = [
+      Number((orig.position[0] + 0.35).toFixed(3)),
+      orig.position[1],
+      Number((orig.position[2] + 0.25).toFixed(3))
+    ];
+    const buf = base64ToArrayBuffer(orig.b64Data);
+    await parseAndMountGlb(
+      buf,
+      orig.b64Data,
+      newId,
+      orig.name + ' (Copie)',
+      { position: newPos, rotationYDeg: orig.rotationYDeg, scale: [...orig.scale] },
+      orig.subParts ? orig.subParts.map(sp => ({ ...sp })) : null
+    );
+    selectedGlbId = newId;
+    syncTransformGizmo();
+    renderGlbModelsUI();
+    syncGlbInspectorUI();
+    saveWorkspaceState();
+  }
+
+  function deleteGlbModel(modelId) {
+    const entry = importedMap[modelId];
+    if (entry) {
+      if (transformControls.object === entry.wrapperGroup) {
+        transformControls.detach();
+        transformControls.visible = false;
+      }
+      importedRootGroup.remove(entry.wrapperGroup);
+      for (const m of entry.meshes) {
+        const i1 = importedMeshes.indexOf(m);
+        if (i1 !== -1) importedMeshes.splice(i1, 1);
+        const i2 = paintableMeshes.indexOf(m);
+        if (i2 !== -1) paintableMeshes.splice(i2, 1);
+      }
+      delete importedMap[modelId];
+    }
+    const idx = importedModelsList.findIndex(m => m.id === modelId);
+    if (idx !== -1) importedModelsList.splice(idx, 1);
+    if (selectedGlbId === modelId) {
+      selectedGlbId = importedModelsList[0] ? importedModelsList[0].id : null;
+      placeOnSurfaceMode = false;
+    }
+    syncTransformGizmo();
+    renderGlbModelsUI();
+    syncGlbInspectorUI();
+    saveWorkspaceState();
+  }
+
+  function paintGlbWholeModel(modelId) {
+    const rec = importedModelsList.find(m => m.id === modelId);
+    const entry = importedMap[modelId];
+    if (!rec || !entry) return;
+    const matEntry = getActiveCustomMat();
+    for (const m of entry.meshes) {
+      applyMatEntryToMesh(m, matEntry);
+    }
+    rec.subParts = rec.subParts.map(sp => ({
+      ...sp,
+      assignedMatId: matEntry ? matEntry.id : null,
+      colorHex: matEntry ? (matEntry.colorHex || '#ffffff') : DEFAULT_WHITE_HEX
+    }));
+    syncGlbInspectorUI();
+    saveWorkspaceState();
+    const dict = I18N[currentLang];
+    showMobileToast(`${dict.appliedToast}${matEntry ? matEntry.name : 'Alb'} → ${rec.name}`);
+  }
+
+  function colorGlbWholeModel(modelId, hex) {
+    const rec = importedModelsList.find(m => m.id === modelId);
+    const entry = importedMap[modelId];
+    if (!rec || !entry) return;
+    for (const m of entry.meshes) {
+      m.material.map = null;
+      m.material.color.set(hex);
+      m.material.userData.assignedMatId = null;
+      m.material.needsUpdate = true;
+    }
+    rec.subParts = rec.subParts.map(sp => ({
+      ...sp,
+      assignedMatId: null,
+      colorHex: hex
+    }));
+    syncGlbInspectorUI();
+    saveWorkspaceState();
+  }
+
+  function paintGlbSubMesh(modelId, subIdx) {
+    const rec = importedModelsList.find(m => m.id === modelId);
+    const entry = importedMap[modelId];
+    if (!rec || !entry || !entry.meshes[subIdx]) return;
+    const matEntry = getActiveCustomMat();
+    applyMatEntryToMesh(entry.meshes[subIdx], matEntry);
+    if (rec.subParts[subIdx]) {
+      rec.subParts[subIdx].assignedMatId = matEntry ? matEntry.id : null;
+      rec.subParts[subIdx].colorHex = matEntry ? (matEntry.colorHex || '#ffffff') : DEFAULT_WHITE_HEX;
+    }
+    syncGlbInspectorUI();
+    saveWorkspaceState();
+    const dict = I18N[currentLang];
+    showMobileToast(`${dict.appliedToast}${matEntry ? matEntry.name : 'Alb'} → ${rec.name} (#${subIdx + 1})`);
+  }
+
+  function colorGlbSubMesh(modelId, subIdx, hex) {
+    const rec = importedModelsList.find(m => m.id === modelId);
+    const entry = importedMap[modelId];
+    if (!rec || !entry || !entry.meshes[subIdx]) return;
+    const mesh = entry.meshes[subIdx];
+    mesh.material.map = null;
+    mesh.material.color.set(hex);
+    mesh.material.userData.assignedMatId = null;
+    mesh.material.needsUpdate = true;
+    if (rec.subParts[subIdx]) {
+      rec.subParts[subIdx].assignedMatId = null;
+      rec.subParts[subIdx].colorHex = hex;
+    }
+    syncGlbInspectorUI();
+    saveWorkspaceState();
+  }
+
+  function resetGlbMaterials(modelId) {
+    const rec = importedModelsList.find(m => m.id === modelId);
+    const entry = importedMap[modelId];
+    if (!rec || !entry) return;
+    entry.meshes.forEach((m, idx) => {
+      if (m.userData.originalGlbMaterial) {
+        m.material.dispose();
+        m.material = m.userData.originalGlbMaterial.clone();
+        m.material.needsUpdate = true;
+      }
+      if (rec.subParts[idx]) {
+        rec.subParts[idx].assignedMatId = null;
+        rec.subParts[idx].colorHex = '#' + m.material.color.getHexString();
+      }
+    });
+    syncGlbInspectorUI();
+    saveWorkspaceState();
+  }
+
+  document.getElementById('input-upload-glb').addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        const buffer = await file.arrayBuffer();
+        const b64 = arrayBufferToBase64(buffer);
+        const cleanName = file.name.replace(/\.(glb|gltf)$/i, '').slice(0, 26) || 'Model 3D';
+        const newId = 'glb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+        const offsetIdx = importedModelsList.length + i;
+        const defaultPos = [
+          Number((1.85 + (offsetIdx % 3) * 0.45).toFixed(2)),
+          0.0,
+          Number((2.15 + Math.floor(offsetIdx / 3) * 0.45).toFixed(2))
+        ];
+        await parseAndMountGlb(buffer, b64, newId, cleanName, {
+          position: defaultPos,
+          rotationYDeg: 0,
+          scale: [1.0, 1.0, 1.0]
+        });
+        selectedGlbId = newId;
+        gizmoMode = 'translate';
+        showMobileToast(`${I18N[currentLang].glbAddedToast}${cleanName}`);
+      } catch (err) {
+        console.error('Failed to import GLB:', err);
+        showMobileToast('⚠️ Eroare la citirea fișierului .glb');
+      }
+    }
+    e.target.value = '';
+    syncTransformGizmo();
+    renderGlbModelsUI();
+    syncGlbInspectorUI();
+    saveWorkspaceState();
+  });
+
+  document.querySelectorAll('[data-gizmo]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      gizmoMode = btn.dataset.gizmo;
+      syncTransformGizmo();
+    });
+  });
+
+  document.getElementById('btn-glb-place-surface').addEventListener('click', () => {
+    placeOnSurfaceMode = !placeOnSurfaceMode;
+    syncGlbInspectorUI();
+  });
+
+  document.getElementById('btn-glb-floor').addEventListener('click', () => {
+    const rec = getSelectedGlbRecord();
+    if (rec) applyTransformToSelectedGlb({ position: [rec.position[0], 0.0, rec.position[2]] });
+  });
+
+  document.getElementById('btn-glb-counter').addEventListener('click', () => {
+    const rec = getSelectedGlbRecord();
+    if (rec) applyTransformToSelectedGlb({ position: [rec.position[0], 0.90, rec.position[2]] });
+  });
+
+  document.getElementById('btn-glb-rot-l').addEventListener('click', () => {
+    const rec = getSelectedGlbRecord();
+    if (rec) applyTransformToSelectedGlb({ rotationYDeg: ((rec.rotationYDeg - 45 + 540) % 360) - 180 });
+  });
+
+  document.getElementById('btn-glb-rot-r').addEventListener('click', () => {
+    const rec = getSelectedGlbRecord();
+    if (rec) applyTransformToSelectedGlb({ rotationYDeg: ((rec.rotationYDeg + 45 + 540) % 360) - 180 });
+  });
+
+  document.getElementById('slider-glb-x').addEventListener('input', (e) => {
+    const rec = getSelectedGlbRecord();
+    if (rec) applyTransformToSelectedGlb({ position: [parseFloat(e.target.value) || 0, rec.position[1], rec.position[2]] });
+  });
+
+  document.getElementById('slider-glb-y').addEventListener('input', (e) => {
+    const rec = getSelectedGlbRecord();
+    if (rec) applyTransformToSelectedGlb({ position: [rec.position[0], parseFloat(e.target.value) || 0, rec.position[2]] });
+  });
+
+  document.getElementById('slider-glb-z').addEventListener('input', (e) => {
+    const rec = getSelectedGlbRecord();
+    if (rec) applyTransformToSelectedGlb({ position: [rec.position[0], rec.position[1], parseFloat(e.target.value) || 0] });
+  });
+
+  document.getElementById('slider-glb-rot').addEventListener('input', (e) => {
+    const rec = getSelectedGlbRecord();
+    if (rec) applyTransformToSelectedGlb({ rotationYDeg: parseInt(e.target.value, 10) || 0 });
+  });
+
+  document.getElementById('slider-glb-scale').addEventListener('input', (e) => {
+    const s = Math.max(0.05, parseFloat(e.target.value) || 1.0);
+    applyTransformToSelectedGlb({ scale: [s, s, s] });
+  });
+
+  document.getElementById('input-glb-w').addEventListener('change', (e) => {
+    const rec = getSelectedGlbRecord();
+    if (!rec) return;
+    const val = Math.max(1, parseFloat(e.target.value) || 10);
+    const sx = Number((val / (rec.baseDimsCm?.w || 50)).toFixed(3));
+    applyTransformToSelectedGlb({ scale: [sx, rec.scale[1], rec.scale[2]] });
+  });
+
+  document.getElementById('input-glb-h').addEventListener('change', (e) => {
+    const rec = getSelectedGlbRecord();
+    if (!rec) return;
+    const val = Math.max(1, parseFloat(e.target.value) || 10);
+    const sy = Number((val / (rec.baseDimsCm?.h || 50)).toFixed(3));
+    applyTransformToSelectedGlb({ scale: [rec.scale[0], sy, rec.scale[2]] });
+  });
+
+  document.getElementById('input-glb-d').addEventListener('change', (e) => {
+    const rec = getSelectedGlbRecord();
+    if (!rec) return;
+    const val = Math.max(1, parseFloat(e.target.value) || 10);
+    const sz = Number((val / (rec.baseDimsCm?.d || 50)).toFixed(3));
+    applyTransformToSelectedGlb({ scale: [rec.scale[0], rec.scale[1], sz] });
+  });
+
+  document.getElementById('btn-glb-paint-all').addEventListener('click', () => {
+    if (selectedGlbId) paintGlbWholeModel(selectedGlbId);
+  });
+
+  document.getElementById('input-glb-color-all').addEventListener('change', (e) => {
+    if (selectedGlbId) colorGlbWholeModel(selectedGlbId, e.target.value || '#d4a359');
+  });
+
+  document.getElementById('btn-glb-reset-mat').addEventListener('click', () => {
+    if (selectedGlbId) resetGlbMaterials(selectedGlbId);
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (!selectedGlbId || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+    const k = e.key.toLowerCase();
+    if (k === 'w') { gizmoMode = 'translate'; syncTransformGizmo(); }
+    else if (k === 'e') { gizmoMode = 'rotate'; syncTransformGizmo(); }
+    else if (k === 'r') { gizmoMode = 'scale'; syncTransformGizmo(); }
+    else if (k === 'escape') { placeOnSurfaceMode = false; gizmoMode = 'none'; syncTransformGizmo(); syncGlbInspectorUI(); }
   });
 
   // ============================================================================
@@ -2847,18 +3727,46 @@ async function init() {
       return;
     }
 
+    if (placeOnSurfaceMode && selectedGlbId) {
+      renderer.domElement.style.cursor = 'crosshair';
+      tooltipEl.style.left = `${e.clientX}px`;
+      tooltipEl.style.top = `${e.clientY}px`;
+      ttTitleEl.textContent = `📍 ${getSelectedGlbRecord()?.name || '.glb'}`;
+      ttDimsEl.textContent = '';
+      ttSubEl.textContent = I18N[currentLang].placeSurfaceActive;
+      tooltipEl.classList.add('visible');
+      return;
+    }
+
     raycaster.setFromCamera(pointer, camera);
-    const targetList = paintModeActive ? paintableMeshes : interactiveMeshes;
+    const targetList = paintModeActive ? paintableMeshes : [...interactiveMeshes, ...importedMeshes];
     const hits = raycaster.intersectObjects(targetList, false);
 
     if (hits.length > 0) {
       const hitMesh = hits[0].object;
       const gid = hitMesh.userData.groupId;
+      const impId = hitMesh.userData.importedModelId;
       const dict = I18N[currentLang];
       const activeMat = getActiveCustomMat();
       const activeMatLabel = activeMat ? activeMat.name : 'Alb (Default)';
 
-      if (interactiveMap[gid]) {
+      if (impId && importedMap[impId]) {
+        setHoveredGroup(null);
+        const rec = importedModelsList.find(m => m.id === impId);
+        const wCm = Math.round((rec?.baseDimsCm?.w || 50) * (rec?.scale?.[0] || 1));
+        const hCm = Math.round((rec?.baseDimsCm?.h || 50) * (rec?.scale?.[1] || 1));
+        const dCm = Math.round((rec?.baseDimsCm?.d || 50) * (rec?.scale?.[2] || 1));
+        renderer.domElement.style.cursor = 'pointer';
+        tooltipEl.style.left = `${e.clientX}px`;
+        tooltipEl.style.top = `${e.clientY}px`;
+        ttTitleEl.textContent = `📦 ${rec ? rec.name : 'Model 3D'}`;
+        ttDimsEl.textContent = `📏 ${wCm} × ${hCm} × ${dCm} cm`;
+        ttSubEl.textContent = paintModeActive
+          ? `${dict.clickToPaint}${activeMatLabel}`
+          : dict.gizmoMove;
+        tooltipEl.classList.add('visible');
+        return;
+      } else if (interactiveMap[gid]) {
         setHoveredGroup(gid);
         if (dimsEnabled) updatePartDimensions3D(gid);
         const item = interactiveMap[gid];
@@ -2923,21 +3831,46 @@ async function init() {
 
       // 1. Tape Measure Mode
       if (dimsEnabled && dimMode === 'tape') {
-        const allHits = raycaster.intersectObjects(allKitchenMeshes, false);
+        const allHits = raycaster.intersectObjects([...allKitchenMeshes, ...importedMeshes], false);
         if (allHits.length > 0) {
           handleTapeMeasureClick(allHits[0].point);
         }
         return;
       }
 
-      // 2. 3D Material Paint Mode (Apply Selected/Uploaded Material to Clicked Unit)
+      // 1.5. Place Selected .GLB Model on Clicked Surface (Floor, Countertop, Shelf, Table)
+      if (placeOnSurfaceMode && selectedGlbId && importedMap[selectedGlbId]) {
+        const surfaceHits = raycaster.intersectObjects([floor, ...allKitchenMeshes], false);
+        if (surfaceHits.length > 0) {
+          const pt = surfaceHits[0].point;
+          applyTransformToSelectedGlb({
+            position: [
+              Number(pt.x.toFixed(3)),
+              Number(Math.max(0, pt.y).toFixed(3)),
+              Number(pt.z.toFixed(3))
+            ]
+          });
+          placeOnSurfaceMode = false;
+          syncGlbInspectorUI();
+          showMobileToast(`📍 ${getSelectedGlbRecord()?.name || 'Model'} plasat la (${Math.round(pt.x * 100)}, ${Math.round(pt.y * 100)}, ${Math.round(pt.z * 100)} cm)`);
+        }
+        return;
+      }
+
+      // 2. 3D Material Paint Mode (Apply Selected/Uploaded Material to Clicked Unit or .GLB Sub-Mesh)
       if (paintModeActive) {
         const paintHits = raycaster.intersectObjects(paintableMeshes, false);
         if (paintHits.length > 0) {
           const hitMesh = paintHits[0].object;
           const gid = hitMesh.userData.groupId;
+          const impId = hitMesh.userData.importedModelId;
           const activeMat = getActiveCustomMat();
-          if (interactiveMap[gid]) {
+          if (impId && importedMap[impId]) {
+            selectedGlbId = impId;
+            syncTransformGizmo();
+            renderGlbModelsUI();
+            paintGlbSubMesh(impId, hitMesh.userData.subMeshIdx || 0);
+          } else if (interactiveMap[gid]) {
             applyMaterialToInteractivePart(gid, activeMat, true);
           } else if (hitMesh.userData.staticZone) {
             applyMaterialToStaticZone(hitMesh.userData.staticZone, activeMat, true);
@@ -2946,8 +3879,21 @@ async function init() {
         return;
       }
 
-      // 3. Normal Open/Close Door & Drawer Mode
+      // 3. Normal Mode: Click on Imported .GLB Model to Select & Attach 3D Gizmo, or Open/Close Kitchen Door/Drawer
+      const impHits = raycaster.intersectObjects(importedMeshes, false);
       const hits = raycaster.intersectObjects(interactiveMeshes, false);
+      if (impHits.length > 0 && (hits.length === 0 || impHits[0].distance <= hits[0].distance)) {
+        const impId = impHits[0].object.userData.importedModelId;
+        if (impId && importedMap[impId]) {
+          selectedGlbId = impId;
+          if (gizmoMode === 'none') gizmoMode = 'translate';
+          syncTransformGizmo();
+          renderGlbModelsUI();
+          syncGlbInspectorUI();
+        }
+        return;
+      }
+
       if (hits.length > 0) {
         const gid = hits[0].object.userData.groupId;
         toggleInteractive(gid, null, true);
@@ -3085,6 +4031,8 @@ async function init() {
     buildPartsListUI();
     renderCustomMaterialGrid();
     syncStudioControlsUI();
+    renderGlbModelsUI();
+    syncGlbInspectorUI();
     updateLightingFromState();
     if (dimsEnabled) syncDimensionUI();
   }

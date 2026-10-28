@@ -37,7 +37,7 @@ export async function writePersistedData(dataObj) {
       window.localStorage.setItem(LS_KEY, JSON.stringify(dataObj));
     }
   } catch (e) {
-    // Ignore localStorage quota errors since IndexedDB stores large textures
+    // Ignore localStorage quota errors since IndexedDB stores large textures & .glb binaries
   }
 }
 

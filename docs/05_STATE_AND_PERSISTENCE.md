@@ -67,7 +67,31 @@
     "angleDeg": 32,
     "heightM": 4.8,
     "distM": 4.5
-  }
+  },
+  "importedModels": [
+    {
+      "id": "glb_1730120000_812",
+      "name": "Scaun Bar",
+      "b64Data": "glTF...",
+      "position": [1.85, 0.0, 2.15],
+      "rotationYDeg": 0,
+      "scale": [1.0, 1.0, 1.0],
+      "subParts": [
+        {
+          "subIdx": 0,
+          "name": "Picioare",
+          "colorHex": "#222222",
+          "assignedMatId": null
+        },
+        {
+          "subIdx": 1,
+          "name": "Șezut",
+          "colorHex": "#ffffff",
+          "assignedMatId": "custom_tex_1730118000_412"
+        }
+      ]
+    }
+  ]
 }
 ```
 

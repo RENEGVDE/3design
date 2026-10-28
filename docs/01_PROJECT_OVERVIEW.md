@@ -45,3 +45,10 @@ This project provides an interactive 3D CAD visualization and customization plat
    - Automatically saves and restores all uploaded textures, colors, surface assignments, open/closed doors & drawers, lighting settings, and language.
 8. **Modular Refactor to Vinext**:
    - Migrated the codebase to **Vinext** (`vinext@1.3.1` — Next.js App Router on Vite 8 + React 19 + Three.js) so new features can be developed rapidly in clean, modular React components.
+9. **3D `.glb` / `.gltf` Model Importer (Placement, Resize & Material Customization)**:
+   - Users can upload any `.glb` or `.gltf` 3D model (appliances, chairs, tables, lamps, decor) directly into the 3D scene (`src/utils/glbImporter.js`, `src/components/GlbImporterSection.jsx`).
+   - **Auto-Unit & Bottom-Center Normalization**: Automatically detects `mm` / `cm` / `m` scale and shifts the model's pivot to its bottom-center so `Y = 0` sits flush on the floor and `Y = 90 cm` sits flush on the countertop.
+   - **Interactive Placement**: Includes a 3D `TransformControls` gizmo (`Move W`, `Rotate E`, `Scale R`), **Click-on-Surface Placement** (click any floor, countertop, or shelf to place the model there), quick snap buttons (`Floor Y=0`, `Countertop Y=90cm`, `±45°`), and `X / Y / Z / RotY` sliders.
+   - **Resize in `cm` & Scale**: Uniform scale slider (`0.1x–5.0x`), 3D scale gizmo, and direct `Width (X cm) × Height (Y cm) × Depth (Z cm)` numeric inputs.
+   - **Colors & Materials**: Apply any uploaded texture photo or solid color from the Material Studio to the entire `.glb` model or to individual sub-meshes (including via 3D Click-to-Paint mode), pick custom colors per sub-mesh, or restore original `.glb` materials.
+   - **Full IndexedDB Persistence**: Imported `.glb` binaries (`b64Data`), transforms, dimensions, and material assignments are saved in `IndexedDB` and automatically restored on page refresh (`F5`).

@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 import {
@@ -27,11 +28,17 @@ import {
   renderPartDimensions3D,
   createPinMarker
 } from '../utils/dimensions3d.js';
+import {
+  loadGlbModelFromBuffer,
+  arrayBufferToBase64,
+  base64ToArrayBuffer
+} from '../utils/glbImporter.js';
 
 import TopBar from './TopBar.jsx';
 import DimensionToolbar from './DimensionToolbar.jsx';
 import CameraPresetsBar from './CameraPresetsBar.jsx';
 import MaterialStudioSection from './MaterialStudioSection.jsx';
+import GlbImporterSection from './GlbImporterSection.jsx';
 import LightingStudioSection from './LightingStudioSection.jsx';
 import InteractivePartsSection from './InteractivePartsSection.jsx';
 
@@ -82,6 +89,12 @@ export default function KitchenViewer() {
   const [activeMatId, setActiveMatId] = useState('mat_default_white');
   const [paintModeActive, setPaintModeActive] = useState(false);
 
+  // Imported .GLB Models State
+  const [importedModels, setImportedModels] = useState([]);
+  const [selectedGlbId, setSelectedGlbId] = useState(null);
+  const [gizmoMode, setGizmoMode] = useState('translate');
+  const [placeOnSurfaceMode, setPlaceOnSurfaceMode] = useState(false);
+
   const [xrayActive, setXrayActive] = useState(false);
   const [countertopHidden, setCountertopHidden] = useState(false);
   const [edgesVisible, setEdgesVisible] = useState(true);
@@ -115,12 +128,15 @@ export default function KitchenViewer() {
     }, 2200);
   }, []);
 
-  // Keep latest state in a ref for Three.js event handlers & persistence
   const stateRef = useRef({
     lang,
     materials,
     activeMatId,
     paintModeActive,
+    importedModels,
+    selectedGlbId,
+    gizmoMode,
+    placeOnSurfaceMode,
     xrayActive,
     dimsEnabled,
     dimMode,
@@ -132,6 +148,10 @@ export default function KitchenViewer() {
       materials,
       activeMatId,
       paintModeActive,
+      importedModels,
+      selectedGlbId,
+      gizmoMode,
+      placeOnSurfaceMode,
       xrayActive,
       dimsEnabled,
       dimMode,
@@ -142,6 +162,10 @@ export default function KitchenViewer() {
     materials,
     activeMatId,
     paintModeActive,
+    importedModels,
+    selectedGlbId,
+    gizmoMode,
+    placeOnSurfaceMode,
     xrayActive,
     dimsEnabled,
     dimMode,
@@ -165,51 +189,61 @@ export default function KitchenViewer() {
     setPartsMeta(nextMeta);
   }, []);
 
-  const persistWorkspace = useCallback(
-    (overrides = {}) => {
-      const ctx = sceneRef.current;
-      if (!ctx || ctx.isRestoring) return;
+  const persistWorkspace = useCallback((overrides = {}) => {
+    const ctx = sceneRef.current;
+    if (!ctx || ctx.isRestoring) return;
 
-      const curLang = overrides.lang ?? stateRef.current.lang;
-      const curMats = overrides.materials ?? stateRef.current.materials;
-      const curActiveId = overrides.activeMatId ?? stateRef.current.activeMatId;
-      const curLight = overrides.lightState ?? stateRef.current.lightState;
+    const curLang = overrides.lang ?? stateRef.current.lang;
+    const curMats = overrides.materials ?? stateRef.current.materials;
+    const curActiveId = overrides.activeMatId ?? stateRef.current.activeMatId;
+    const curLight = overrides.lightState ?? stateRef.current.lightState;
+    const curImported =
+      overrides.importedModels ?? stateRef.current.importedModels;
 
-      const serializedMats = curMats.map((m) => ({
-        id: m.id,
-        name: m.name,
-        type: m.type,
-        colorHex: m.colorHex,
-        dataUrl: m.dataUrl || null,
-        thumbCss: m.thumbCss,
-        scale: m.scale,
-        rotate90: m.rotate90,
-        finishIdx: m.finishIdx
-      }));
+    const serializedMats = curMats.map((m) => ({
+      id: m.id,
+      name: m.name,
+      type: m.type,
+      colorHex: m.colorHex,
+      dataUrl: m.dataUrl || null,
+      thumbCss: m.thumbCss,
+      scale: m.scale,
+      rotate90: m.rotate90,
+      finishIdx: m.finishIdx
+    }));
 
-      const partAssignments = {};
-      const openParts = {};
-      for (const spec of ctx.payload.specs) {
-        const item = ctx.interactiveMap[spec.id];
-        if (item) {
-          if (item.assignedMatId) partAssignments[spec.id] = item.assignedMatId;
-          if (item.isOpen) openParts[spec.id] = true;
-        }
+    const serializedImported = (curImported || []).map((im) => ({
+      id: im.id,
+      name: im.name,
+      b64Data: im.b64Data,
+      position: im.position,
+      rotationYDeg: im.rotationYDeg,
+      scale: im.scale,
+      subParts: im.subParts
+    }));
+
+    const partAssignments = {};
+    const openParts = {};
+    for (const spec of ctx.payload.specs) {
+      const item = ctx.interactiveMap[spec.id];
+      if (item) {
+        if (item.assignedMatId) partAssignments[spec.id] = item.assignedMatId;
+        if (item.isOpen) openParts[spec.id] = true;
       }
+    }
 
-      writePersistedData({
-        version: 1,
-        lang: curLang,
-        activeCustomMatId: curActiveId,
-        materials: serializedMats,
-        partAssignments,
-        staticZoneAssignments: { ...ctx.staticZoneAssignments },
-        openParts,
-        lightState: { ...curLight }
-      });
-    },
-    []
-  );
+    writePersistedData({
+      version: 1,
+      lang: curLang,
+      activeCustomMatId: curActiveId,
+      materials: serializedMats,
+      partAssignments,
+      staticZoneAssignments: { ...ctx.staticZoneAssignments },
+      openParts,
+      lightState: { ...curLight },
+      importedModels: serializedImported
+    });
+  }, []);
 
   // Mesh Material Helper Functions
   const applyDefaultWhiteToMesh = useCallback((mesh, isXray) => {
@@ -264,7 +298,8 @@ export default function KitchenViewer() {
     const ctx = sceneRef.current;
     if (!ctx) return;
     ctx.selectedPartId = partId;
-    if (!stateRef.current.dimsEnabled || stateRef.current.dimMode === 'tape') return;
+    if (!stateRef.current.dimsEnabled || stateRef.current.dimMode === 'tape')
+      return;
 
     const item = renderPartDimensions3D({
       partId,
@@ -282,6 +317,139 @@ export default function KitchenViewer() {
     } else {
       setActiveDimInfo(null);
     }
+  }, []);
+
+  // Helper to mount a parsed .GLB model into the 3D scene and register its meshes
+  const mountParsedGlbIntoScene = useCallback(
+    async (
+      arrayBuffer,
+      b64Data,
+      modelId,
+      modelName,
+      initTransform = null,
+      savedSubParts = null,
+      availableMats = []
+    ) => {
+      const ctx = sceneRef.current;
+      if (!ctx) return null;
+
+      const parsed = await loadGlbModelFromBuffer(
+        arrayBuffer,
+        modelId,
+        modelName
+      );
+      const pos =
+        initTransform && initTransform.position
+          ? initTransform.position
+          : [1.85, 0.0, 2.15];
+      const rotYDeg =
+        initTransform && typeof initTransform.rotationYDeg === 'number'
+          ? initTransform.rotationYDeg
+          : 0;
+      const scl =
+        initTransform && initTransform.scale
+          ? initTransform.scale
+          : [1.0, 1.0, 1.0];
+
+      parsed.wrapperGroup.position.set(pos[0], pos[1], pos[2]);
+      parsed.wrapperGroup.rotation.set(
+        0,
+        THREE.MathUtils.degToRad(rotYDeg),
+        0
+      );
+      parsed.wrapperGroup.scale.set(scl[0], scl[1], scl[2]);
+
+      ctx.importedRootGroup.add(parsed.wrapperGroup);
+      ctx.importedMap[modelId] = parsed;
+
+      const finalSubParts = parsed.subPartsMeta.map((sp, idx) => {
+        const savedSp =
+          savedSubParts && savedSubParts[idx] ? savedSubParts[idx] : null;
+        const mesh = parsed.meshes[idx];
+        if (savedSp && mesh) {
+          if (savedSp.assignedMatId) {
+            const matEntry = availableMats.find(
+              (m) => m.id === savedSp.assignedMatId
+            );
+            if (matEntry) {
+              applyMatEntryToMesh(mesh, matEntry, stateRef.current.xrayActive);
+              return {
+                ...sp,
+                assignedMatId: matEntry.id,
+                colorHex: matEntry.colorHex || sp.colorHex
+              };
+            }
+          } else if (savedSp.colorHex) {
+            mesh.material.map = null;
+            mesh.material.color.set(savedSp.colorHex);
+            mesh.material.needsUpdate = true;
+            return {
+              ...sp,
+              colorHex: savedSp.colorHex,
+              assignedMatId: null
+            };
+          }
+        }
+        return sp;
+      });
+
+      for (const m of parsed.meshes) {
+        ctx.importedMeshes.push(m);
+        ctx.paintableMeshes.push(m);
+      }
+
+      return {
+        id: modelId,
+        name: modelName,
+        b64Data,
+        position: pos,
+        rotationYDeg: rotYDeg,
+        scale: scl,
+        baseDimsCm: parsed.baseDimsCm,
+        subParts: finalSubParts
+      };
+    },
+    [applyMatEntryToMesh]
+  );
+
+  // Sync TransformControls gizmo attachment & mode
+  useEffect(() => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.transformControls) return;
+    const tc = ctx.transformControls;
+
+    if (!selectedGlbId || !gizmoMode || !ctx.importedMap[selectedGlbId]) {
+      tc.detach();
+      tc.visible = false;
+      return;
+    }
+
+    const entry = ctx.importedMap[selectedGlbId];
+    tc.setMode(gizmoMode);
+    tc.attach(entry.wrapperGroup);
+    tc.visible = true;
+  }, [selectedGlbId, gizmoMode, importedModels, loading]);
+
+  // Keyboard shortcuts for TransformControls (W = Move, E = Rotate, R = Scale, Esc = Hide)
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (
+        !stateRef.current.selectedGlbId ||
+        ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)
+      ) {
+        return;
+      }
+      const k = e.key.toLowerCase();
+      if (k === 'w') setGizmoMode('translate');
+      else if (k === 'e') setGizmoMode('rotate');
+      else if (k === 'r') setGizmoMode('scale');
+      else if (k === 'escape') {
+        setGizmoMode(null);
+        setPlaceOnSurfaceMode(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
   // Initialize Three.js Scene
@@ -303,7 +471,8 @@ export default function KitchenViewer() {
       container.innerHTML = '';
 
       const isMobile =
-        window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 768;
+        window.matchMedia('(pointer: coarse)').matches ||
+        window.innerWidth <= 768;
 
       const scene = new THREE.Scene();
       scene.background = new THREE.Color(0x121419);
@@ -321,7 +490,9 @@ export default function KitchenViewer() {
         powerPreference: 'high-performance'
       });
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.75 : 2));
+      renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio, isMobile ? 1.75 : 2)
+      );
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -347,6 +518,53 @@ export default function KitchenViewer() {
         ONE: THREE.TOUCH.ROTATE,
         TWO: THREE.TOUCH.DOLLY_PAN
       };
+
+      // 3D TransformControls Gizmo for Imported .GLB Models
+      const transformControls = new TransformControls(
+        camera,
+        renderer.domElement
+      );
+      transformControls.setSize(isMobile ? 0.95 : 0.8);
+      transformControls.visible = false;
+      scene.add(transformControls);
+
+      transformControls.addEventListener('dragging-changed', (event) => {
+        controls.enabled = !event.value;
+        if (!event.value && stateRef.current.selectedGlbId) {
+          const gid = stateRef.current.selectedGlbId;
+          const entry = sceneRef.current?.importedMap?.[gid];
+          if (entry) {
+            const p = entry.wrapperGroup.position;
+            const ry = THREE.MathUtils.radToDeg(entry.wrapperGroup.rotation.y);
+            const s = entry.wrapperGroup.scale;
+            const nextPos = [
+              Math.round(p.x * 1000) / 1000,
+              Math.round(Math.max(0, p.y) * 1000) / 1000,
+              Math.round(p.z * 1000) / 1000
+            ];
+            const nextRot = Math.round(ry);
+            const nextScale = [
+              Math.max(0.05, Math.round(s.x * 1000) / 1000),
+              Math.max(0.05, Math.round(s.y * 1000) / 1000),
+              Math.max(0.05, Math.round(s.z * 1000) / 1000)
+            ];
+            setImportedModels((prev) => {
+              const updated = prev.map((im) =>
+                im.id === gid
+                  ? {
+                      ...im,
+                      position: nextPos,
+                      rotationYDeg: nextRot,
+                      scale: nextScale
+                    }
+                  : im
+              );
+              persistWorkspace({ importedModels: updated });
+              return updated;
+            });
+          }
+        }
+      });
 
       // Studio Lighting
       const LIGHT_CENTER = new THREE.Vector3(1.85, 1.15, 1.05);
@@ -385,7 +603,10 @@ export default function KitchenViewer() {
       scene.add(lightOrbGroup);
 
       const orbMat = new THREE.MeshBasicMaterial({ color: 0xfff5e4 });
-      const orbMesh = new THREE.Mesh(new THREE.SphereGeometry(0.11, 20, 20), orbMat);
+      const orbMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.11, 20, 20),
+        orbMat
+      );
       const haloMat = new THREE.MeshBasicMaterial({
         color: 0xffd89b,
         transparent: true,
@@ -437,6 +658,11 @@ export default function KitchenViewer() {
       kitchenRoot.scale.set(0.001, 0.001, 0.001);
       scene.add(kitchenRoot);
 
+      // Container for Imported .GLB Models
+      const importedRootGroup = new THREE.Group();
+      importedRootGroup.name = 'imported_glb_root';
+      scene.add(importedRootGroup);
+
       const staticGroups = [
         'static_carcass',
         'static_countertop',
@@ -457,6 +683,8 @@ export default function KitchenViewer() {
       const paintableMeshes = [];
       const allKitchenMeshes = [];
       const edgeLines = [];
+      const importedMap = {};
+      const importedMeshes = [];
 
       const staticTargets = {
         countertop: [],
@@ -522,7 +750,6 @@ export default function KitchenViewer() {
           b.it === 'uint32' ? Uint32Array : Uint16Array
         );
 
-        // Box-projected UV coordinates (500 mm = 1.0 UV unit)
         const uvArr = new Float32Array(b.vc * 2);
         for (let i = 0; i < b.vc; i++) {
           const px = posArr[i * 3] * 0.002;
@@ -618,7 +845,6 @@ export default function KitchenViewer() {
         }
       }
 
-      // Compute exact Width, Height, Depth in cm for each interactive part
       for (const id in interactiveMap) {
         const item = interactiveMap[id];
         const dxCm = (item.bboxMm.max[0] - item.bboxMm.min[0]) / 10.0;
@@ -637,7 +863,6 @@ export default function KitchenViewer() {
         };
       }
 
-      // 3D CAD Dimension Overlay Groups
       const dimsRootGroup = new THREE.Group();
       dimsRootGroup.visible = false;
       scene.add(dimsRootGroup);
@@ -658,6 +883,8 @@ export default function KitchenViewer() {
         camera,
         renderer,
         controls,
+        transformControls,
+        floorMesh,
         LIGHT_CENTER,
         ambientLight,
         mainLight,
@@ -675,6 +902,9 @@ export default function KitchenViewer() {
         paintableMeshes,
         allKitchenMeshes,
         edgeLines,
+        importedRootGroup,
+        importedMap,
+        importedMeshes,
         staticTargets,
         staticZoneAssignments,
         dimsRootGroup,
@@ -690,7 +920,6 @@ export default function KitchenViewer() {
       sceneRef.current = ctx;
       setSpecs(payload.specs);
 
-      // Fly to initial overview camera
       const initPreset = CAM_PRESETS.overview;
       const portraitScale = window.innerHeight > window.innerWidth ? 1.25 : 1.0;
       const tVec = new THREE.Vector3(...initPreset.target);
@@ -705,12 +934,12 @@ export default function KitchenViewer() {
       // Restore persisted workspace from IndexedDB / localStorage
       ctx.isRestoring = true;
       const saved = await readPersistedData();
+      let restoredMats = [INITIAL_WHITE_MAT];
       if (saved && saved.version === 1) {
         if (saved.lang && I18N[saved.lang]) {
           setLang(saved.lang);
           stateRef.current.lang = saved.lang;
         }
-        let restoredMats = [INITIAL_WHITE_MAT];
         if (Array.isArray(saved.materials)) {
           restoredMats = [];
           for (const sm of saved.materials) {
@@ -804,6 +1033,39 @@ export default function KitchenViewer() {
           setLightState(mergedLight);
           stateRef.current.lightState = mergedLight;
         }
+
+        // Restore Imported .GLB Models from IndexedDB
+        if (Array.isArray(saved.importedModels) && saved.importedModels.length) {
+          const restoredGlbs = [];
+          for (const sim of saved.importedModels) {
+            if (!sim.b64Data) continue;
+            try {
+              const buf = base64ToArrayBuffer(sim.b64Data);
+              const mounted = await mountParsedGlbIntoScene(
+                buf,
+                sim.b64Data,
+                sim.id,
+                sim.name,
+                {
+                  position: sim.position,
+                  rotationYDeg: sim.rotationYDeg,
+                  scale: sim.scale
+                },
+                sim.subParts,
+                restoredMats
+              );
+              if (mounted) restoredGlbs.push(mounted);
+            } catch (e) {
+              console.warn('Failed to restore imported GLB:', e);
+            }
+          }
+          setImportedModels(restoredGlbs);
+          stateRef.current.importedModels = restoredGlbs;
+          if (restoredGlbs.length > 0) {
+            setSelectedGlbId(restoredGlbs[0].id);
+            stateRef.current.selectedGlbId = restoredGlbs[0].id;
+          }
+        }
       }
       ctx.isRestoring = false;
       syncPartsMetaToReact();
@@ -850,30 +1112,62 @@ export default function KitchenViewer() {
           dimsEnabled: curDims,
           dimMode: curDimMode,
           paintModeActive: curPaint,
+          placeOnSurfaceMode: curPlaceSurface,
           lang: curLang,
           materials: curMats,
           activeMatId: curActiveMatId
         } = stateRef.current;
 
-        if (curDims && curDimMode === 'tape') {
+        if ((curDims && curDimMode === 'tape') || curPlaceSurface) {
           renderer.domElement.style.cursor = 'crosshair';
-          setTooltip((prev) => (prev.visible ? { ...prev, visible: false } : prev));
+          setTooltip((prev) =>
+            prev.visible ? { ...prev, visible: false } : prev
+          );
           return;
         }
 
         raycaster.setFromCamera(pointer, camera);
-        const targetList = curPaint ? paintableMeshes : interactiveMeshes;
+        const targetList = curPaint
+          ? paintableMeshes
+          : [...importedMeshes, ...interactiveMeshes];
         const hits = raycaster.intersectObjects(targetList, false);
 
         if (hits.length > 0) {
           const hitMesh = hits[0].object;
           const gid = hitMesh.userData.groupId;
+          const impId = hitMesh.userData.importedModelId;
           const dict = I18N[curLang] || I18N.ro;
           const activeMat =
             curMats.find((m) => m.id === curActiveMatId) || curMats[0] || null;
           const activeMatLabel = activeMat ? activeMat.name : 'Alb (Default)';
 
-          if (interactiveMap[gid]) {
+          if (impId && importedMap[impId]) {
+            setHoveredGroup3D(null);
+            renderer.domElement.style.cursor = 'pointer';
+            const impEntry = stateRef.current.importedModels.find(
+              (x) => x.id === impId
+            );
+            const impName = impEntry
+              ? impEntry.name
+              : importedMap[impId].name;
+            setTooltip({
+              visible: true,
+              x: e.clientX,
+              y: e.clientY,
+              title: `📦 ${impName}`,
+              dims: impEntry
+                ? `📏 ${fmtCm(
+                    impEntry.baseDimsCm.w * impEntry.scale[0]
+                  )} × ${fmtCm(
+                    impEntry.baseDimsCm.h * impEntry.scale[1]
+                  )} × ${fmtCm(impEntry.baseDimsCm.d * impEntry.scale[2])} cm`
+                : '',
+              sub: curPaint
+                ? `${dict.clickToPaint}${activeMatLabel}`
+                : 'Click pt. Selectare & Mutare 3D'
+            });
+            return;
+          } else if (interactiveMap[gid]) {
             setHoveredGroup3D(gid);
             if (curDims) update3DDimensionsDisplay(gid);
             const item = interactiveMap[gid];
@@ -909,7 +1203,9 @@ export default function KitchenViewer() {
         setHoveredGroup3D(null);
         if (curDims) update3DDimensionsDisplay(ctx.selectedPartId);
         renderer.domElement.style.cursor = 'grab';
-        setTooltip((prev) => (prev.visible ? { ...prev, visible: false } : prev));
+        setTooltip((prev) =>
+          prev.visible ? { ...prev, visible: false } : prev
+        );
       };
 
       const onPointerDown = (e) => {
@@ -930,6 +1226,7 @@ export default function KitchenViewer() {
       const onPointerUp = (e) => {
         activePointers.delete(e.pointerId);
         if (hadMultiTouch) return;
+        if (transformControls.dragging) return;
 
         const dx = e.clientX - pointerDownPos.x;
         const dy = e.clientY - pointerDownPos.y;
@@ -946,15 +1243,57 @@ export default function KitchenViewer() {
             dimsEnabled: curDims,
             dimMode: curDimMode,
             paintModeActive: curPaint,
+            placeOnSurfaceMode: curPlaceSurface,
+            selectedGlbId: curSelGlbId,
             materials: curMats,
             activeMatId: curActiveMatId,
             xrayActive: curXray,
             lang: curLang
           } = stateRef.current;
 
+          // 0. Click-on-Surface to Place Selected .GLB Model
+          if (curPlaceSurface && curSelGlbId && importedMap[curSelGlbId]) {
+            const surfaceHits = raycaster.intersectObjects(
+              [floorMesh, ...allKitchenMeshes],
+              false
+            );
+            if (surfaceHits.length > 0) {
+              const pt = surfaceHits[0].point;
+              const nextPos = [
+                Math.round(pt.x * 1000) / 1000,
+                Math.round(Math.max(0, pt.y) * 1000) / 1000,
+                Math.round(pt.z * 1000) / 1000
+              ];
+              importedMap[curSelGlbId].wrapperGroup.position.set(
+                nextPos[0],
+                nextPos[1],
+                nextPos[2]
+              );
+              setImportedModels((prev) => {
+                const updated = prev.map((im) =>
+                  im.id === curSelGlbId ? { ...im, position: nextPos } : im
+                );
+                persistWorkspace({ importedModels: updated });
+                return updated;
+              });
+              setPlaceOnSurfaceMode(false);
+              showToast(
+                `📍 Model plasat la X:${(nextPos[0] * 100).toFixed(
+                  0
+                )} Y:${(nextPos[1] * 100).toFixed(0)} Z:${(
+                  nextPos[2] * 100
+                ).toFixed(0)} cm`
+              );
+            }
+            return;
+          }
+
           // 1. Tape Measure Mode
           if (curDims && curDimMode === 'tape') {
-            const allHits = raycaster.intersectObjects(allKitchenMeshes, false);
+            const allHits = raycaster.intersectObjects(
+              [...allKitchenMeshes, ...importedMeshes],
+              false
+            );
             if (allHits.length > 0) {
               const hitPoint = allHits[0].point;
               if (!ctx.tapePointA) {
@@ -990,19 +1329,42 @@ export default function KitchenViewer() {
             return;
           }
 
-          // 2. 3D Click-to-Paint Mode
+          // 2. 3D Click-to-Paint Mode (Works on both Kitchen & Imported .GLB Models!)
           if (curPaint) {
             const paintHits = raycaster.intersectObjects(paintableMeshes, false);
             if (paintHits.length > 0) {
               const hitMesh = paintHits[0].object;
               const gid = hitMesh.userData.groupId;
+              const impId = hitMesh.userData.importedModelId;
+              const subIdx = hitMesh.userData.subMeshIdx;
               const activeMat =
                 curMats.find((m) => m.id === curActiveMatId) ||
                 curMats[0] ||
                 null;
               const dict = I18N[curLang] || I18N.ro;
 
-              if (interactiveMap[gid] && activeMat) {
+              if (impId && importedMap[impId] && activeMat) {
+                applyMatEntryToMesh(hitMesh, activeMat, curXray);
+                setSelectedGlbId(impId);
+                setImportedModels((prev) => {
+                  const updated = prev.map((im) => {
+                    if (im.id !== impId) return im;
+                    const nextSubs = (im.subParts || []).map((sp) =>
+                      sp.subIdx === subIdx
+                        ? {
+                            ...sp,
+                            assignedMatId: activeMat.id,
+                            colorHex: activeMat.colorHex || sp.colorHex
+                          }
+                        : sp
+                    );
+                    return { ...im, subParts: nextSubs };
+                  });
+                  persistWorkspace({ importedModels: updated });
+                  return updated;
+                });
+                showToast(`🎨 ${dict.appliedToast}${activeMat.name}`);
+              } else if (interactiveMap[gid] && activeMat) {
                 const item = interactiveMap[gid];
                 item.assignedMatId = activeMat.id;
                 const targets = item.facadeMeshes.length
@@ -1029,10 +1391,22 @@ export default function KitchenViewer() {
             return;
           }
 
-          // 3. Open / Close Interactive Door or Drawer
-          const hits = raycaster.intersectObjects(interactiveMeshes, false);
+          // 3. Normal Click: Check Imported .GLB Models first (Select & Show 3D Gizmo), then Kitchen Doors/Drawers
+          const hits = raycaster.intersectObjects(
+            [...importedMeshes, ...interactiveMeshes],
+            false
+          );
           if (hits.length > 0) {
-            const gid = hits[0].object.userData.groupId;
+            const hitObj = hits[0].object;
+            if (hitObj.userData.importedModelId) {
+              const impId = hitObj.userData.importedModelId;
+              setSelectedGlbId(impId);
+              if (!stateRef.current.gizmoMode) {
+                setGizmoMode('translate');
+              }
+              return;
+            }
+            const gid = hitObj.userData.groupId;
             if (ctx.toggleInteractivePart) {
               ctx.toggleInteractivePart(gid, null, true);
             }
@@ -1134,6 +1508,7 @@ export default function KitchenViewer() {
     };
   }, [
     applyMatEntryToMesh,
+    mountParsedGlbIntoScene,
     persistWorkspace,
     showToast,
     syncPartsMetaToReact,
@@ -1201,7 +1576,6 @@ export default function KitchenViewer() {
       item.isOpen = nextOpen;
       item.target = nextOpen ? 1 : 0;
 
-      // Coupled hidden inner cutlery drawer logic (B15 inside B14)
       if (
         id === 'drawer_b15' &&
         nextOpen &&
@@ -1247,6 +1621,288 @@ export default function KitchenViewer() {
     }
   }, [toggleInteractivePart, loading]);
 
+  // ============================================================================
+  // IMPORTED .GLB MODELS HANDLERS (Import, Transform, Resize, Paint & Delete)
+  // ============================================================================
+  const handleImportGlbFiles = (files) => {
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        try {
+          const arrayBuffer = ev.target.result;
+          const b64Data = arrayBufferToBase64(arrayBuffer);
+          const cleanName =
+            file.name.replace(/\.[^/.]+$/, '').slice(0, 26) || 'Model 3D';
+          const newId =
+            'glb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+
+          // Offset position slightly if multiple models are imported
+          const count = stateRef.current.importedModels.length;
+          const initPos = [1.85 + count * 0.35, 0.0, 2.15];
+
+          const mounted = await mountParsedGlbIntoScene(
+            arrayBuffer,
+            b64Data,
+            newId,
+            cleanName,
+            { position: initPos, rotationYDeg: 0, scale: [1.0, 1.0, 1.0] },
+            null,
+            stateRef.current.materials
+          );
+          if (!mounted) return;
+
+          setImportedModels((prev) => {
+            const updated = [...prev, mounted];
+            setSelectedGlbId(newId);
+            setGizmoMode('translate');
+            persistWorkspace({ importedModels: updated });
+            return updated;
+          });
+          showToast(`📦 Model .GLB importat: ${cleanName}`);
+        } catch (err) {
+          console.error('Error importing GLB:', err);
+          showToast('❌ Eroare la citirea fișierului .GLB');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const handleDeleteGlb = (modelId) => {
+    const ctx = sceneRef.current;
+    if (ctx && ctx.importedMap[modelId]) {
+      const entry = ctx.importedMap[modelId];
+      if (ctx.transformControls.object === entry.wrapperGroup) {
+        ctx.transformControls.detach();
+        ctx.transformControls.visible = false;
+      }
+      ctx.importedRootGroup.remove(entry.wrapperGroup);
+      ctx.importedMeshes = ctx.importedMeshes.filter(
+        (m) => m.userData.importedModelId !== modelId
+      );
+      ctx.paintableMeshes = ctx.paintableMeshes.filter(
+        (m) => m.userData.importedModelId !== modelId
+      );
+      delete ctx.importedMap[modelId];
+    }
+
+    setImportedModels((prev) => {
+      const updated = prev.filter((im) => im.id !== modelId);
+      if (selectedGlbId === modelId) {
+        setSelectedGlbId(updated[0] ? updated[0].id : null);
+      }
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+  };
+
+  const handleDuplicateGlb = async (modelId) => {
+    const src = importedModels.find((im) => im.id === modelId);
+    if (!src || !src.b64Data) return;
+    const buf = base64ToArrayBuffer(src.b64Data);
+    const newId = 'glb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    const nextPos = [
+      src.position[0] + 0.35,
+      src.position[1],
+      src.position[2]
+    ];
+    const mounted = await mountParsedGlbIntoScene(
+      buf,
+      src.b64Data,
+      newId,
+      `${src.name} (Copie)`,
+      {
+        position: nextPos,
+        rotationYDeg: src.rotationYDeg,
+        scale: [...src.scale]
+      },
+      src.subParts,
+      materials
+    );
+    if (!mounted) return;
+    setImportedModels((prev) => {
+      const updated = [...prev, mounted];
+      setSelectedGlbId(newId);
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+    showToast(`📋 Duplicat: ${src.name}`);
+  };
+
+  const handleUpdateGlbTransform = (modelId, changes) => {
+    const ctx = sceneRef.current;
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const nextPos = changes.position ?? im.position;
+        const nextRot = changes.rotationYDeg ?? im.rotationYDeg;
+        const nextScale = changes.scale ?? im.scale;
+
+        if (ctx && ctx.importedMap[modelId]) {
+          const wg = ctx.importedMap[modelId].wrapperGroup;
+          wg.position.set(nextPos[0], nextPos[1], nextPos[2]);
+          wg.rotation.set(0, THREE.MathUtils.degToRad(nextRot), 0);
+          wg.scale.set(nextScale[0], nextScale[1], nextScale[2]);
+        }
+
+        return {
+          ...im,
+          position: nextPos,
+          rotationYDeg: nextRot,
+          scale: nextScale
+        };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+  };
+
+  const handlePaintWholeGlbWithActiveMat = (modelId) => {
+    const ctx = sceneRef.current;
+    const activeMat =
+      materials.find((m) => m.id === activeMatId) || materials[0] || null;
+    if (!ctx || !activeMat || !ctx.importedMap[modelId]) return;
+
+    const entry = ctx.importedMap[modelId];
+    for (const m of entry.meshes) {
+      applyMatEntryToMesh(m, activeMat, xrayActive);
+    }
+
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const nextSubs = (im.subParts || []).map((sp) => ({
+          ...sp,
+          assignedMatId: activeMat.id,
+          colorHex: activeMat.colorHex || sp.colorHex
+        }));
+        return { ...im, subParts: nextSubs };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+    showToast(`🎨 ${entry.name} → ${activeMat.name}`);
+  };
+
+  const handleColorWholeGlb = (modelId, hexColor) => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.importedMap[modelId]) return;
+    const entry = ctx.importedMap[modelId];
+    for (const m of entry.meshes) {
+      m.material.map = null;
+      m.material.color.set(hexColor);
+      m.material.userData.assignedMatId = null;
+      m.material.needsUpdate = true;
+    }
+
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const nextSubs = (im.subParts || []).map((sp) => ({
+          ...sp,
+          assignedMatId: null,
+          colorHex: hexColor
+        }));
+        return { ...im, subParts: nextSubs };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+  };
+
+  const handleResetGlbMaterials = (modelId) => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.importedMap[modelId]) return;
+    const entry = ctx.importedMap[modelId];
+    for (const m of entry.meshes) {
+      if (m.userData.originalGlbMaterial) {
+        m.material = m.userData.originalGlbMaterial.clone();
+        m.material.needsUpdate = true;
+      }
+    }
+
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const nextSubs = (im.subParts || []).map((sp, idx) => {
+          const mesh = entry.meshes[idx];
+          const origHex =
+            mesh && mesh.material && mesh.material.color
+              ? '#' + mesh.material.color.getHexString()
+              : '#e5e7eb';
+          return {
+            ...sp,
+            assignedMatId: null,
+            colorHex: origHex
+          };
+        });
+        return { ...im, subParts: nextSubs };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+    showToast('🔄 Materialele originale .GLB au fost restaurate');
+  };
+
+  const handlePaintGlbSubMeshWithActiveMat = (modelId, subIdx) => {
+    const ctx = sceneRef.current;
+    const activeMat =
+      materials.find((m) => m.id === activeMatId) || materials[0] || null;
+    if (!ctx || !activeMat || !ctx.importedMap[modelId]) return;
+
+    const entry = ctx.importedMap[modelId];
+    const mesh = entry.meshes[subIdx];
+    if (mesh) {
+      applyMatEntryToMesh(mesh, activeMat, xrayActive);
+    }
+
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const nextSubs = (im.subParts || []).map((sp) =>
+          sp.subIdx === subIdx
+            ? {
+                ...sp,
+                assignedMatId: activeMat.id,
+                colorHex: activeMat.colorHex || sp.colorHex
+              }
+            : sp
+        );
+        return { ...im, subParts: nextSubs };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+    showToast(`🎨 Sub-piesă → ${activeMat.name}`);
+  };
+
+  const handleColorGlbSubMesh = (modelId, subIdx, hexColor) => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.importedMap[modelId]) return;
+    const entry = ctx.importedMap[modelId];
+    const mesh = entry.meshes[subIdx];
+    if (mesh) {
+      mesh.material.map = null;
+      mesh.material.color.set(hexColor);
+      mesh.material.userData.assignedMatId = null;
+      mesh.material.needsUpdate = true;
+    }
+
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const nextSubs = (im.subParts || []).map((sp) =>
+          sp.subIdx === subIdx
+            ? { ...sp, assignedMatId: null, colorHex: hexColor }
+            : sp
+        );
+        return { ...im, subParts: nextSubs };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+  };
+
   // Quick Actions Handlers
   const handleOpenAll = () => {
     const ctx = sceneRef.current;
@@ -1263,7 +1919,9 @@ export default function KitchenViewer() {
   const handleToggleDrawers = () => {
     const ctx = sceneRef.current;
     if (!ctx) return;
-    const drawerSpecs = ctx.payload.specs.filter((s) => s.category === 'drawer');
+    const drawerSpecs = ctx.payload.specs.filter(
+      (s) => s.category === 'drawer'
+    );
     const anyClosed = drawerSpecs.some((s) => !ctx.interactiveMap[s.id].isOpen);
     drawerSpecs.forEach((s) => toggleInteractivePart(s.id, anyClosed));
   };
@@ -1449,7 +2107,6 @@ export default function KitchenViewer() {
       if (target && target.texture) target.texture.dispose();
       const next = prev.filter((m) => m.id !== matId);
 
-      // Revert any surfaces using this deleted material back to Default White
       if (ctx) {
         for (const spec of ctx.payload.specs) {
           const item = ctx.interactiveMap[spec.id];
@@ -1467,6 +2124,11 @@ export default function KitchenViewer() {
             for (const m of ctx.staticTargets[zKey] || []) {
               applyDefaultWhiteToMesh(m, xrayActive);
             }
+          }
+        }
+        for (const m of ctx.importedMeshes) {
+          if (m.material.userData.assignedMatId === matId) {
+            applyDefaultWhiteToMesh(m, xrayActive);
           }
         }
       }
@@ -1764,6 +2426,29 @@ export default function KitchenViewer() {
             </button>
           </div>
         </div>
+
+        <GlbImporterSection
+          lang={lang}
+          importedModels={importedModels}
+          selectedGlbId={selectedGlbId}
+          onSelectGlb={(id) => {
+            setSelectedGlbId(id);
+            if (!gizmoMode) setGizmoMode('translate');
+          }}
+          onImportGlbFiles={handleImportGlbFiles}
+          onDeleteGlb={handleDeleteGlb}
+          onDuplicateGlb={handleDuplicateGlb}
+          gizmoMode={gizmoMode}
+          onSetGizmoMode={setGizmoMode}
+          placeOnSurfaceMode={placeOnSurfaceMode}
+          onTogglePlaceOnSurface={() => setPlaceOnSurfaceMode((v) => !v)}
+          onUpdateGlbTransform={handleUpdateGlbTransform}
+          onPaintWholeGlbWithActiveMat={handlePaintWholeGlbWithActiveMat}
+          onColorWholeGlb={handleColorWholeGlb}
+          onResetGlbMaterials={handleResetGlbMaterials}
+          onPaintGlbSubMeshWithActiveMat={handlePaintGlbSubMeshWithActiveMat}
+          onColorGlbSubMesh={handleColorGlbSubMesh}
+        />
 
         <MaterialStudioSection
           lang={lang}
