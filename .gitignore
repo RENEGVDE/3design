@@ -1,3 +1,7 @@
+node_modules/
+dist/
+.vinext/
+.next/
 .firebase/
 .DS_Store
 Thumbs.db
