@@ -79,15 +79,19 @@
       "subParts": [
         {
           "subIdx": 0,
-          "name": "Picioare",
+          "name": "Carcasă",
           "colorHex": "#222222",
-          "assignedMatId": null
+          "assignedMatId": null,
+          "mechType": "none",
+          "isOpen": false
         },
         {
           "subIdx": 1,
-          "name": "Șezut",
+          "name": "Ușă Stânga",
           "colorHex": "#ffffff",
-          "assignedMatId": "custom_tex_1730118000_412"
+          "assignedMatId": "custom_tex_1730118000_412",
+          "mechType": "door_left",
+          "isOpen": true
         }
       ]
     }

@@ -680,7 +680,16 @@ html_template = r"""<!DOCTYPE html>
           </div>
           <button class="btn" id="btn-glb-reset-mat" style="width:100%; font-size:11px; padding:6px 8px;" data-i18n="resetGlbMatBtn">🔄 Restaurează Materialele Originale .GLB</button>
 
-          <div id="glb-submeshes-list" style="display:flex; flex-direction:column; gap:4px; max-height:125px; overflow-y:auto;"></div>
+          <div style="font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.4px; margin-top:3px;" data-i18n="glbMechTitle">Mecanisme Mobilier (Uși & Sertare):</div>
+          <button class="btn" id="btn-glb-native-anim" style="display:none; width:100%; font-size:11px; padding:6px 8px;" data-i18n="playGlbAnimBtn">▶ Rulează / Închide Animația Nativă .GLB</button>
+          <div class="grid-2" style="gap:4px;">
+            <button class="zone-chip" id="btn-glb-autodetect-mech" data-i18n="autoDetectMechBtn">⚙️ Auto-Detectează</button>
+            <button class="zone-chip" id="btn-glb-clear-mech" data-i18n="clearMechBtn">🔒 Blochează Tot (Fix)</button>
+            <button class="zone-chip" id="btn-glb-open-all" data-i18n="openAllGlbBtn">🔓 Deschide (.GLB)</button>
+            <button class="zone-chip" id="btn-glb-close-all" data-i18n="closeAllGlbBtn">🔒 Închide (.GLB)</button>
+          </div>
+
+          <div id="glb-submeshes-list" style="display:flex; flex-direction:column; gap:5px; max-height:175px; overflow-y:auto;"></div>
         </div>
       </div>
     </div>
@@ -979,7 +988,22 @@ const I18N = {
     depthCmLbl: "Depth (Z cm)",
     glbMatTitle: "Edit Model Colors & Materials:",
     paintWholeGlbBtn: "Apply Studio Material",
-    resetGlbMatBtn: "🔄 Restore Original .GLB Materials"
+    resetGlbMatBtn: "🔄 Restore Original .GLB Materials",
+    glbMechTitle: "Furniture Mechanisms (Doors & Drawers):",
+    autoDetectMechBtn: "⚙️ Auto-Detect",
+    clearMechBtn: "🔒 Lock All (Static)",
+    openAllGlbBtn: "🔓 Open (.GLB)",
+    closeAllGlbBtn: "🔒 Close (.GLB)",
+    playGlbAnimBtn: "▶ Play / Close Native .GLB Animation",
+    mech_none: "🔒 Fixed (Carcass)",
+    mech_door_left: "🚪 Left Hinge Door (90°)",
+    mech_door_right: "🚪 Right Hinge Door (90°)",
+    mech_flap_up: "⬆️ Lift-Up Door (Aventos)",
+    mech_flap_down: "⬇️ Drop-Down Flap",
+    mech_drawer: "🗄️ Drawer Slide (+Forward)",
+    mech_drawer_back: "🗄️ Drawer Slide (-Reverse)",
+    mechDetectedToast: "⚙️ Detected interactive mechanisms: ",
+    glbAddedToast: "📦 Imported 3D model: "
   },
   ru: {
     title: "3D Кухня",
@@ -1100,7 +1124,22 @@ const I18N = {
     depthCmLbl: "Глубина (Z см)",
     glbMatTitle: "Цвета и материалы 3D модели:",
     paintWholeGlbBtn: "Применить материал из Студии",
-    resetGlbMatBtn: "🔄 Вернуть родные материалы .GLB"
+    resetGlbMatBtn: "🔄 Вернуть родные материалы .GLB",
+    glbMechTitle: "Механизмы мебели (Дверцы и Ящики):",
+    autoDetectMechBtn: "⚙️ Авто-поиск",
+    clearMechBtn: "🔒 Всё статично",
+    openAllGlbBtn: "🔓 Открыть (.GLB)",
+    closeAllGlbBtn: "🔒 Закрыть (.GLB)",
+    playGlbAnimBtn: "▶ Анимация .GLB (Вкл/Выкл)",
+    mech_none: "🔒 Неподвижно (Корпус)",
+    mech_door_left: "🚪 Дверца влево (Петли слева)",
+    mech_door_right: "🚪 Дверца вправо (Петли справа)",
+    mech_flap_up: "⬆️ Подъём вверх (Aventos)",
+    mech_flap_down: "⬇️ Откидная вниз",
+    mech_drawer: "🗄️ Ящик (Выдвижение +Вперёд)",
+    mech_drawer_back: "🗄️ Ящик (Выдвижение -Назад)",
+    mechDetectedToast: "⚙️ Найдено механизмов открывания: ",
+    glbAddedToast: "📦 Загружена 3D модель: "
   },
   ro: {
     title: "Bucătărie 3D",
@@ -1221,7 +1260,22 @@ const I18N = {
     depthCmLbl: "Adâncime (Z cm)",
     glbMatTitle: "Editează Culorile & Materialele Modelului:",
     paintWholeGlbBtn: "Aplică Materialul din Studio",
-    resetGlbMatBtn: "🔄 Restaurează Materialele Originale .GLB"
+    resetGlbMatBtn: "🔄 Restaurează Materialele Originale .GLB",
+    glbMechTitle: "Mecanisme Mobilier (Uși & Sertare):",
+    autoDetectMechBtn: "⚙️ Auto-Detectează",
+    clearMechBtn: "🔒 Blochează Tot (Fix)",
+    openAllGlbBtn: "🔓 Deschide (.GLB)",
+    closeAllGlbBtn: "🔒 Închide (.GLB)",
+    playGlbAnimBtn: "▶ Rulează / Închide Animația Nativă .GLB",
+    mech_none: "🔒 Fix (Carcasă)",
+    mech_door_left: "🚪 Ușă Balamale Stânga (90°)",
+    mech_door_right: "🚪 Ușă Balamale Dreapta (90°)",
+    mech_flap_up: "⬆️ Ușă Ridicare Sus (Aventos)",
+    mech_flap_down: "⬇️ Ușă Rabatabilă Jos",
+    mech_drawer: "🗄️ Sertar (Glisare +Față)",
+    mech_drawer_back: "🗄️ Sertar (Glisare -Spate)",
+    mechDetectedToast: "⚙️ Mecanisme detectate automat: ",
+    glbAddedToast: "📦 Model 3D importat: "
   }
 };
 
@@ -2041,6 +2095,262 @@ async function init() {
     geom.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2));
   }
 
+  function computeMechMatrixInModelSpace(mesh, mechType, rawProgress, baseDimsCm) {
+    const mat = new THREE.Matrix4();
+    if (!mechType || mechType === 'none' || rawProgress <= 0.0002) return mat;
+    const t = Math.max(0, Math.min(1, rawProgress));
+    const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const boxM = mesh.userData.boxM;
+    if (!boxM) return mat;
+
+    const { min, max, size, center } = boxM;
+    const orientZ = size.z > size.x * 1.55;
+    const outSign = orientZ ? (center.x >= -0.02 ? 1 : -1) : (center.z >= -0.02 ? 1 : -1);
+
+    if (mechType === 'drawer' || mechType === 'drawer_back') {
+      const dirSign = mechType === 'drawer_back' ? -outSign : outSign;
+      const depthM = (orientZ ? baseDimsCm.w : baseDimsCm.d) * 0.01;
+      const slideDist = Math.max(0.24, Math.min(0.48, depthM * 0.72));
+      const dx = orientZ ? slideDist * dirSign * eased : 0;
+      const dz = orientZ ? 0 : slideDist * dirSign * eased;
+      mat.makeTranslation(dx, 0, dz);
+      return mat;
+    }
+
+    const pivot = new THREE.Vector3();
+    const axis = new THREE.Vector3(0, 1, 0);
+    let angleDeg = 0;
+
+    if (mechType === 'door_left') {
+      if (!orientZ) {
+        pivot.set(min.x, center.y, outSign > 0 ? max.z : min.z);
+        axis.set(0, 1, 0);
+        angleDeg = -90 * outSign * eased;
+      } else {
+        pivot.set(outSign > 0 ? max.x : min.x, center.y, min.z);
+        axis.set(0, 1, 0);
+        angleDeg = 90 * outSign * eased;
+      }
+    } else if (mechType === 'door_right') {
+      if (!orientZ) {
+        pivot.set(max.x, center.y, outSign > 0 ? max.z : min.z);
+        axis.set(0, 1, 0);
+        angleDeg = 90 * outSign * eased;
+      } else {
+        pivot.set(outSign > 0 ? max.x : min.x, center.y, max.z);
+        axis.set(0, 1, 0);
+        angleDeg = -90 * outSign * eased;
+      }
+    } else if (mechType === 'flap_up') {
+      if (!orientZ) {
+        pivot.set(center.x, max.y, outSign > 0 ? max.z : min.z);
+        axis.set(1, 0, 0);
+        angleDeg = -95 * outSign * eased;
+      } else {
+        pivot.set(outSign > 0 ? max.x : min.x, max.y, center.z);
+        axis.set(0, 0, 1);
+        angleDeg = 95 * outSign * eased;
+      }
+    } else if (mechType === 'flap_down') {
+      if (!orientZ) {
+        pivot.set(center.x, min.y, outSign > 0 ? max.z : min.z);
+        axis.set(1, 0, 0);
+        angleDeg = 85 * outSign * eased;
+      } else {
+        pivot.set(outSign > 0 ? max.x : min.x, min.y, center.z);
+        axis.set(0, 0, 1);
+        angleDeg = -85 * outSign * eased;
+      }
+    }
+
+    const tToOrigin = new THREE.Matrix4().makeTranslation(-pivot.x, -pivot.y, -pivot.z);
+    const rotMat = new THREE.Matrix4().makeRotationAxis(axis, THREE.MathUtils.degToRad(angleDeg));
+    const tBack = new THREE.Matrix4().makeTranslation(pivot.x, pivot.y, pivot.z);
+    mat.multiplyMatrices(tBack, rotMat).multiply(tToOrigin);
+    return mat;
+  }
+
+  function buildFollowerMap(meshes, subParts) {
+    const followerOf = {};
+    const activeIndices = [];
+    for (let i = 0; i < subParts.length; i++) {
+      if (subParts[i] && subParts[i].mechType && subParts[i].mechType !== 'none') {
+        activeIndices.push(i);
+      }
+    }
+    if (activeIndices.length === 0) return followerOf;
+
+    for (let j = 0; j < meshes.length; j++) {
+      const spJ = subParts[j];
+      if (spJ && spJ.mechType && spJ.mechType !== 'none') continue;
+      const meshJ = meshes[j];
+      const bJ = meshJ?.userData?.boxM;
+      if (!bJ) continue;
+      const volJ = bJ.size.x * bJ.size.y * bJ.size.z;
+
+      for (const idx of activeIndices) {
+        const meshI = meshes[idx];
+        const bI = meshI?.userData?.boxM;
+        if (!bI) continue;
+        const volI = bI.size.x * bI.size.y * bI.size.z;
+
+        if (
+          meshJ.parent &&
+          meshJ.parent === meshI.parent &&
+          meshI.parent.name &&
+          !/scene|root/i.test(meshI.parent.name) &&
+          meshI.parent.children.length <= 12
+        ) {
+          followerOf[j] = idx;
+          break;
+        }
+
+        const margin = 0.045;
+        const insideXY =
+          bJ.min.x >= bI.min.x - 0.02 &&
+          bJ.max.x <= bI.max.x + 0.02 &&
+          bJ.min.y >= bI.min.y - 0.02 &&
+          bJ.max.y <= bI.max.y + 0.02;
+        const nearZ = bJ.min.z >= bI.min.z - margin && bJ.max.z <= bI.max.z + margin;
+
+        if (insideXY && nearZ && volJ <= volI * 0.85) {
+          followerOf[j] = idx;
+          break;
+        }
+
+        if (
+          (subParts[idx].mechType === 'drawer' || subParts[idx].mechType === 'drawer_back') &&
+          bJ.min.x >= bI.min.x - 0.015 &&
+          bJ.max.x <= bI.max.x + 0.015 &&
+          bJ.min.y >= bI.min.y - 0.02 &&
+          bJ.max.y <= bI.max.y + 0.02 &&
+          bJ.size.y <= bI.size.y * 1.15 &&
+          bJ.size.x <= bI.size.x * 1.05
+        ) {
+          followerOf[j] = idx;
+          break;
+        }
+      }
+    }
+    return followerOf;
+  }
+
+  function updateGlbMechanismsIn3D(entry, subParts) {
+    if (!entry || !entry.meshes || !subParts) return;
+    const { meshes, baseDimsCm } = entry;
+    const followerOf = buildFollowerMap(meshes, subParts);
+    const activeMatrices = {};
+
+    for (let i = 0; i < meshes.length; i++) {
+      const sp = subParts[i];
+      const m = meshes[i];
+      if (!m || !m.userData.restMatrixWorld) continue;
+      if (sp && sp.mechType && sp.mechType !== 'none') {
+        const prog = typeof m.userData.mechProgress === 'number' ? m.userData.mechProgress : (sp.isOpen ? 1 : 0);
+        activeMatrices[i] = computeMechMatrixInModelSpace(m, sp.mechType, prog, baseDimsCm);
+      }
+    }
+
+    const finalWorld = new THREE.Matrix4();
+    const finalLocal = new THREE.Matrix4();
+
+    for (let i = 0; i < meshes.length; i++) {
+      const m = meshes[i];
+      if (!m || !m.userData.restMatrixWorld) continue;
+      const leaderIdx = activeMatrices[i] !== undefined ? i : (followerOf[i] !== undefined ? followerOf[i] : null);
+      if (leaderIdx !== null && activeMatrices[leaderIdx]) {
+        finalWorld.multiplyMatrices(activeMatrices[leaderIdx], m.userData.restMatrixWorld);
+        finalLocal.multiplyMatrices(m.userData.parentInvMatrixWorld, finalWorld);
+        finalLocal.decompose(m.position, m.quaternion, m.scale);
+      } else {
+        m.position.copy(m.userData.restPos);
+        m.quaternion.copy(m.userData.restQuat);
+        m.scale.copy(m.userData.restScale);
+      }
+    }
+  }
+
+  function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
+    const modelW = (baseDimsCm?.w || 60) * 0.01;
+    const modelH = (baseDimsCm?.h || 80) * 0.01;
+    const modelD = (baseDimsCm?.d || 55) * 0.01;
+
+    let maxFrontZ = -Infinity;
+    for (const m of meshes) {
+      if (m.userData.boxM) maxFrontZ = Math.max(maxFrontZ, m.userData.boxM.max.z);
+    }
+
+    const candidates = [];
+    for (let i = 0; i < meshes.length; i++) {
+      const m = meshes[i];
+      const sp = subPartsMeta[i];
+      const b = m.userData.boxM;
+      if (!b || !sp) continue;
+
+      const fullName = `${m.name || ''} ${m.parent?.name || ''} ${sp.name || ''}`.toLowerCase();
+      if (/drawer|sertar|ящик|tandem/i.test(fullName)) {
+        candidates.push({ idx: i, forced: 'drawer', box: b });
+        continue;
+      }
+      if (/aventos|lift|flap_up|ridicare/i.test(fullName)) {
+        candidates.push({ idx: i, forced: 'flap_up', box: b });
+        continue;
+      }
+      if (/oven|cuptor|dishwasher|flap_down|rabat/i.test(fullName)) {
+        candidates.push({ idx: i, forced: 'flap_down', box: b });
+        continue;
+      }
+      if (/door_l|usa_st|дверь_л/i.test(fullName)) {
+        candidates.push({ idx: i, forced: 'door_left', box: b });
+        continue;
+      }
+      if (/door_r|usa_dr|дверь_п/i.test(fullName)) {
+        candidates.push({ idx: i, forced: 'door_right', box: b });
+        continue;
+      }
+
+      const isNearFront = b.max.z >= maxFrontZ - Math.max(0.06, modelD * 0.14);
+      const isThinSlabZ = b.size.z >= 0.011 && b.size.z <= 0.048;
+      const isValidWidth = b.size.x >= 0.18 && b.size.x <= Math.max(1.25, modelW * 0.98);
+      const isValidHeight = b.size.y >= 0.095 && b.size.y <= Math.max(2.45, modelH * 0.98);
+      const notPlinth = !(b.max.y <= 0.14 && b.size.x >= modelW * 0.7);
+
+      if (isNearFront && isThinSlabZ && isValidWidth && isValidHeight && notPlinth) {
+        candidates.push({ idx: i, forced: null, box: b });
+      }
+    }
+
+    const updated = subPartsMeta.map(sp => ({ ...sp, mechType: 'none', isOpen: false }));
+    for (const cand of candidates) {
+      const { idx, forced, box } = cand;
+      if (forced) {
+        updated[idx].mechType = forced;
+        continue;
+      }
+      const w = box.size.x;
+      const h = box.size.y;
+      if (h <= 0.36 && w >= h * 1.15 && box.center.y <= Math.min(1.15, modelH * 0.75)) {
+        updated[idx].mechType = 'drawer';
+        continue;
+      }
+      if (w >= h * 1.35 && h <= 0.55 && box.center.y >= modelH * 0.55 && modelH >= 0.65) {
+        updated[idx].mechType = 'flap_up';
+        continue;
+      }
+      const sibling = candidates.find(other =>
+        other.idx !== idx &&
+        Math.abs(other.box.center.y - box.center.y) < 0.08 &&
+        Math.abs(other.box.size.y - box.size.y) < 0.08
+      );
+      if (sibling) {
+        updated[idx].mechType = box.center.x <= sibling.box.center.x ? 'door_left' : 'door_right';
+      } else {
+        updated[idx].mechType = box.center.x <= 0 ? 'door_left' : 'door_right';
+      }
+    }
+    return updated;
+  }
+
   function parseAndMountGlb(arrayBuffer, b64Data, modelId, modelName, initTransform = null, savedSubParts = null) {
     return new Promise((resolve, reject) => {
       gltfLoader.parse(arrayBuffer, '', (gltf) => {
@@ -2066,6 +2376,7 @@ async function init() {
         const wrapperGroup = new THREE.Group();
         wrapperGroup.name = 'imported_glb_' + modelId;
         wrapperGroup.add(innerGroup);
+        wrapperGroup.updateMatrixWorld(true);
 
         const baseDimsCm = {
           w: Math.max(0.5, rawSize.x * unitFactor * 100),
@@ -2074,7 +2385,7 @@ async function init() {
         };
 
         const meshes = [];
-        const subPartsMeta = [];
+        let subPartsMeta = [];
         let subIdx = 0;
 
         rawRoot.traverse((child) => {
@@ -2082,6 +2393,24 @@ async function init() {
             ensureGlbBoxProjectedUVs(child.geometry);
             child.castShadow = true;
             child.receiveShadow = true;
+
+            child.geometry.computeBoundingBox();
+            const geomBox = child.geometry.boundingBox ? child.geometry.boundingBox.clone() : new THREE.Box3();
+            geomBox.applyMatrix4(child.matrixWorld);
+            const bSize = new THREE.Vector3();
+            const bCenter = new THREE.Vector3();
+            geomBox.getSize(bSize);
+            geomBox.getCenter(bCenter);
+
+            child.userData.boxM = { min: geomBox.min.clone(), max: geomBox.max.clone(), size: bSize, center: bCenter };
+            child.userData.restMatrixWorld = child.matrixWorld.clone();
+            child.userData.parentInvMatrixWorld = child.parent ? child.parent.matrixWorld.clone().invert() : new THREE.Matrix4();
+            child.userData.restPos = child.position.clone();
+            child.userData.restQuat = child.quaternion.clone();
+            child.userData.restScale = child.scale.clone();
+            child.userData.mechProgress = 0;
+            child.userData.mechTarget = 0;
+
             const origMat = Array.isArray(child.material) ? child.material[0] : child.material;
             const stdMat = new THREE.MeshStandardMaterial({
               color: origMat && origMat.color ? origMat.color.clone() : new THREE.Color('#e5e7eb'),
@@ -2102,7 +2431,9 @@ async function init() {
               subIdx,
               name: partLabel.slice(0, 26),
               colorHex: '#' + stdMat.color.getHexString(),
-              assignedMatId: null
+              assignedMatId: null,
+              mechType: 'none',
+              isOpen: false
             });
             meshes.push(child);
             importedMeshes.push(child);
@@ -2110,6 +2441,21 @@ async function init() {
             subIdx++;
           }
         });
+
+        subPartsMeta = autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm);
+
+        const animations = Array.isArray(gltf.animations) ? gltf.animations : [];
+        let mixer = null;
+        const animActions = [];
+        if (animations.length > 0) {
+          mixer = new THREE.AnimationMixer(rawRoot);
+          for (const clip of animations) {
+            const action = mixer.clipAction(clip);
+            action.clampWhenFinished = true;
+            action.loop = THREE.LoopOnce;
+            animActions.push(action);
+          }
+        }
 
         const pos = (initTransform && initTransform.position) ? initTransform.position : [1.85, 0.0, 2.15];
         const rotYDeg = (initTransform && typeof initTransform.rotationYDeg === 'number') ? initTransform.rotationYDeg : 0;
@@ -2123,24 +2469,48 @@ async function init() {
         const finalSubParts = subPartsMeta.map((sp, idx) => {
           const savedSp = savedSubParts && savedSubParts[idx] ? savedSubParts[idx] : null;
           const mesh = meshes[idx];
-          if (savedSp && mesh) {
-            if (savedSp.assignedMatId) {
-              const matEntry = materialLibrary.find(m => m.id === savedSp.assignedMatId);
-              if (matEntry) {
-                applyMatEntryToMesh(mesh, matEntry);
-                return { ...sp, assignedMatId: matEntry.id, colorHex: matEntry.colorHex || sp.colorHex };
+          const nextSp = { ...sp };
+          if (savedSp) {
+            if (typeof savedSp.mechType === 'string') nextSp.mechType = savedSp.mechType;
+            if (typeof savedSp.isOpen === 'boolean') nextSp.isOpen = savedSp.isOpen;
+          }
+          if (mesh) {
+            mesh.userData.mechProgress = nextSp.isOpen ? 1 : 0;
+            mesh.userData.mechTarget = nextSp.isOpen ? 1 : 0;
+            if (savedSp) {
+              if (savedSp.assignedMatId) {
+                const matEntry = materialLibrary.find(m => m.id === savedSp.assignedMatId);
+                if (matEntry) {
+                  applyMatEntryToMesh(mesh, matEntry);
+                  nextSp.assignedMatId = matEntry.id;
+                  nextSp.colorHex = matEntry.colorHex || sp.colorHex;
+                }
+              } else if (savedSp.colorHex) {
+                mesh.material.map = null;
+                mesh.material.color.set(savedSp.colorHex);
+                mesh.material.needsUpdate = true;
+                nextSp.colorHex = savedSp.colorHex;
+                nextSp.assignedMatId = null;
               }
-            } else if (savedSp.colorHex) {
-              mesh.material.map = null;
-              mesh.material.color.set(savedSp.colorHex);
-              mesh.material.needsUpdate = true;
-              return { ...sp, colorHex: savedSp.colorHex, assignedMatId: null };
             }
           }
-          return sp;
+          return nextSp;
         });
 
-        importedMap[modelId] = { wrapperGroup, meshes, baseDimsCm, name: modelName };
+        const entryObj = {
+          wrapperGroup,
+          meshes,
+          baseDimsCm,
+          name: modelName,
+          subPartsMeta,
+          hasNativeAnimations: animations.length > 0,
+          mixer,
+          animActions,
+          nativeAnimOpen: false
+        };
+        updateGlbMechanismsIn3D(entryObj, finalSubParts);
+        importedMap[modelId] = entryObj;
+
         const modelRecord = {
           id: modelId,
           name: modelName,
@@ -2149,6 +2519,7 @@ async function init() {
           rotationYDeg: rotYDeg,
           scale: scl,
           baseDimsCm,
+          hasNativeAnimations: animations.length > 0,
           subParts: finalSubParts
         };
         importedModelsList.push(modelRecord);
@@ -2867,7 +3238,12 @@ async function init() {
     if (ih) ih.value = String(Math.max(1, Math.round((rec.baseDimsCm?.h || 50) * scl[1])));
     if (id) id.value = String(Math.max(1, Math.round((rec.baseDimsCm?.d || 50) * scl[2])));
 
-    // Sub-meshes list
+    const nativeAnimBtn = document.getElementById('btn-glb-native-anim');
+    if (nativeAnimBtn) {
+      nativeAnimBtn.style.display = rec.hasNativeAnimations ? 'block' : 'none';
+    }
+
+    // Sub-meshes list with Mechanism Selector, Open/Close toggle, Color & Studio Material
     const subListEl = document.getElementById('glb-submeshes-list');
     if (subListEl) {
       subListEl.innerHTML = '';
@@ -2875,36 +3251,103 @@ async function init() {
         rec.subParts.forEach((sp, idx) => {
           const matObj = materialLibrary.find(m => m.id === sp.assignedMatId);
           const dotBg = matObj ? matObj.thumbCss : (sp.colorHex || '#e5e7eb');
+          const hasMech = sp.mechType && sp.mechType !== 'none';
           const sRow = document.createElement('div');
           sRow.style.display = 'flex';
-          sRow.style.alignItems = 'center';
-          sRow.style.justifyContent = 'space-between';
-          sRow.style.gap = '5px';
-          sRow.style.padding = '3px 6px';
-          sRow.style.background = 'rgba(0,0,0,0.28)';
+          sRow.style.flexDirection = 'column';
+          sRow.style.gap = '4px';
+          sRow.style.padding = '5px 7px';
+          sRow.style.background = hasMech ? 'rgba(56, 189, 248, 0.08)' : 'rgba(0,0,0,0.28)';
+          sRow.style.border = hasMech ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid rgba(255,255,255,0.06)';
           sRow.style.borderRadius = '6px';
           sRow.style.fontSize = '10px';
           sRow.innerHTML = `
-            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#cbd5e1;">#${idx + 1} ${sp.name}</span>
-            <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
-              <span class="part-mat-dot" style="background:${dotBg};"></span>
-              <label class="part-paint-btn" style="position:relative; cursor:pointer;" title="Culoare">
-                🎨
-                <input type="color" value="${sp.colorHex || '#d4a359'}" style="opacity:0; position:absolute; inset:0; width:100%; height:100%; cursor:pointer;" />
-              </label>
-              <button class="part-paint-btn" title="Aplică Materialul din Studio">🖌️</button>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:5px;">
+              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#cbd5e1; font-weight:600;">#${idx + 1} ${sp.name}</span>
+              <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+                ${hasMech ? `<button class="part-paint-btn" data-toggle-open="${idx}" style="border-color:${sp.isOpen ? '#34d399' : 'rgba(56,189,248,0.45)'}; color:${sp.isOpen ? '#34d399' : '#bae6fd'};">${sp.isOpen ? '🔓' : '🔒'}</button>` : ''}
+                <span class="part-mat-dot" style="background:${dotBg};"></span>
+                <label class="part-paint-btn" style="position:relative; cursor:pointer;" title="Culoare">
+                  🎨
+                  <input type="color" value="${sp.colorHex || '#d4a359'}" style="opacity:0; position:absolute; inset:0; width:100%; height:100%; cursor:pointer;" />
+                </label>
+                <button class="part-paint-btn" data-paint-sub="${idx}" title="Aplică Materialul din Studio">🖌️</button>
+              </div>
             </div>
+            <select data-mech-select="${idx}" style="width:100%; background:rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.16); color:${hasMech ? '#bae6fd' : '#cbd5e1'}; border-radius:5px; padding:3px 6px; font-size:10px; outline:none; cursor:pointer;">
+              <option value="none" ${(!sp.mechType || sp.mechType === 'none') ? 'selected' : ''}>${dict.mech_none}</option>
+              <option value="door_left" ${sp.mechType === 'door_left' ? 'selected' : ''}>${dict.mech_door_left}</option>
+              <option value="door_right" ${sp.mechType === 'door_right' ? 'selected' : ''}>${dict.mech_door_right}</option>
+              <option value="flap_up" ${sp.mechType === 'flap_up' ? 'selected' : ''}>${dict.mech_flap_up}</option>
+              <option value="flap_down" ${sp.mechType === 'flap_down' ? 'selected' : ''}>${dict.mech_flap_down}</option>
+              <option value="drawer" ${sp.mechType === 'drawer' ? 'selected' : ''}>${dict.mech_drawer}</option>
+              <option value="drawer_back" ${sp.mechType === 'drawer_back' ? 'selected' : ''}>${dict.mech_drawer_back}</option>
+            </select>
           `;
           sRow.querySelector('input[type="color"]').addEventListener('change', (e) => {
             colorGlbSubMesh(rec.id, idx, e.target.value);
           });
-          sRow.querySelector('button').addEventListener('click', () => {
+          sRow.querySelector('[data-paint-sub]').addEventListener('click', () => {
             paintGlbSubMesh(rec.id, idx);
+          });
+          const toggleBtn = sRow.querySelector('[data-toggle-open]');
+          if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+              toggleGlbSubMeshOpen(rec.id, idx);
+            });
+          }
+          sRow.querySelector('[data-mech-select]').addEventListener('change', (e) => {
+            setGlbSubMeshMechanism(rec.id, idx, e.target.value);
           });
           subListEl.appendChild(sRow);
         });
       }
     }
+  }
+
+  function setGlbSubMeshMechanism(modelId, subIdx, mechType) {
+    const rec = importedModelsList.find(m => m.id === modelId);
+    const entry = importedMap[modelId];
+    if (!rec || !entry || !rec.subParts[subIdx]) return;
+    rec.subParts[subIdx].mechType = mechType;
+    if (mechType === 'none') {
+      rec.subParts[subIdx].isOpen = false;
+      if (entry.meshes[subIdx]) {
+        entry.meshes[subIdx].userData.mechTarget = 0;
+        entry.meshes[subIdx].userData.mechProgress = 0;
+      }
+    }
+    updateGlbMechanismsIn3D(entry, rec.subParts);
+    syncGlbInspectorUI();
+    saveWorkspaceState();
+  }
+
+  function toggleGlbSubMeshOpen(modelId, subIdx, forceState = null) {
+    const rec = importedModelsList.find(m => m.id === modelId);
+    const entry = importedMap[modelId];
+    if (!rec || !entry || !rec.subParts[subIdx]) return;
+    const nextOpen = typeof forceState === 'boolean' ? forceState : !rec.subParts[subIdx].isOpen;
+    rec.subParts[subIdx].isOpen = nextOpen;
+    if (entry.meshes[subIdx]) {
+      entry.meshes[subIdx].userData.mechTarget = nextOpen ? 1 : 0;
+    }
+    syncGlbInspectorUI();
+    saveWorkspaceState();
+  }
+
+  function toggleAllGlbParts(modelId, openState) {
+    const rec = importedModelsList.find(m => m.id === modelId);
+    const entry = importedMap[modelId];
+    if (!rec || !entry) return;
+    rec.subParts.forEach((sp, idx) => {
+      const hasMech = sp.mechType && sp.mechType !== 'none';
+      sp.isOpen = hasMech ? Boolean(openState) : false;
+      if (entry.meshes[idx]) {
+        entry.meshes[idx].userData.mechTarget = sp.isOpen ? 1 : 0;
+      }
+    });
+    syncGlbInspectorUI();
+    saveWorkspaceState();
   }
 
   function applyTransformToSelectedGlb(patch) {
@@ -3198,6 +3641,61 @@ async function init() {
 
   document.getElementById('btn-glb-reset-mat').addEventListener('click', () => {
     if (selectedGlbId) resetGlbMaterials(selectedGlbId);
+  });
+
+  document.getElementById('btn-glb-native-anim').addEventListener('click', () => {
+    const entry = selectedGlbId ? importedMap[selectedGlbId] : null;
+    if (!entry || !entry.animActions || !entry.animActions.length) return;
+    entry.nativeAnimOpen = !entry.nativeAnimOpen;
+    for (const action of entry.animActions) {
+      action.paused = false;
+      action.timeScale = entry.nativeAnimOpen ? 1 : -1;
+      if (!action.isRunning()) action.play();
+    }
+  });
+
+  document.getElementById('btn-glb-autodetect-mech').addEventListener('click', () => {
+    const rec = getSelectedGlbRecord();
+    const entry = selectedGlbId ? importedMap[selectedGlbId] : null;
+    if (!rec || !entry) return;
+    rec.subParts = autoDetectGlbMechanisms(entry.meshes, rec.subParts, entry.baseDimsCm);
+    let cnt = 0;
+    rec.subParts.forEach((sp, idx) => {
+      if (sp.mechType && sp.mechType !== 'none') cnt++;
+      if (entry.meshes[idx]) {
+        entry.meshes[idx].userData.mechTarget = 0;
+        entry.meshes[idx].userData.mechProgress = 0;
+      }
+    });
+    updateGlbMechanismsIn3D(entry, rec.subParts);
+    syncGlbInspectorUI();
+    saveWorkspaceState();
+    showMobileToast(`${I18N[currentLang].mechDetectedToast}${cnt}`);
+  });
+
+  document.getElementById('btn-glb-clear-mech').addEventListener('click', () => {
+    const rec = getSelectedGlbRecord();
+    const entry = selectedGlbId ? importedMap[selectedGlbId] : null;
+    if (!rec || !entry) return;
+    rec.subParts.forEach((sp, idx) => {
+      sp.mechType = 'none';
+      sp.isOpen = false;
+      if (entry.meshes[idx]) {
+        entry.meshes[idx].userData.mechTarget = 0;
+        entry.meshes[idx].userData.mechProgress = 0;
+      }
+    });
+    updateGlbMechanismsIn3D(entry, rec.subParts);
+    syncGlbInspectorUI();
+    saveWorkspaceState();
+  });
+
+  document.getElementById('btn-glb-open-all').addEventListener('click', () => {
+    if (selectedGlbId) toggleAllGlbParts(selectedGlbId, true);
+  });
+
+  document.getElementById('btn-glb-close-all').addEventListener('click', () => {
+    if (selectedGlbId) toggleAllGlbParts(selectedGlbId, false);
   });
 
   window.addEventListener('keydown', (e) => {
@@ -3760,17 +4258,21 @@ async function init() {
       if (impId && importedMap[impId]) {
         setHoveredGroup(null);
         const rec = importedModelsList.find(m => m.id === impId);
+        const subIdx = hitMesh.userData.subMeshIdx;
+        const sp = rec && rec.subParts ? rec.subParts[subIdx] : null;
+        const hasMech = sp && sp.mechType && sp.mechType !== 'none';
+        const mechLabel = hasMech ? (dict['mech_' + sp.mechType] || '') : '';
         const wCm = Math.round((rec?.baseDimsCm?.w || 50) * (rec?.scale?.[0] || 1));
         const hCm = Math.round((rec?.baseDimsCm?.h || 50) * (rec?.scale?.[1] || 1));
         const dCm = Math.round((rec?.baseDimsCm?.d || 50) * (rec?.scale?.[2] || 1));
         renderer.domElement.style.cursor = 'pointer';
         tooltipEl.style.left = `${e.clientX}px`;
         tooltipEl.style.top = `${e.clientY}px`;
-        ttTitleEl.textContent = `📦 ${rec ? rec.name : 'Model 3D'}`;
-        ttDimsEl.textContent = `📏 ${wCm} × ${hCm} × ${dCm} cm`;
+        ttTitleEl.textContent = hasMech ? `📦 ${rec ? rec.name : 'Model 3D'} — ${sp.name}` : `📦 ${rec ? rec.name : 'Model 3D'}`;
+        ttDimsEl.textContent = `📏 ${wCm} × ${hCm} × ${dCm} cm${mechLabel ? ' • ' + mechLabel : ''}`;
         ttSubEl.textContent = paintModeActive
           ? `${dict.clickToPaint}${activeMatLabel}`
-          : dict.gizmoMove;
+          : (hasMech ? (sp.isOpen ? dict.clickToClose : dict.clickToOpen) : dict.gizmoMove);
         tooltipEl.classList.add('visible');
         return;
       } else if (interactiveMap[gid]) {
@@ -3886,16 +4388,32 @@ async function init() {
         return;
       }
 
-      // 3. Normal Mode: Click on Imported .GLB Model to Select & Attach 3D Gizmo, or Open/Close Kitchen Door/Drawer
+      // 3. Normal Mode: Click on Imported .GLB Model to Open/Close Mechanism or Select & Attach 3D Gizmo, or Open/Close Kitchen Door/Drawer
       const impHits = raycaster.intersectObjects(importedMeshes, false);
       const hits = raycaster.intersectObjects(interactiveMeshes, false);
       if (impHits.length > 0 && (hits.length === 0 || impHits[0].distance <= hits[0].distance)) {
-        const impId = impHits[0].object.userData.importedModelId;
+        const hitObj = impHits[0].object;
+        const impId = hitObj.userData.importedModelId;
+        const clickedSubIdx = hitObj.userData.subMeshIdx;
         if (impId && importedMap[impId]) {
           selectedGlbId = impId;
           if (gizmoMode === 'none') gizmoMode = 'translate';
           syncTransformGizmo();
           renderGlbModelsUI();
+
+          const entry = importedMap[impId];
+          const rec = importedModelsList.find(m => m.id === impId);
+          if (entry && rec && Array.isArray(rec.subParts)) {
+            const followers = buildFollowerMap(entry.meshes, rec.subParts);
+            const targetSubIdx =
+              (rec.subParts[clickedSubIdx]?.mechType && rec.subParts[clickedSubIdx].mechType !== 'none')
+                ? clickedSubIdx
+                : (followers[clickedSubIdx] !== undefined ? followers[clickedSubIdx] : null);
+            if (targetSubIdx !== null) {
+              toggleGlbSubMeshOpen(impId, targetSubIdx);
+              return;
+            }
+          }
           syncGlbInspectorUI();
         }
         return;
@@ -4111,6 +4629,25 @@ async function init() {
           );
         }
         if (id === (hoveredGroupId || selectedPartId)) activePartAnimating = true;
+      }
+    }
+
+    for (const impId in importedMap) {
+      const entry = importedMap[impId];
+      if (entry.mixer) entry.mixer.update(dt);
+      let glbMechChanged = false;
+      for (const m of entry.meshes) {
+        const prog = m.userData.mechProgress || 0;
+        const targ = m.userData.mechTarget || 0;
+        if (Math.abs(prog - targ) > 0.0005) {
+          if (prog < targ) m.userData.mechProgress = Math.min(1, prog + speed * dt);
+          else m.userData.mechProgress = Math.max(0, prog - speed * dt);
+          glbMechChanged = true;
+        }
+      }
+      if (glbMechChanged) {
+        const rec = importedModelsList.find(x => x.id === impId);
+        if (rec && rec.subParts) updateGlbMechanismsIn3D(entry, rec.subParts);
       }
     }
 

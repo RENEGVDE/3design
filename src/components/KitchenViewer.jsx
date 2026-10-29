@@ -31,7 +31,10 @@ import {
 import {
   loadGlbModelFromBuffer,
   arrayBufferToBase64,
-  base64ToArrayBuffer
+  base64ToArrayBuffer,
+  updateGlbMechanismsIn3D,
+  autoDetectGlbMechanisms,
+  buildFollowerMap
 } from '../utils/glbImporter.js';
 
 import TopBar from './TopBar.jsx';
@@ -366,32 +369,48 @@ export default function KitchenViewer() {
         const savedSp =
           savedSubParts && savedSubParts[idx] ? savedSubParts[idx] : null;
         const mesh = parsed.meshes[idx];
-        if (savedSp && mesh) {
-          if (savedSp.assignedMatId) {
-            const matEntry = availableMats.find(
-              (m) => m.id === savedSp.assignedMatId
-            );
-            if (matEntry) {
-              applyMatEntryToMesh(mesh, matEntry, stateRef.current.xrayActive);
-              return {
-                ...sp,
-                assignedMatId: matEntry.id,
-                colorHex: matEntry.colorHex || sp.colorHex
-              };
-            }
-          } else if (savedSp.colorHex) {
-            mesh.material.map = null;
-            mesh.material.color.set(savedSp.colorHex);
-            mesh.material.needsUpdate = true;
-            return {
-              ...sp,
-              colorHex: savedSp.colorHex,
-              assignedMatId: null
-            };
+        let nextSp = { ...sp };
+
+        if (savedSp) {
+          if (typeof savedSp.mechType === 'string') {
+            nextSp.mechType = savedSp.mechType;
+          }
+          if (typeof savedSp.isOpen === 'boolean') {
+            nextSp.isOpen = savedSp.isOpen;
           }
         }
-        return sp;
+
+        if (mesh) {
+          mesh.userData.mechProgress = nextSp.isOpen ? 1 : 0;
+          mesh.userData.mechTarget = nextSp.isOpen ? 1 : 0;
+
+          if (savedSp) {
+            if (savedSp.assignedMatId) {
+              const matEntry = availableMats.find(
+                (m) => m.id === savedSp.assignedMatId
+              );
+              if (matEntry) {
+                applyMatEntryToMesh(
+                  mesh,
+                  matEntry,
+                  stateRef.current.xrayActive
+                );
+                nextSp.assignedMatId = matEntry.id;
+                nextSp.colorHex = matEntry.colorHex || sp.colorHex;
+              }
+            } else if (savedSp.colorHex) {
+              mesh.material.map = null;
+              mesh.material.color.set(savedSp.colorHex);
+              mesh.material.needsUpdate = true;
+              nextSp.colorHex = savedSp.colorHex;
+              nextSp.assignedMatId = null;
+            }
+          }
+        }
+        return nextSp;
       });
+
+      updateGlbMechanismsIn3D(parsed, finalSubParts);
 
       for (const m of parsed.meshes) {
         ctx.importedMeshes.push(m);
@@ -406,6 +425,7 @@ export default function KitchenViewer() {
         rotationYDeg: rotYDeg,
         scale: scl,
         baseDimsCm: parsed.baseDimsCm,
+        hasNativeAnimations: parsed.hasNativeAnimations,
         subParts: finalSubParts
       };
     },
@@ -1150,20 +1170,34 @@ export default function KitchenViewer() {
             const impName = impEntry
               ? impEntry.name
               : importedMap[impId].name;
+            const subIdx = hitMesh.userData.subMeshIdx;
+            const sp =
+              impEntry && impEntry.subParts ? impEntry.subParts[subIdx] : null;
+            const hasMech = sp && sp.mechType && sp.mechType !== 'none';
+            const mechLabel = hasMech ? dict[`mech_${sp.mechType}`] || '' : '';
+
             setTooltip({
               visible: true,
               x: e.clientX,
               y: e.clientY,
-              title: `📦 ${impName}`,
+              title: hasMech
+                ? `📦 ${impName} — ${sp.name}`
+                : `📦 ${impName}`,
               dims: impEntry
                 ? `📏 ${fmtCm(
                     impEntry.baseDimsCm.w * impEntry.scale[0]
                   )} × ${fmtCm(
                     impEntry.baseDimsCm.h * impEntry.scale[1]
-                  )} × ${fmtCm(impEntry.baseDimsCm.d * impEntry.scale[2])} cm`
+                  )} × ${fmtCm(impEntry.baseDimsCm.d * impEntry.scale[2])} cm${
+                    mechLabel ? ` • ${mechLabel}` : ''
+                  }`
                 : '',
               sub: curPaint
                 ? `${dict.clickToPaint}${activeMatLabel}`
+                : hasMech
+                ? sp.isOpen
+                  ? dict.clickToClose
+                  : dict.clickToOpen
                 : 'Click pt. Selectare & Mutare 3D'
             });
             return;
@@ -1391,7 +1425,7 @@ export default function KitchenViewer() {
             return;
           }
 
-          // 3. Normal Click: Check Imported .GLB Models first (Select & Show 3D Gizmo), then Kitchen Doors/Drawers
+          // 3. Normal Click: Check Imported .GLB Models first (Open/Close Door/Drawer or Select & Show 3D Gizmo), then Kitchen Doors/Drawers
           const hits = raycaster.intersectObjects(
             [...importedMeshes, ...interactiveMeshes],
             false
@@ -1400,9 +1434,49 @@ export default function KitchenViewer() {
             const hitObj = hits[0].object;
             if (hitObj.userData.importedModelId) {
               const impId = hitObj.userData.importedModelId;
+              const clickedSubIdx = hitObj.userData.subMeshIdx;
               setSelectedGlbId(impId);
               if (!stateRef.current.gizmoMode) {
                 setGizmoMode('translate');
+              }
+
+              const parsedEntry = importedMap[impId];
+              const impRecord = stateRef.current.importedModels.find(
+                (x) => x.id === impId
+              );
+              if (parsedEntry && impRecord && Array.isArray(impRecord.subParts)) {
+                const followers = buildFollowerMap(
+                  parsedEntry.meshes,
+                  impRecord.subParts
+                );
+                const targetSubIdx =
+                  impRecord.subParts[clickedSubIdx]?.mechType &&
+                  impRecord.subParts[clickedSubIdx].mechType !== 'none'
+                    ? clickedSubIdx
+                    : followers[clickedSubIdx] !== undefined
+                    ? followers[clickedSubIdx]
+                    : null;
+
+                if (targetSubIdx !== null && parsedEntry.meshes[targetSubIdx]) {
+                  const curSp = impRecord.subParts[targetSubIdx];
+                  const nextOpen = !curSp.isOpen;
+                  parsedEntry.meshes[targetSubIdx].userData.mechTarget = nextOpen
+                    ? 1
+                    : 0;
+                  setImportedModels((prev) => {
+                    const updated = prev.map((im) => {
+                      if (im.id !== impId) return im;
+                      const nextSubs = (im.subParts || []).map((sp) =>
+                        sp.subIdx === targetSubIdx
+                          ? { ...sp, isOpen: nextOpen }
+                          : sp
+                      );
+                      return { ...im, subParts: nextSubs };
+                    });
+                    persistWorkspace({ importedModels: updated });
+                    return updated;
+                  });
+                }
               }
               return;
             }
@@ -1482,6 +1556,35 @@ export default function KitchenViewer() {
             }
             if (id === ctx.selectedPartId || id === ctx.hoveredGroupId) {
               activePartAnimating = true;
+            }
+          }
+        }
+
+        // Animate Imported .GLB Mechanisms & Native glTF Animations
+        for (const impId in importedMap) {
+          const entry = importedMap[impId];
+          if (entry.mixer) {
+            entry.mixer.update(dt);
+          }
+          let glbMechChanged = false;
+          for (const m of entry.meshes) {
+            const prog = m.userData.mechProgress || 0;
+            const targ = m.userData.mechTarget || 0;
+            if (Math.abs(prog - targ) > 0.0005) {
+              if (prog < targ) {
+                m.userData.mechProgress = Math.min(1, prog + speed * dt);
+              } else {
+                m.userData.mechProgress = Math.max(0, prog - speed * dt);
+              }
+              glbMechChanged = true;
+            }
+          }
+          if (glbMechChanged) {
+            const impRec = stateRef.current.importedModels.find(
+              (x) => x.id === impId
+            );
+            if (impRec && impRec.subParts) {
+              updateGlbMechanismsIn3D(entry, impRec.subParts);
             }
           }
         }
@@ -1901,6 +2004,150 @@ export default function KitchenViewer() {
       persistWorkspace({ importedModels: updated });
       return updated;
     });
+  };
+
+  // Furniture Mechanism Handlers for Imported .GLB Models
+  const handleSetGlbSubMeshMechanism = (modelId, subIdx, mechType) => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.importedMap[modelId]) return;
+    const entry = ctx.importedMap[modelId];
+    const mesh = entry.meshes[subIdx];
+
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const nextSubs = (im.subParts || []).map((sp) => {
+          if (sp.subIdx !== subIdx) return sp;
+          const nextOpen = mechType === 'none' ? false : sp.isOpen;
+          if (mesh) {
+            mesh.userData.mechTarget = nextOpen ? 1 : 0;
+            if (mechType === 'none') mesh.userData.mechProgress = 0;
+          }
+          return { ...sp, mechType, isOpen: nextOpen };
+        });
+        updateGlbMechanismsIn3D(entry, nextSubs);
+        return { ...im, subParts: nextSubs };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+  };
+
+  const handleToggleGlbSubMeshOpen = (modelId, subIdx, forceState = null) => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.importedMap[modelId]) return;
+    const entry = ctx.importedMap[modelId];
+
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const nextSubs = (im.subParts || []).map((sp) => {
+          if (sp.subIdx !== subIdx) return sp;
+          const nextOpen =
+            typeof forceState === 'boolean' ? forceState : !sp.isOpen;
+          if (entry.meshes[subIdx]) {
+            entry.meshes[subIdx].userData.mechTarget = nextOpen ? 1 : 0;
+          }
+          return { ...sp, isOpen: nextOpen };
+        });
+        return { ...im, subParts: nextSubs };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+  };
+
+  const handleToggleAllGlbParts = (modelId, openState) => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.importedMap[modelId]) return;
+    const entry = ctx.importedMap[modelId];
+
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const nextSubs = (im.subParts || []).map((sp) => {
+          const hasMech = sp.mechType && sp.mechType !== 'none';
+          const nextOpen = hasMech ? Boolean(openState) : false;
+          if (entry.meshes[sp.subIdx]) {
+            entry.meshes[sp.subIdx].userData.mechTarget = nextOpen ? 1 : 0;
+          }
+          return { ...sp, isOpen: nextOpen };
+        });
+        return { ...im, subParts: nextSubs };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+  };
+
+  const handleAutoDetectGlbMechanisms = (modelId) => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.importedMap[modelId]) return;
+    const entry = ctx.importedMap[modelId];
+    const dict = I18N[lang] || I18N.ro;
+
+    setImportedModels((prev) => {
+      let detectedCount = 0;
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const autoSubs = autoDetectGlbMechanisms(
+          entry.meshes,
+          im.subParts || entry.subPartsMeta,
+          entry.baseDimsCm
+        );
+        autoSubs.forEach((sp, idx) => {
+          if (sp.mechType && sp.mechType !== 'none') detectedCount++;
+          if (entry.meshes[idx]) {
+            entry.meshes[idx].userData.mechTarget = 0;
+            entry.meshes[idx].userData.mechProgress = 0;
+          }
+        });
+        updateGlbMechanismsIn3D(entry, autoSubs);
+        return { ...im, subParts: autoSubs };
+      });
+      persistWorkspace({ importedModels: updated });
+      showToast(`${dict.mechDetectedToast}${detectedCount}`);
+      return updated;
+    });
+  };
+
+  const handleClearGlbMechanisms = (modelId) => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.importedMap[modelId]) return;
+    const entry = ctx.importedMap[modelId];
+
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const clearedSubs = (im.subParts || []).map((sp, idx) => {
+          if (entry.meshes[idx]) {
+            entry.meshes[idx].userData.mechTarget = 0;
+            entry.meshes[idx].userData.mechProgress = 0;
+          }
+          return { ...sp, mechType: 'none', isOpen: false };
+        });
+        updateGlbMechanismsIn3D(entry, clearedSubs);
+        return { ...im, subParts: clearedSubs };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+  };
+
+  const handleToggleNativeGlbAnimation = (modelId) => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.importedMap[modelId]) return;
+    const entry = ctx.importedMap[modelId];
+    if (!entry.animActions || entry.animActions.length === 0) return;
+
+    entry.nativeAnimOpen = !entry.nativeAnimOpen;
+    for (const action of entry.animActions) {
+      action.paused = false;
+      action.timeScale = entry.nativeAnimOpen ? 1 : -1;
+      if (!action.isRunning()) {
+        action.play();
+      }
+    }
   };
 
   // Quick Actions Handlers
@@ -2448,6 +2695,12 @@ export default function KitchenViewer() {
           onResetGlbMaterials={handleResetGlbMaterials}
           onPaintGlbSubMeshWithActiveMat={handlePaintGlbSubMeshWithActiveMat}
           onColorGlbSubMesh={handleColorGlbSubMesh}
+          onSetGlbSubMeshMechanism={handleSetGlbSubMeshMechanism}
+          onToggleGlbSubMeshOpen={handleToggleGlbSubMeshOpen}
+          onToggleAllGlbParts={handleToggleAllGlbParts}
+          onAutoDetectGlbMechanisms={handleAutoDetectGlbMechanisms}
+          onClearGlbMechanisms={handleClearGlbMechanisms}
+          onToggleNativeGlbAnimation={handleToggleNativeGlbAnimation}
         />
 
         <MaterialStudioSection

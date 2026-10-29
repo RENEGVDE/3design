@@ -20,7 +20,13 @@ export default function GlbImporterSection({
   onColorWholeGlb,
   onResetGlbMaterials,
   onPaintGlbSubMeshWithActiveMat,
-  onColorGlbSubMesh
+  onColorGlbSubMesh,
+  onSetGlbSubMeshMechanism,
+  onToggleGlbSubMeshOpen,
+  onToggleAllGlbParts,
+  onAutoDetectGlbMechanisms,
+  onClearGlbMechanisms,
+  onToggleNativeGlbAnimation
 }) {
   const dict = I18N[lang] || I18N.ro;
   const fileInputRef = useRef(null);
@@ -570,6 +576,54 @@ export default function GlbImporterSection({
                   <span>{dict.resetGlbMatBtn}</span>
                 </button>
 
+                {/* Furniture Mechanisms (Doors & Drawers) Section */}
+                <div className="zone-title" style={{ marginTop: '6px' }}>
+                  {dict.glbMechTitle}
+                </div>
+
+                {selectedModel.hasNativeAnimations && (
+                  <button
+                    className="btn-pill active-cyan"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={() => onToggleNativeGlbAnimation(selectedModel.id)}
+                  >
+                    <span>{dict.playGlbAnimBtn}</span>
+                  </button>
+                )}
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '4px'
+                  }}
+                >
+                  <button
+                    className="light-chip"
+                    onClick={() => onAutoDetectGlbMechanisms(selectedModel.id)}
+                  >
+                    {dict.autoDetectMechBtn}
+                  </button>
+                  <button
+                    className="light-chip"
+                    onClick={() => onClearGlbMechanisms(selectedModel.id)}
+                  >
+                    {dict.clearMechBtn}
+                  </button>
+                  <button
+                    className="light-chip"
+                    onClick={() => onToggleAllGlbParts(selectedModel.id, true)}
+                  >
+                    {dict.openAllGlbBtn}
+                  </button>
+                  <button
+                    className="light-chip"
+                    onClick={() => onToggleAllGlbParts(selectedModel.id, false)}
+                  >
+                    {dict.closeAllGlbBtn}
+                  </button>
+                </div>
+
                 {selectedModel.subParts && selectedModel.subParts.length > 0 && (
                   <>
                     <div className="zone-title">{dict.glbSubMeshesTitle}</div>
@@ -577,65 +631,152 @@ export default function GlbImporterSection({
                       style={{
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '4px',
-                        maxHeight: '135px',
+                        gap: '5px',
+                        maxHeight: '190px',
                         overflowY: 'auto'
                       }}
                     >
-                      {selectedModel.subParts.map((sp) => (
-                        <div
-                          key={sp.subIdx}
-                          className="part-row"
-                          style={{
-                            padding: '5px 8px',
-                            background: 'rgba(255,255,255,0.03)'
-                          }}
-                        >
-                          <span
-                            className="part-name"
-                            style={{ fontSize: '0.71rem' }}
+                      {selectedModel.subParts.map((sp) => {
+                        const hasMech = sp.mechType && sp.mechType !== 'none';
+                        return (
+                          <div
+                            key={sp.subIdx}
+                            className={`part-row ${sp.isOpen ? 'open' : ''}`}
+                            style={{
+                              padding: '5px 7px',
+                              background: hasMech
+                                ? 'rgba(56, 189, 248, 0.08)'
+                                : 'rgba(255,255,255,0.03)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'stretch',
+                              gap: '4px'
+                            }}
                           >
-                            {sp.name}
-                          </span>
-                          <div className="part-actions">
-                            <label
-                              className="part-paint-btn"
-                              style={{ cursor: 'pointer' }}
-                              title="Schimbă culoarea acestei sub-piese"
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '6px'
+                              }}
                             >
                               <span
-                                className="part-mat-dot"
-                                style={{ background: sp.colorHex || '#e5e7eb' }}
-                              />
-                              🎨
-                              <input
-                                type="color"
-                                value={sp.colorHex || '#e5e7eb'}
-                                style={{ width: 0, height: 0, opacity: 0 }}
-                                onChange={(e) =>
-                                  onColorGlbSubMesh(
-                                    selectedModel.id,
-                                    sp.subIdx,
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </label>
-                            <button
-                              className="part-paint-btn"
-                              title="Aplică materialul/textura selectată din Studio pe această sub-piesă"
-                              onClick={() =>
-                                onPaintGlbSubMeshWithActiveMat(
+                                className="part-name"
+                                style={{ fontSize: '0.70rem' }}
+                              >
+                                #{sp.subIdx + 1} {sp.name}
+                              </span>
+                              <div className="part-actions">
+                                {hasMech && (
+                                  <button
+                                    className="part-paint-btn"
+                                    style={{
+                                      borderColor: sp.isOpen
+                                        ? '#34d399'
+                                        : 'rgba(56,189,248,0.45)',
+                                      color: sp.isOpen ? '#34d399' : '#bae6fd'
+                                    }}
+                                    title={
+                                      sp.isOpen
+                                        ? dict.clickToClose
+                                        : dict.clickToOpen
+                                    }
+                                    onClick={() =>
+                                      onToggleGlbSubMeshOpen(
+                                        selectedModel.id,
+                                        sp.subIdx
+                                      )
+                                    }
+                                  >
+                                    {sp.isOpen ? '🔓' : '🔒'}
+                                  </button>
+                                )}
+                                <label
+                                  className="part-paint-btn"
+                                  style={{ cursor: 'pointer' }}
+                                  title="Schimbă culoarea acestei sub-piese"
+                                >
+                                  <span
+                                    className="part-mat-dot"
+                                    style={{
+                                      background: sp.colorHex || '#e5e7eb'
+                                    }}
+                                  />
+                                  🎨
+                                  <input
+                                    type="color"
+                                    value={sp.colorHex || '#e5e7eb'}
+                                    style={{ width: 0, height: 0, opacity: 0 }}
+                                    onChange={(e) =>
+                                      onColorGlbSubMesh(
+                                        selectedModel.id,
+                                        sp.subIdx,
+                                        e.target.value
+                                      )
+                                    }
+                                  />
+                                </label>
+                                <button
+                                  className="part-paint-btn"
+                                  title="Aplică materialul/textura selectată din Studio pe această sub-piesă"
+                                  onClick={() =>
+                                    onPaintGlbSubMeshWithActiveMat(
+                                      selectedModel.id,
+                                      sp.subIdx
+                                    )
+                                  }
+                                >
+                                  🖌️
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Mechanism Selector Dropdown */}
+                            <select
+                              value={sp.mechType || 'none'}
+                              onChange={(e) =>
+                                onSetGlbSubMeshMechanism(
                                   selectedModel.id,
-                                  sp.subIdx
+                                  sp.subIdx,
+                                  e.target.value
                                 )
                               }
+                              style={{
+                                width: '100%',
+                                background: 'rgba(0,0,0,0.45)',
+                                border: hasMech
+                                  ? '1px solid rgba(56, 189, 248, 0.5)'
+                                  : '1px solid rgba(255,255,255,0.14)',
+                                color: hasMech ? '#bae6fd' : '#cbd5e1',
+                                borderRadius: '5px',
+                                padding: '3px 6px',
+                                fontSize: '0.67rem',
+                                outline: 'none',
+                                cursor: 'pointer'
+                              }}
                             >
-                              🖌️
-                            </button>
+                              <option value="none">{dict.mech_none}</option>
+                              <option value="door_left">
+                                {dict.mech_door_left}
+                              </option>
+                              <option value="door_right">
+                                {dict.mech_door_right}
+                              </option>
+                              <option value="flap_up">
+                                {dict.mech_flap_up}
+                              </option>
+                              <option value="flap_down">
+                                {dict.mech_flap_down}
+                              </option>
+                              <option value="drawer">{dict.mech_drawer}</option>
+                              <option value="drawer_back">
+                                {dict.mech_drawer_back}
+                              </option>
+                            </select>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </>
                 )}
