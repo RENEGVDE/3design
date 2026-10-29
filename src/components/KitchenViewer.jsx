@@ -1006,11 +1006,27 @@ export default function KitchenViewer() {
             const p = entry.wrapperGroup.position;
             const ry = THREE.MathUtils.radToDeg(entry.wrapperGroup.rotation.y);
             const s = entry.wrapperGroup.scale;
-            const nextPos = [
+            let nextPos = [
               Math.round(p.x * 1000) / 1000,
               Math.round(Math.max(0, p.y) * 1000) / 1000,
               Math.round(p.z * 1000) / 1000
             ];
+
+            if (stateRef.current.magneticSnapEnabled && (stateRef.current.gizmoMode === 'translate' || !stateRef.current.gizmoMode)) {
+              const snapResult = calculateMagneticSnap(
+                gid,
+                stateRef.current.importedModels,
+                sceneRef.current.importedMap,
+                0.06
+              );
+              if (snapResult) {
+                nextPos = snapResult.position;
+                entry.wrapperGroup.position.set(nextPos[0], nextPos[1], nextPos[2]);
+                if (snapResult.info) {
+                  showToast('🧲 ' + snapResult.info);
+                }
+              }
+            }
             const nextRot = Math.round(ry);
             const nextScale = [
               Math.max(0.05, Math.round(s.x * 1000) / 1000),
@@ -2782,8 +2798,6 @@ export default function KitchenViewer() {
     const ctx = sceneRef.current;
     if (!ctx || !ctx.importedMap[modelId]) return;
     const entry = ctx.importedMap[modelId];
-    const dict = I18N[lang] || I18N.ro;
-
     setImportedModels((prev) => {
       let detectedCount = 0;
       const updated = prev.map((im) => {
@@ -3272,6 +3286,162 @@ export default function KitchenViewer() {
   };
 
   const dict = I18N[lang] || I18N.ro;
+  const handleToggleDemoKitchen = useCallback(() => {
+    setShowDemoKitchen((prev) => {
+      const nextVal = !prev;
+      if (sceneRef.current?.kitchenRoot) {
+        sceneRef.current.kitchenRoot.visible = nextVal;
+        sceneRef.current.needsShadowUpdate = true;
+      }
+      persistWorkspace({ showDemoKitchen: nextVal });
+      showToast(
+        lang === 'ro'
+          ? '🍳 Bucătărie Demo: ' + (nextVal ? 'Vizibilă' : 'Ascunsă')
+          : lang === 'ru'
+          ? '🍳 Демо-кухня: ' + (nextVal ? 'Включена' : 'Скрыта')
+          : '🍳 Demo Kitchen: ' + (nextVal ? 'Visible' : 'Hidden')
+      );
+      return nextVal;
+    });
+  }, [lang, persistWorkspace, showToast]);
+
+  const handleNewProject = useCallback(() => {
+    const confirmMsg =
+      lang === 'ro'
+        ? 'Dorești să creezi un proiect nou? Scena curentă va fi curățată.'
+        : lang === 'ru'
+        ? 'Создать новый проект? Текущая сцена будет очищена.'
+        : 'Create a new project? The current scene will be cleared.';
+
+    if (!window.confirm(confirmMsg)) return;
+
+    if (sceneRef.current) {
+      for (const m of stateRef.current.importedModels) {
+        disposeModelHierarchy(m.id, sceneRef.current);
+      }
+      if (sceneRef.current.kitchenRoot) {
+        sceneRef.current.kitchenRoot.visible = false;
+        sceneRef.current.needsShadowUpdate = true;
+      }
+    }
+
+    setImportedModels([]);
+    setSelectedGlbId(null);
+    setShowDemoKitchen(false);
+    historyRef.current = [];
+    historyIndexRef.current = -1;
+    setCanUndo(false);
+    setCanRedo(false);
+
+    persistWorkspace({
+      importedModels: [],
+      selectedGlbId: null,
+      showDemoKitchen: false
+    });
+
+    showToast(
+      lang === 'ro'
+        ? '🆕 Proiect nou creat! Spațiul de lucru este pregătit.'
+        : lang === 'ru'
+        ? '🆕 Новый проект создан! Пространство готово.'
+        : '🆕 New project created! Workspace is clean.'
+    );
+  }, [lang, persistWorkspace, showToast]);
+
+  const handleSaveProject = useCallback(() => {
+    const projectData = {
+      format: '3design_project',
+      version: '1.2',
+      savedAt: new Date().toISOString(),
+      lang,
+      showDemoKitchen,
+      activeMatId,
+      materials,
+      lightState,
+      importedModels: stateRef.current.importedModels
+    };
+
+    const jsonStr = JSON.stringify(projectData, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'proiect-mobilier-' + new Date().toISOString().slice(0, 10) + '.3design';
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast(
+      lang === 'ro'
+        ? '💾 Proiectul a fost salvat și descărcat (.3design)!'
+        : lang === 'ru'
+        ? '💾 Проект сохранен и скачан (.3design)!'
+        : '💾 Project saved and downloaded (.3design)!'
+    );
+  }, [lang, showDemoKitchen, activeMatId, materials, lightState, showToast]);
+
+  const handleLoadProject = useCallback(async (file) => {
+    try {
+      const text = await file.text();
+      const proj = JSON.parse(text);
+      if (!proj || (!proj.format && !proj.importedModels)) {
+        alert('Fișier invalid. Alege un fișier de tip .3design sau .json');
+        return;
+      }
+
+      if (sceneRef.current) {
+        for (const m of stateRef.current.importedModels) {
+          disposeModelHierarchy(m.id, sceneRef.current);
+        }
+      }
+
+      if (typeof proj.showDemoKitchen === 'boolean') {
+        setShowDemoKitchen(proj.showDemoKitchen);
+        if (sceneRef.current?.kitchenRoot) {
+          sceneRef.current.kitchenRoot.visible = proj.showDemoKitchen;
+        }
+      }
+
+      if (Array.isArray(proj.materials)) {
+        setMaterials(proj.materials);
+      }
+      if (proj.activeMatId) {
+        setActiveMatId(proj.activeMatId);
+      }
+      if (proj.lightState) {
+        setLightState(proj.lightState);
+      }
+
+      if (Array.isArray(proj.importedModels)) {
+        setImportedModels(proj.importedModels);
+        for (const m of proj.importedModels) {
+          const b64 = m.b64Data || glbBinaryCacheRef.current.get(m.id);
+          if (b64 && sceneRef.current) {
+            const buf = base64ToArrayBuffer(b64);
+            await mountParsedGlbIntoScene(
+              buf,
+              b64,
+              m.id,
+              m.name,
+              { position: m.position, rotationYDeg: m.rotationYDeg, scale: m.scale },
+              m.subParts,
+              proj.materials || stateRef.current.materials
+            );
+          }
+        }
+      }
+
+      persistWorkspace({
+        importedModels: proj.importedModels || [],
+        showDemoKitchen: proj.showDemoKitchen ?? true
+      });
+
+      showToast('📥 Proiect încărcat cu succes!');
+    } catch (err) {
+      console.error('Error loading project:', err);
+      alert('Eroare la încărcarea fișierului: ' + err.message);
+    }
+  }, [persistWorkspace, showToast]);
+
 
   return (
     <>
@@ -3305,6 +3475,14 @@ export default function KitchenViewer() {
         onUndo={handleUndo}
         canRedo={canRedo}
         onRedo={handleRedo}
+        showDemoKitchen={showDemoKitchen}
+        onToggleDemoKitchen={handleToggleDemoKitchen}
+        onNewProject={handleNewProject}
+        onSaveProject={handleSaveProject}
+        onLoadProject={handleLoadProject}
+        onOpenTechnicalReport={() => setTechnicalReportOpen(true)}
+        magneticSnapEnabled={magneticSnapEnabled}
+        onToggleMagneticSnap={() => setMagneticSnapEnabled((v) => !v)}
       />
 
       <DimensionToolbar
@@ -3621,6 +3799,15 @@ export default function KitchenViewer() {
         onSelectCamera={handleSelectCamera}
         autoRotate={autoRotate}
         onToggleAutoRotate={handleToggleAutoRotate}
+      />
+
+      <TechnicalReportModal
+        isOpen={technicalReportOpen}
+        onClose={() => setTechnicalReportOpen(false)}
+        lang={lang}
+        importedModels={importedModels}
+        materials={materials}
+        onCaptureScreenshot={handleCaptureScreenshot}
       />
 
       <div id="help-pill">
