@@ -48,6 +48,8 @@ import ParametricCabinetSection from './ParametricCabinetSection.jsx';
 import GlbImporterSection from './GlbImporterSection.jsx';
 import LightingStudioSection from './LightingStudioSection.jsx';
 import InteractivePartsSection from './InteractivePartsSection.jsx';
+import TechnicalReportModal from './TechnicalReportModal.jsx';
+import { calculateMagneticSnap, alignModelDirectly } from '../utils/magneticSnapping.js';
 
 const INITIAL_WHITE_MAT = {
   id: 'mat_default_white',
@@ -130,6 +132,11 @@ export default function KitchenViewer() {
   const [activeDimInfo, setActiveDimInfo] = useState(null);
   const [tapeHasPointA, setTapeHasPointA] = useState(false);
   const [tapeMeasurement, setTapeMeasurement] = useState(null);
+
+  // Project & CAD Studio States
+  const [showDemoKitchen, setShowDemoKitchen] = useState(true);
+  const [magneticSnapEnabled, setMagneticSnapEnabled] = useState(true);
+  const [technicalReportOpen, setTechnicalReportOpen] = useState(false);
 
   const [lightState, setLightState] = useState(INITIAL_LIGHT_STATE);
   const [showLightOrb, setShowLightOrb] = useState(false);

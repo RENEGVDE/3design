@@ -32,6 +32,9 @@ export default function UniversalFurnitureStudioSection({
   const [mountType, setMountType] = useState('floor');
   const [hasClothesRail, setHasClothesRail] = useState(true);
   const [facadeStyle, setFacadeStyle] = useState('sliding');
+  const [handleType, setHandleType] = useState('bar_black');
+  const [legType, setLegType] = useState('plinth');
+  const [hasLedGlow, setHasLedGlow] = useState(false);
 
   const [showPanelTable, setShowPanelTable] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -87,9 +90,12 @@ export default function UniversalFurnitureStudioSection({
       hasClothesRail,
       facadeStyle,
       carcassColor: activeMat?.colorHex || '#f4f4f2',
-      facadeColor: activeMat?.colorHex || '#f4f4f2'
+      facadeColor: activeMat?.colorHex || '#f4f4f2',
+      handleType,
+      legType,
+      hasLedGlow
     });
-  }, [furnitureName, furnitureTypeId, widthCm, heightCm, depthCm, sectionsCount, shelvesPerSection, mountType, hasClothesRail, facadeStyle, activeMat]);
+  }, [furnitureName, furnitureTypeId, widthCm, heightCm, depthCm, sectionsCount, shelvesPerSection, mountType, hasClothesRail, facadeStyle, activeMat, handleType, legType, hasLedGlow]);
 
   const bomMetrics = useMemo(() => {
     let carcassSqM = 0;
@@ -136,7 +142,11 @@ export default function UniversalFurnitureStudioSection({
             shelvesPerSection,
             mountType,
             hasClothesRail,
-            facadeStyle
+            facadeStyle,
+            handleType,
+            legType,
+            hasLedGlow,
+            panelCuttingList: currentComposition.panelCuttingList
           }
         );
       }
@@ -374,7 +384,58 @@ export default function UniversalFurnitureStudioSection({
           ))}
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
+                {/* Feronerie: Mânere & Butoni */}
+        <div style={{ marginTop: '10px' }}>
+          <label className="input-label" style={{ fontSize: '10px', marginBottom: '4px', display: 'block' }}>
+            {isRo ? 'Mânere & Feronerie Fațadă:' : isRu ? 'Ручки и фурнитура фасадов:' : 'Handles & Hardware:'}
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+            {[
+              { id: 'bar_black', ro: 'Bară Negru', ru: 'Черная рейка', en: 'Black Bar' },
+              { id: 'bar_gold', ro: 'Bară Auriu', ru: 'Золотая рейка', en: 'Gold Bar' },
+              { id: 'bar_chrome', ro: 'Bară Inox', ru: 'Хром рейка', en: 'Chrome Bar' },
+              { id: 'knob_black', ro: 'Buton Negru', ru: 'Черная кнопка', en: 'Black Knob' },
+              { id: 'knob_gold', ro: 'Buton Auriu', ru: 'Золотая кнопка', en: 'Gold Knob' },
+              { id: 'none', ro: 'Push / Fără', ru: 'Push-to-Open', en: 'Push-to-Open' }
+            ].map((h) => (
+              <button
+                key={h.id}
+                onClick={() => setHandleType(h.id)}
+                className={`btn-pill ${handleType === h.id ? 'active' : ''}`}
+                style={{ fontSize: '9px', padding: '5px 2px' }}
+              >
+                {isRo ? h.ro : isRu ? h.ru : h.en}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bază: Picioare & Soclu */}
+        <div style={{ marginTop: '10px' }}>
+          <label className="input-label" style={{ fontSize: '10px', marginBottom: '4px', display: 'block' }}>
+            {isRo ? 'Bază & Suport:' : isRu ? 'Опора и цоколь:' : 'Base & Legs:'}
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
+            {[
+              { id: 'plinth', ro: 'Soclu PAL', ru: 'Цоколь ЛДСП', en: 'Plinth' },
+              { id: 'legs_black', ro: 'Picioare Negre', ru: 'Ножки Черные', en: 'Black Legs' },
+              { id: 'legs_gold', ro: 'Picioare Aurii', ru: 'Ножки Золото', en: 'Gold Legs' },
+              { id: 'wall_hung', ro: 'Suspendat', ru: 'Подвесной', en: 'Wall-Hung' }
+            ].map((lg) => (
+              <button
+                key={lg.id}
+                onClick={() => setLegType(lg.id)}
+                className={`btn-pill ${legType === lg.id ? 'active' : ''}`}
+                style={{ fontSize: '9px', padding: '5px 2px' }}
+              >
+                {isRo ? lg.ro : isRu ? lg.ru : lg.en}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Optiuni Aditionale: Bara Haine & LED Ambient */}
+        <div style={{ display: 'flex', gap: '12px', marginTop: '10px', flexWrap: 'wrap' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#cbd5e1', cursor: 'pointer' }}>
             <input
               type="checkbox"
@@ -382,17 +443,17 @@ export default function UniversalFurnitureStudioSection({
               onChange={(e) => setHasClothesRail(e.target.checked)}
               style={{ accentColor: '#38bdf8' }}
             />
-            <span>👔 {isRo ? 'Bară Haine Umerașe' : isRu ? 'Штанга для одежды' : 'Hanging Clothes Rail'}</span>
+            <span>👔 {isRo ? 'Bară Haine' : isRu ? 'Штанга одежды' : 'Clothes Rail'}</span>
           </label>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#cbd5e1', cursor: 'pointer' }}>
             <input
               type="checkbox"
-              checked={mountType === 'floating'}
-              onChange={(e) => setMountType(e.target.checked ? 'floating' : 'floor')}
+              checked={hasLedGlow}
+              onChange={(e) => setHasLedGlow(e.target.checked)}
               style={{ accentColor: '#38bdf8' }}
             />
-            <span>🪶 {isRo ? 'Suspendat pe Perete (Floating)' : isRu ? 'Подвесной на стену' : 'Wall-Mounted Floating'}</span>
+            <span>💡 {isRo ? 'Bandă LED Ambient' : isRu ? 'LED подсветка' : 'Ambient LED'}</span>
           </label>
         </div>
       </div>

@@ -152,6 +152,18 @@ function createBoxUVGeometry(wMm, hMm, dMm) {
   return geo;
 }
 
+function createKnobHandle(mat) {
+  const g = new THREE.Group();
+  g.name = 'Knob';
+  const knob = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 6, 16).rotateX(Math.PI / 2), mat);
+  knob.position.set(0, 0, 22);
+  g.add(knob);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 20, 12).rotateX(Math.PI / 2), mat);
+  stem.position.set(0, 0, 10);
+  g.add(stem);
+  return g;
+}
+
 function createBarHandle(lengthMm, mat) {
   const g = new THREE.Group();
   g.name = 'Handle';
@@ -169,6 +181,19 @@ function createBarHandle(lengthMm, mat) {
   return g;
 }
 
+function getHandleMesh(type = 'bar_black', lengthMm = 160) {
+  if (type === 'none') return null;
+  const blackMat = new THREE.MeshStandardMaterial({ color: 0x1f2428, roughness: 0.35, metalness: 0.75 });
+  const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.25, metalness: 0.85 });
+  const chromeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.15, metalness: 0.95 });
+
+  if (type === 'knob_black') return createKnobHandle(blackMat);
+  if (type === 'knob_gold') return createKnobHandle(goldMat);
+  if (type === 'bar_gold') return createBarHandle(lengthMm, goldMat);
+  if (type === 'bar_chrome') return createBarHandle(lengthMm, chromeMat);
+  return createBarHandle(lengthMm, blackMat); // default bar_black
+}
+
 /**
  * Procedurally generates ANY piece of furniture (wardrobe, TV console, desk, nightstand, etc.)
  * with structural 18mm panels, interactive doors/drawers/sliding doors, and a full Bazis cutting list.
@@ -183,11 +208,14 @@ export function buildUniversalFurniture(config) {
     depthCm = 60,
     sectionsCount = 2,
     shelvesPerSection = 2,
-    mountType = 'floor', // 'floor' (plinth/legs) | 'floating' (wall-mounted)
+    mountType = 'floor',
     hasClothesRail = false,
-    facadeStyle = 'doors', // 'doors' | 'sliding' | 'drawers' | 'open'
+    facadeStyle = 'doors',
     carcassColor = '#f4f4f2',
-    facadeColor = '#f4f4f2'
+    facadeColor = '#f4f4f2',
+    handleType = 'bar_black',
+    legType = 'plinth',
+    hasLedGlow = false
   } = config;
 
   const w = Math.round(widthCm * 10); // mm
@@ -195,7 +223,9 @@ export function buildUniversalFurniture(config) {
   const d = Math.round(depthCm * 10); // mm
   const BOARD_T = 18; // mm
 
-  const plinthH = mountType === 'floor' ? 80 : 0; // 80mm plinth if floor
+  const isLegs = legType === 'legs_black' || legType === 'legs_gold';
+  const isWallHung = legType === 'wall_hung' || mountType === 'floating';
+  const plinthH = isWallHung ? 0 : isLegs ? 120 : 80;
   const boxH = h - plinthH;
 
   const root = new THREE.Group();
@@ -244,12 +274,48 @@ export function buildUniversalFurniture(config) {
   carcassGroup.add(backHDF);
   panelCuttingList.push({ cabinet: name, partName: 'Spate PFL / HDF', lengthMm: boxH - 12, widthMm: w - 12, thicknessMm: 4, qty: 1, material: 'HDF Alb 4mm', grain: 'Vertical', edgeBanding: 'Fără cant' });
 
-  // Soclu Plintă (if floor mounted)
-  if (plinthH > 0) {
-    const plinth = new THREE.Mesh(createBoxUVGeometry(w, plinthH, BOARD_T), carcassMat);
-    plinth.position.set(0, plinthH / 2, d / 2 - 30);
-    carcassGroup.add(plinth);
-    panelCuttingList.push({ cabinet: name, partName: 'Soclu / Plintă', lengthMm: w, widthMm: plinthH, thicknessMm: 18, qty: 1, material: 'PAL Melaminat 18mm', grain: 'Lungime', edgeBanding: 'Cant ABS 1mm' });
+  // Soclu Plintă sau Picioare Decorative
+  if (!isWallHung) {
+    if (isLegs) {
+      const legColor = legType === 'legs_gold' ? 0xd4af37 : 0x1f2428;
+      const legMat = new THREE.MeshStandardMaterial({ color: legColor, roughness: 0.3, metalness: 0.85 });
+      const legPositions = [
+        [-w / 2 + 50, plinthH / 2, -d / 2 + 50],
+        [w / 2 - 50, plinthH / 2, -d / 2 + 50],
+        [-w / 2 + 50, plinthH / 2, d / 2 - 50],
+        [w / 2 - 50, plinthH / 2, d / 2 - 50]
+      ];
+      if (w > 1600) {
+        legPositions.push([0, plinthH / 2, -d / 2 + 50]);
+        legPositions.push([0, plinthH / 2, d / 2 - 50]);
+      }
+      legPositions.forEach((pos, idx) => {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(14, 8, plinthH, 16), legMat);
+        leg.position.set(pos[0], pos[1], pos[2]);
+        leg.name = 'Picior_Metal_' + (idx + 1);
+        carcassGroup.add(leg);
+      });
+      panelCuttingList.push({ cabinet: name, partName: 'Picioare Metalice Design (' + legPositions.length + ' buc)', lengthMm: plinthH, widthMm: 28, thicknessMm: 28, qty: legPositions.length, material: legType === 'legs_gold' ? 'Metal Auriu Periat' : 'Metal Negru Mat', grain: 'Vertical', edgeBanding: 'Feronerie' });
+    } else {
+      const plinth = new THREE.Mesh(createBoxUVGeometry(w, plinthH, BOARD_T), carcassMat);
+      plinth.position.set(0, plinthH / 2, d / 2 - 30);
+      carcassGroup.add(plinth);
+      panelCuttingList.push({ cabinet: name, partName: 'Soclu / Plintă', lengthMm: w, widthMm: plinthH, thicknessMm: 18, qty: 1, material: 'PAL Melaminat 18mm', grain: 'Lungime', edgeBanding: 'Cant ABS 1mm' });
+    }
+  }
+
+  // LED Glow Ambient Strip
+  if (hasLedGlow) {
+    const ledMat = new THREE.MeshStandardMaterial({
+      color: 0xfffae0,
+      emissive: 0xffe082,
+      emissiveIntensity: 1.6,
+      roughness: 0.2
+    });
+    const ledStrip = new THREE.Mesh(createBoxUVGeometry(w - 20, 6, 14), ledMat);
+    ledStrip.position.set(0, plinthH + 3, d / 2 - 18);
+    ledStrip.name = 'Banda_LED_Ambient';
+    interiorGroup.add(ledStrip);
   }
 
   // 2. VERTICAL DIVIDERS (Despărțituri / Montanți)
@@ -363,9 +429,11 @@ export function buildUniversalFurniture(config) {
       sideR.position.set(boxW / 2 - 8, 0, -boxD / 2 - 9);
       drawerPivot.add(sideR);
 
-      const handle = createBarHandle(160, metalMat);
-      handle.position.set(0, 0, BOARD_T / 2);
-      drawerPivot.add(handle);
+      const handle = getHandleMesh(handleType, 160);
+      if (handle) {
+        handle.position.set(0, 0, BOARD_T / 2);
+        drawerPivot.add(handle);
+      }
 
       drawerPivot.userData.mechType = 'drawer';
       drawerPivot.userData.slideDelta = [0, 0, Math.min(420, d - 80)];
@@ -394,9 +462,11 @@ export function buildUniversalFurniture(config) {
       doorMesh.position.set(hingeSide === 'left' ? doorW / 2 : -doorW / 2, 0, 0);
       doorPivot.add(doorMesh);
 
-      const handle = createBarHandle(160, metalMat);
-      handle.position.set(hingeSide === 'left' ? doorW - 35 : -doorW + 35, 0, BOARD_T / 2);
-      doorPivot.add(handle);
+      const handle = getHandleMesh(handleType, 160);
+      if (handle) {
+        handle.position.set(hingeSide === 'left' ? doorW - 35 : -doorW + 35, 0, BOARD_T / 2);
+        doorPivot.add(handle);
+      }
 
       doorPivot.userData.mechType = hingeSide === 'left' ? 'door_left' : 'door_right';
       doorPivot.userData.maxAngle = hingeSide === 'left' ? 95 : -95;
