@@ -13,6 +13,9 @@
 
 ```text
 3design/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml               # GitHub Actions pipeline (builds & deploys on push to main)
 ├── AGENTS.md                        # Root AI context entry point (auto-read by Antigravity/Cursor/Claude)
 ├── package.json                     # Scripts (dev, build, start, deploy) & dependencies
 ├── next.config.mjs                  # Next.js configuration (output: 'export' for static distribution)
@@ -58,7 +61,17 @@
 
 ---
 
-## 3. How to Add New Features in Vinext
+## 3. Automated CI/CD Pipeline
+Every commit pushed to the `main` branch triggers `.github/workflows/deploy.yml`:
+1. Checks out the code.
+2. Sets up Node 20 with npm caching.
+3. Installs dependencies using `npm ci --legacy-peer-deps`.
+4. Runs `npm run build` to prerender static assets to `dist/client`.
+5. Automatically deploys to Firebase Hosting (`site: bucatarie-3d-viewer`, project: `trysmthwtf`) using either the repository secret `FIREBASE_SERVICE_ACCOUNT_TRYSMTHWTF` (or `FIREBASE_SERVICE_ACCOUNT`) or `FIREBASE_TOKEN`.
+
+---
+
+## 4. How to Add New Features in Vinext
 
 ### Adding a New Sidebar Control Section
 1. Create a new component in `src/components/MyNewSection.jsx`.

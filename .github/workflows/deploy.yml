@@ -1,0 +1,63 @@
+name: Deploy to Firebase Hosting on Push
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-firebase-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build static production bundle
+        run: npm run build
+
+      - name: Check for Firebase Credentials
+        id: check_auth
+        env:
+          SA_1: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TRYSMTHWTF }}
+          SA_2: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -n "$SA_1" ] || [ -n "$SA_2" ]; then
+            echo "auth_type=service_account" >> $GITHUB_OUTPUT
+          elif [ -n "$TOKEN" ]; then
+            echo "auth_type=token" >> $GITHUB_OUTPUT
+          else
+            echo "auth_type=none" >> $GITHUB_OUTPUT
+            echo "::error::No Firebase credentials found! Please set FIREBASE_SERVICE_ACCOUNT_TRYSMTHWTF or FIREBASE_TOKEN in GitHub Repository Secrets (Settings -> Secrets and variables -> Actions)."
+            exit 1
+          fi
+
+      - name: Deploy via FirebaseExtended Action (Service Account)
+        if: steps.check_auth.outputs.auth_type == 'service_account'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_TRYSMTHWTF || secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          channelId: live
+          projectId: trysmthwtf
+
+      - name: Deploy via Firebase CLI (Token)
+        if: steps.check_auth.outputs.auth_type == 'token'
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: npx firebase-tools deploy --only hosting --project trysmthwtf --token "$FIREBASE_TOKEN"

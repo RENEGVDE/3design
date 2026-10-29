@@ -24,7 +24,6 @@ All detailed technical knowledge is stored in `docs/`:
 
 ## 3. Essential Commands
 
-### Development, Build & Deploy (100% Vinext / Node.js)
 ```bash
 npm install --legacy-peer-deps   # Install dependencies
 npm run dev                      # Start Vinext + Vite dev server with instant HMR
@@ -32,6 +31,8 @@ npm run build                    # Prerender and build production bundle (dist/c
 npm run start                    # Run local production server
 npm run deploy                   # Build & deploy directly to Firebase Hosting
 ```
+*Note*: Pushes to branch `main` on GitHub are automatically built and deployed to Firebase Hosting via `.github/workflows/deploy.yml`.
+
 
 ---
 
