@@ -43,6 +43,7 @@
     │   ├── KitchenViewer.jsx        # Main 3D scene orchestrator, raycasting, state, history & render loop
     │   ├── TopBar.jsx               # Header bar, Undo/Redo, language switcher (RO/EN/RU), dims toggle
     │   ├── DimensionToolbar.jsx     # Floating CAD dimension mode selector & live W×H×D / Tape readout
+    │   ├── ParametricCabinetSection.jsx # Non-pro parametric furniture builder & CSV cutting list
     │   ├── MaterialStudioSection.jsx# Texture upload, color picker, delete, reset white, grain & zones
     │   ├── GlbImporterSection.jsx   # 3D model uploader, gizmo controls, resizing, mechanisms & painting
     │   ├── LightingStudioSection.jsx# Kelvin tone, intensity, 360° light position & 3D orb helper
@@ -56,6 +57,7 @@
         ├── storage.js               # IndexedDB + localStorage persistence engine with debounced saves
         ├── textures.js              # Default white material table, texture loader, Kelvin color math
         ├── dimensions3d.js          # 3D CAD dimension lines, sprites, bounding boxes & tape measure
+        ├── parametricCabinet.js     # Procedural 18mm board generator, kinematics, GLB & CSV cutting list
         └── glbImporter.js           # GLTF parser, UV generator, follower map, auto-mechanisms, VRAM disposal
 ```
 

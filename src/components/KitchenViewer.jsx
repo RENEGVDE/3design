@@ -42,6 +42,7 @@ import TopBar from './TopBar.jsx';
 import DimensionToolbar from './DimensionToolbar.jsx';
 import CameraPresetsBar from './CameraPresetsBar.jsx';
 import MaterialStudioSection from './MaterialStudioSection.jsx';
+import ParametricCabinetSection from './ParametricCabinetSection.jsx';
 import GlbImporterSection from './GlbImporterSection.jsx';
 import LightingStudioSection from './LightingStudioSection.jsx';
 import InteractivePartsSection from './InteractivePartsSection.jsx';
@@ -269,7 +270,9 @@ export default function KitchenViewer() {
       position: im.position,
       rotationYDeg: im.rotationYDeg,
       scale: im.scale,
-      subParts: im.subParts
+      subParts: im.subParts,
+      isParametric: Boolean(im.isParametric),
+      parametricConfig: im.parametricConfig || null
     }));
 
     const partAssignments = {};
@@ -333,7 +336,9 @@ export default function KitchenViewer() {
       scale: [...im.scale],
       baseDimsCm: im.baseDimsCm ? { ...im.baseDimsCm } : undefined,
       hasNativeAnimations: im.hasNativeAnimations,
-      subParts: im.subParts ? im.subParts.map((sp) => ({ ...sp })) : []
+      subParts: im.subParts ? im.subParts.map((sp) => ({ ...sp })) : [],
+      isParametric: Boolean(im.isParametric),
+      parametricConfig: im.parametricConfig ? { ...im.parametricConfig } : null
     }));
 
     return {
@@ -716,6 +721,8 @@ export default function KitchenViewer() {
               nextMaterials
             );
             if (mounted) {
+              mounted.isParametric = Boolean(im.isParametric);
+              mounted.parametricConfig = im.parametricConfig || null;
               restoredGlbList.push(mounted);
               continue;
             }
@@ -1516,7 +1523,11 @@ export default function KitchenViewer() {
                 sim.subParts,
                 restoredMats
               );
-              if (mounted) restoredGlbs.push(mounted);
+              if (mounted) {
+                mounted.isParametric = Boolean(sim.isParametric);
+                mounted.parametricConfig = sim.parametricConfig || null;
+                restoredGlbs.push(mounted);
+              }
             } catch (e) {
               console.warn('Failed to restore imported GLB:', e);
             }
@@ -2265,6 +2276,76 @@ export default function KitchenViewer() {
       };
       reader.readAsArrayBuffer(file);
     });
+  };
+
+  const handleMountGeneratedCabinet = async (
+    glbBuffer,
+    b64Data,
+    modelId,
+    modelName,
+    initTransform,
+    parametricConfig
+  ) => {
+    try {
+      const mounted = await mountParsedGlbIntoScene(
+        glbBuffer,
+        b64Data,
+        modelId,
+        modelName,
+        initTransform,
+        null,
+        stateRef.current.materials
+      );
+      if (!mounted) return;
+
+      glbBinaryCacheRef.current.set(modelId, b64Data);
+      mounted.isParametric = true;
+      mounted.parametricConfig = parametricConfig;
+
+      setImportedModels((prev) => {
+        const updated = [...prev, mounted];
+        setSelectedGlbId(modelId);
+        setGizmoMode('translate');
+        persistWorkspace({ importedModels: updated });
+        return updated;
+      });
+
+      pushHistoryRef.current?.('Adăugare corp ' + modelName);
+      showToast(
+        lang === 'ro'
+          ? `📐 Corp generat: ${modelName}`
+          : lang === 'ru'
+          ? `📐 Шкаф создан: ${modelName}`
+          : `📐 Cabinet created: ${modelName}`
+      );
+    } catch (err) {
+      console.error('Error mounting generated cabinet:', err);
+      showToast('❌ Eroare la generarea corpului');
+    }
+  };
+
+  const handleCaptureScreenshot = () => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.renderer) return;
+
+    if (ctx.transformControls) ctx.transformControls.visible = false;
+    ctx.renderer.render(ctx.scene, ctx.camera);
+    const dataUrl = ctx.renderer.domElement.toDataURL('image/png');
+    if (ctx.transformControls) ctx.transformControls.visible = true;
+
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `3design_randare_${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast(
+      lang === 'ro'
+        ? '📸 Poză HD salvată!'
+        : lang === 'ru'
+        ? '📸 HD рендер сохранен!'
+        : '📸 HD Render downloaded!'
+    );
   };
 
   const handleDeleteGlb = (modelId) => {
@@ -3216,6 +3297,21 @@ export default function KitchenViewer() {
             </button>
           </div>
         </div>
+
+        <ParametricCabinetSection
+          lang={lang}
+          materials={materials}
+          activeMatId={activeMatId}
+          onMountGeneratedCabinet={handleMountGeneratedCabinet}
+          placedCabinets={importedModels.filter((im) => im.isParametric)}
+          onDeleteCabinet={handleDeleteGlb}
+          onSelectCabinet={(id) => {
+            setSelectedGlbId(id);
+            setGizmoMode('translate');
+          }}
+          selectedCabinetId={selectedGlbId}
+          onCaptureScreenshot={handleCaptureScreenshot}
+        />
 
         <GlbImporterSection
           lang={lang}
