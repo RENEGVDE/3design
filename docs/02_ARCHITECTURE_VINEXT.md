@@ -3,8 +3,9 @@
 ## 1. Tech Stack
 - **Framework**: [`vinext`](https://www.npmjs.com/package/vinext) (`v1.3.1`) — Next.js App Router API surface running natively on **Vite 8**.
 - **UI Library**: **React 19** (`react`, `react-dom`, `@vitejs/plugin-react`, `@vitejs/plugin-rsc`).
-- **3D Engine**: **Three.js** (`three@^0.160.0`), using `OrbitControls` and `RoomEnvironment`.
+- **3D Engine**: **Three.js** (`three@^0.160.0`), using `OrbitControls`, `TransformControls`, and `RoomEnvironment`.
 - **Storage**: Browser `IndexedDB` + `localStorage` fallback (`src/utils/storage.js`).
+- **Build / Deployment**: Pure Node.js / Vite build (`dist/client`) with `output: 'export'` in `next.config.mjs` deployed directly to Firebase Hosting.
 
 ---
 
@@ -13,53 +14,46 @@
 ```text
 3design/
 ├── AGENTS.md                        # Root AI context entry point (auto-read by Antigravity/Cursor/Claude)
-├── package.json                     # Vinext scripts (dev, build, start) & dependencies
+├── package.json                     # Scripts (dev, build, start, deploy) & dependencies
+├── next.config.mjs                  # Next.js configuration (output: 'export' for static distribution)
 ├── vite.config.js                   # Vite config with plugins: [vinext()]
-├── firebase.json                    # Firebase Hosting configuration
+├── firebase.json                    # Firebase Hosting configuration (pointing to dist/client)
 ├── .firebaserc                      # Firebase project alias (trysmthwtf)
 │
-├── docs/                            # Comprehensive project & CAD documentation
+├── docs/                            # Technical architecture & CAD documentation
 │   ├── 01_PROJECT_OVERVIEW.md
 │   ├── 02_ARCHITECTURE_VINEXT.md
 │   ├── 03_3D_KITCHEN_CAD_SPECS.md
-│   ├── 04_APARTMENT_3D_CAD_SPECS.md
 │   └── 05_STATE_AND_PERSISTENCE.md
 │
 ├── public/                          # Static assets served at "/"
-│   ├── data/
-│   │   └── kitchen-payload.json     # Compressed 3D geometry batches & 33 interactive part specs
-│   └── flat-viewer.html             # Full 3D Apartment viewer served inside /flat route
+│   └── data/
+│       └── kitchen-payload.json     # Compressed 3D geometry batches & 33 interactive part specs
 │
-├── src/                             # Modular Vinext Source Code
-│   ├── app/                         # Next.js / Vinext App Router
-│   │   ├── layout.jsx               # Root HTML layout & metadata
-│   │   ├── globals.css              # Complete responsive UI & glassmorphism styles
-│   │   ├── page.jsx                 # "/" route -> renders <KitchenViewer />
-│   │   └── flat/
-│   │       └── page.jsx             # "/flat" route -> Full 3D Apartment Viewer with back link
-│   │
-│   ├── components/                  # Modular React UI & 3D Components
-│   │   ├── KitchenViewer.jsx        # Main 3D scene orchestrator, raycasting, state & animation loop
-│   │   ├── TopBar.jsx               # Header bar, language switcher (RO/EN/RU), /flat link, dims toggle
-│   │   ├── DimensionToolbar.jsx     # Floating CAD dimension mode selector & live W×H×D / Tape readout
-│   │   ├── MaterialStudioSection.jsx# Texture upload, color picker, delete, reset white, grain & zones
-│   │   ├── LightingStudioSection.jsx# Kelvin tone, intensity, 360° light position & 3D orb helper
-│   │   ├── InteractivePartsSection.jsx # Categorized list of 33 doors/drawers with dims & 🖌️ paint button
-│   │   └── CameraPresetsBar.jsx     # Bottom floating camera preset buttons & Auto-Rotate toggle
-│   │
-│   ├── i18n/
-│   │   └── translations.js          # RO / EN / RU translations, CATEGORIES_ORDER, ZONE_BUTTONS
-│   │
-│   └── utils/
-│       ├── storage.js               # IndexedDB + localStorage persistence engine
-│       ├── textures.js              # Default white material table, texture loader, Kelvin color math
-│       └── dimensions3d.js          # 3D CAD dimension lines, sprites, bounding boxes & tape measure
-│
-└── scripts/                         # Python CAD extraction & standalone HTML builders
-    ├── generate_viewer_data.py      # Extracts 3D batches & specs from bctr.glb
-    ├── build_html.py                # Rebuilds standalone single-file index.html
-    ├── build_flat_html.py           # Rebuilds standalone flat/index.html & public/flat-viewer.html
-    └── facades_and_blocks.txt       # Original Bazis-Mebel block hierarchy dump
+└── src/                             # Modular Vinext Source Code
+    ├── app/                         # Next.js / Vinext App Router
+    │   ├── layout.jsx               # Root HTML layout & metadata
+    │   ├── globals.css              # Complete responsive UI & glassmorphism styles
+    │   └── page.jsx                 # "/" route -> renders <KitchenViewer />
+    │
+    ├── components/                  # Modular React UI & 3D Components
+    │   ├── KitchenViewer.jsx        # Main 3D scene orchestrator, raycasting, state, history & render loop
+    │   ├── TopBar.jsx               # Header bar, Undo/Redo, language switcher (RO/EN/RU), dims toggle
+    │   ├── DimensionToolbar.jsx     # Floating CAD dimension mode selector & live W×H×D / Tape readout
+    │   ├── MaterialStudioSection.jsx# Texture upload, color picker, delete, reset white, grain & zones
+    │   ├── GlbImporterSection.jsx   # 3D model uploader, gizmo controls, resizing, mechanisms & painting
+    │   ├── LightingStudioSection.jsx# Kelvin tone, intensity, 360° light position & 3D orb helper
+    │   ├── InteractivePartsSection.jsx # Categorized list of 33 doors/drawers with dims & 🖌️ paint button
+    │   └── CameraPresetsBar.jsx     # Bottom floating camera preset buttons & Auto-Rotate toggle
+    │
+    ├── i18n/
+    │   └── translations.js          # RO / EN / RU translations, CATEGORIES_ORDER, ZONE_BUTTONS
+    │
+    └── utils/
+        ├── storage.js               # IndexedDB + localStorage persistence engine with debounced saves
+        ├── textures.js              # Default white material table, texture loader, Kelvin color math
+        ├── dimensions3d.js          # 3D CAD dimension lines, sprites, bounding boxes & tape measure
+        └── glbImporter.js           # GLTF parser, UV generator, follower map, auto-mechanisms, VRAM disposal
 ```
 
 ---
@@ -72,5 +66,9 @@
 3. Import and render `<MyNewSection />` inside `<aside id="side-panel">` in `src/components/KitchenViewer.jsx`.
 4. If the new feature has user state that should survive a page refresh (`F5`), include its state key inside `persistWorkspace()` and the `readPersistedData()` restoration block in `src/components/KitchenViewer.jsx`.
 
-### Adding a New Page / Route
-- Create `src/app/<route-name>/page.jsx` — Vinext automatically routes `/<route-name>` using file-system routing with full Vite HMR.
+### Commands
+```bash
+npm run dev      # Local Vite dev server with instant HMR
+npm run build    # Compile production bundle to dist/client
+npm run deploy   # Compile & deploy to Firebase Hosting
+```

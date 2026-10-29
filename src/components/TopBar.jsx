@@ -9,7 +9,11 @@ export default function TopBar({
   dimsEnabled,
   onToggleDims,
   panelOpen,
-  onTogglePanel
+  onTogglePanel,
+  canUndo = false,
+  onUndo,
+  canRedo = false,
+  onRedo
 }) {
   const dict = I18N[lang] || I18N.ro;
 
@@ -24,14 +28,27 @@ export default function TopBar({
       </div>
 
       <div className="top-actions">
-        <a
-          href="/flat"
+        <button
+          id="btn-top-undo"
           className="action-btn"
-          style={{ textDecoration: 'none' }}
-          title={dict.flatLink}
+          disabled={!canUndo}
+          onClick={onUndo}
+          title={dict.undo}
         >
-          <span>{dict.flatLink}</span>
-        </a>
+          <span>↩️</span>
+          <span className="btn-label-desktop">{dict.undoBtn}</span>
+        </button>
+
+        <button
+          id="btn-top-redo"
+          className="action-btn"
+          disabled={!canRedo}
+          onClick={onRedo}
+          title={dict.redo}
+        >
+          <span>↪️</span>
+          <span className="btn-label-desktop">{dict.redoBtn}</span>
+        </button>
 
         <button
           id="btn-top-dims"

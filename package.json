@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vinext dev",
     "build": "vinext build",
-    "start": "vinext start"
+    "start": "vinext start",
+    "deploy": "vinext build && firebase deploy --only hosting"
   },
   "dependencies": {
     "react": "^19.1.0",

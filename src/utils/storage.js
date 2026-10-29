@@ -20,7 +20,27 @@ function openConfigDB() {
   });
 }
 
-export async function writePersistedData(dataObj) {
+let pendingWriteTimer = null;
+let lastPendingData = null;
+
+export async function writePersistedData(dataObj, immediate = false) {
+  lastPendingData = dataObj;
+  if (!immediate) {
+    if (pendingWriteTimer) clearTimeout(pendingWriteTimer);
+    pendingWriteTimer = setTimeout(() => {
+      commitPersistedData(lastPendingData);
+    }, 250);
+    return;
+  }
+  if (pendingWriteTimer) {
+    clearTimeout(pendingWriteTimer);
+    pendingWriteTimer = null;
+  }
+  await commitPersistedData(dataObj);
+}
+
+async function commitPersistedData(dataObj) {
+  if (!dataObj) return;
   try {
     const db = await openConfigDB();
     await new Promise((resolve, reject) => {
@@ -32,12 +52,25 @@ export async function writePersistedData(dataObj) {
   } catch (err) {
     console.warn('IndexedDB save fallback to localStorage:', err);
   }
+
+  // Save lightweight metadata to localStorage (without multi-megabyte GLB base64 binaries)
+  // to prevent freezing the main UI thread during JSON.stringify and avoid QuotaExceededError
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(LS_KEY, JSON.stringify(dataObj));
+      let lsObj = dataObj;
+      if (Array.isArray(dataObj.importedModels) && dataObj.importedModels.length > 0) {
+        lsObj = {
+          ...dataObj,
+          importedModels: dataObj.importedModels.map((im) => ({
+            ...im,
+            b64Data: null
+          }))
+        };
+      }
+      window.localStorage.setItem(LS_KEY, JSON.stringify(lsObj));
     }
   } catch (e) {
-    // Ignore localStorage quota errors since IndexedDB stores large textures & .glb binaries
+    // Ignore localStorage quota errors
   }
 }
 

@@ -3,7 +3,6 @@ export const I18N = {
     title: '3D Kitchen Furniture',
     subtitle: 'Interactive CAD Model • Click or tap doors & drawers',
     controlsToggle: 'Controls',
-    flatLink: '🏠 Full Apartment 3D',
     quickActions: 'Quick Actions',
     openAll: 'Open All',
     closeAll: 'Close All',
@@ -135,13 +134,18 @@ export const I18N = {
     mech_drawer_back: '🗄️ Drawer Slide (-Reverse)',
     mechDetectedToast: '⚙️ Detected interactive mechanisms: ',
     duplicateGlbBtn: 'Clone',
-    deleteGlbBtn: 'Delete'
+    deleteGlbBtn: 'Delete',
+    undo: 'Undo (Ctrl+Z)',
+    redo: 'Redo (Ctrl+Y)',
+    undoBtn: 'Undo',
+    redoBtn: 'Redo',
+    undoToast: 'Undo: ',
+    redoToast: 'Redo: '
   },
   ru: {
     title: '3D Кухонный Гарнитур',
     subtitle: 'Интерактивная 3D модель • Нажмите на фасады и ящики',
     controlsToggle: 'Панель',
-    flatLink: '🏠 3D Квартира целиком',
     quickActions: 'Быстрые действия',
     openAll: 'Открыть всё',
     closeAll: 'Закрыть всё',
@@ -273,13 +277,18 @@ export const I18N = {
     mech_drawer_back: '🗄️ Ящик (Выдвижение -Назад)',
     mechDetectedToast: '⚙️ Найдено механизмов открывания: ',
     duplicateGlbBtn: 'Копия',
-    deleteGlbBtn: 'Удалить'
+    deleteGlbBtn: 'Удалить',
+    undo: 'Отменить (Ctrl+Z)',
+    redo: 'Повторить (Ctrl+Y)',
+    undoBtn: 'Назад',
+    redoBtn: 'Вперёд',
+    undoToast: 'Отменено: ',
+    redoToast: 'Повторено: '
   },
   ro: {
     title: 'Mobilier Bucătărie 3D',
     subtitle: 'Model CAD Interactiv • Apasă pe uși și sertare',
     controlsToggle: 'Panou',
-    flatLink: '🏠 Apartament 3D Complet',
     quickActions: 'Acțiuni Rapide',
     openAll: 'Deschide Tot',
     closeAll: 'Închide Tot',
@@ -411,7 +420,13 @@ export const I18N = {
     mech_drawer_back: '🗄️ Sertar (Glisare -Spate)',
     mechDetectedToast: '⚙️ Mecanisme detectate automat: ',
     duplicateGlbBtn: 'Duplică',
-    deleteGlbBtn: 'Șterge'
+    deleteGlbBtn: 'Șterge',
+    undo: 'Anulează (Ctrl+Z)',
+    redo: 'Refă (Ctrl+Y)',
+    undoBtn: 'Anulare',
+    redoBtn: 'Refacere',
+    undoToast: 'Anulat: ',
+    redoToast: 'Refăcut: '
   }
 };
 

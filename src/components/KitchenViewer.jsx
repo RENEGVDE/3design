@@ -34,7 +34,8 @@ import {
   base64ToArrayBuffer,
   updateGlbMechanismsIn3D,
   autoDetectGlbMechanisms,
-  buildFollowerMap
+  buildFollowerMap,
+  disposeModelHierarchy
 } from '../utils/glbImporter.js';
 
 import TopBar from './TopBar.jsx';
@@ -112,15 +113,43 @@ export default function KitchenViewer() {
   const [lightState, setLightState] = useState(INITIAL_LIGHT_STATE);
   const [showLightOrb, setShowLightOrb] = useState(false);
 
+  // Undo & Redo History State
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  const historyRef = useRef([]);
+  const historyIndexRef = useRef(-1);
+  const isRestoringHistoryRef = useRef(false);
+  const lastContinuousActionRef = useRef(null);
+  const glbBinaryCacheRef = useRef(new Map());
+  const captureSnapshotRef = useRef(null);
+  const pushHistoryRef = useRef(null);
+
   const [toastMsg, setToastMsg] = useState('');
-  const [tooltip, setTooltip] = useState({
-    visible: false,
-    x: 0,
-    y: 0,
-    title: '',
-    dims: '',
-    sub: ''
-  });
+  const tooltipRef = useRef(null);
+  const ttTitleRef = useRef(null);
+  const ttDimsRef = useRef(null);
+  const ttSubRef = useRef(null);
+
+  const updateTooltipDOM = useCallback(
+    (visible, x = 0, y = 0, title = '', dims = '', sub = '') => {
+      const el = tooltipRef.current;
+      if (!el) return;
+      if (!visible) {
+        el.classList.remove('visible');
+        return;
+      }
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      if (ttTitleRef.current) ttTitleRef.current.textContent = title;
+      if (ttDimsRef.current) {
+        ttDimsRef.current.textContent = dims;
+        ttDimsRef.current.style.display = dims ? 'block' : 'none';
+      }
+      if (ttSubRef.current) ttSubRef.current.textContent = sub;
+      el.classList.add('visible');
+    },
+    []
+  );
 
   const toastTimerRef = useRef(null);
   const showToast = useCallback((msg) => {
@@ -218,7 +247,7 @@ export default function KitchenViewer() {
     const serializedImported = (curImported || []).map((im) => ({
       id: im.id,
       name: im.name,
-      b64Data: im.b64Data,
+      b64Data: im.b64Data || glbBinaryCacheRef.current.get(im.id) || null,
       position: im.position,
       rotationYDeg: im.rotationYDeg,
       scale: im.scale,
@@ -247,6 +276,97 @@ export default function KitchenViewer() {
       importedModels: serializedImported
     });
   }, []);
+
+  const captureSnapshot = useCallback((desc = '') => {
+    const ctx = sceneRef.current;
+    if (!ctx) return null;
+
+    const materials = stateRef.current.materials.map((m) => ({
+      id: m.id,
+      name: m.name,
+      type: m.type,
+      colorHex: m.colorHex,
+      dataUrl: m.dataUrl || null,
+      thumbCss: m.thumbCss,
+      texture: m.texture || null,
+      scale: m.scale,
+      rotate90: m.rotate90,
+      finishIdx: m.finishIdx
+    }));
+
+    const partAssignments = {};
+    const openParts = {};
+    for (const spec of ctx.payload.specs) {
+      const item = ctx.interactiveMap[spec.id];
+      if (item) {
+        if (item.assignedMatId) partAssignments[spec.id] = item.assignedMatId;
+        if (item.isOpen) openParts[spec.id] = true;
+      }
+    }
+
+    const staticZoneAssignments = { ...ctx.staticZoneAssignments };
+
+    const importedModels = (stateRef.current.importedModels || []).map((im) => ({
+      id: im.id,
+      name: im.name,
+      b64Data: im.b64Data,
+      position: [...im.position],
+      rotationYDeg: im.rotationYDeg,
+      scale: [...im.scale],
+      baseDimsCm: im.baseDimsCm ? { ...im.baseDimsCm } : undefined,
+      hasNativeAnimations: im.hasNativeAnimations,
+      subParts: im.subParts ? im.subParts.map((sp) => ({ ...sp })) : []
+    }));
+
+    return {
+      desc,
+      activeMatId: stateRef.current.activeMatId,
+      materials,
+      partAssignments,
+      staticZoneAssignments,
+      openParts,
+      lightState: { ...stateRef.current.lightState },
+      importedModels
+    };
+  }, []);
+  captureSnapshotRef.current = captureSnapshot;
+
+  const pushHistory = useCallback(
+    (desc = '', isContinuous = false) => {
+      if (isRestoringHistoryRef.current || sceneRef.current?.isRestoring) return;
+      const snapshot = captureSnapshot(desc);
+      if (!snapshot) return;
+
+      const now = performance.now();
+      const last = lastContinuousActionRef.current;
+
+      if (isContinuous && last && last.desc === desc && now - last.time < 1200) {
+        const curIdx = historyIndexRef.current;
+        if (curIdx >= 0 && historyRef.current[curIdx]) {
+          historyRef.current[curIdx] = snapshot;
+          lastContinuousActionRef.current = { desc, time: now };
+          return;
+        }
+      }
+
+      lastContinuousActionRef.current = isContinuous ? { desc, time: now } : null;
+
+      const curIdx = historyIndexRef.current;
+      const truncated = historyRef.current.slice(0, curIdx + 1);
+      truncated.push(snapshot);
+      if (truncated.length > 40) {
+        truncated.shift();
+      }
+      historyRef.current = truncated;
+      const nextIdx = truncated.length - 1;
+      historyIndexRef.current = nextIdx;
+
+      setCanUndo(nextIdx > 0);
+      setCanRedo(false);
+    },
+    [captureSnapshot]
+  );
+  pushHistoryRef.current = pushHistory;
 
   // Mesh Material Helper Functions
   const applyDefaultWhiteToMesh = useCallback((mesh, isXray) => {
@@ -417,10 +537,12 @@ export default function KitchenViewer() {
         ctx.paintableMeshes.push(m);
       }
 
+      if (b64Data) {
+        glbBinaryCacheRef.current.set(modelId, b64Data);
+      }
       return {
         id: modelId,
         name: modelName,
-        b64Data,
         position: pos,
         rotationYDeg: rotYDeg,
         scale: scl,
@@ -431,6 +553,263 @@ export default function KitchenViewer() {
     },
     [applyMatEntryToMesh]
   );
+
+  const restoreSnapshot = useCallback(
+    async (snapshot) => {
+      const ctx = sceneRef.current;
+      if (!ctx || !snapshot) return;
+
+      isRestoringHistoryRef.current = true;
+
+      // 1. Materials
+      const curMats = stateRef.current.materials;
+      const nextMaterials = [];
+      for (const sm of snapshot.materials) {
+        let tex = sm.texture;
+        if (!tex) {
+          const existing = curMats.find(
+            (m) => m.id === sm.id && m.dataUrl === sm.dataUrl && m.texture
+          );
+          if (existing) {
+            tex = existing.texture;
+          } else if (sm.type === 'texture' && sm.dataUrl) {
+            tex = await createTextureFromDataUrl(sm.dataUrl);
+          }
+        }
+        if (tex) {
+          const rep = 1.0 / Math.max(0.15, sm.scale);
+          tex.repeat.set(rep, rep);
+          tex.rotation = sm.rotate90 ? Math.PI / 2 : 0;
+          tex.needsUpdate = true;
+        }
+        nextMaterials.push({
+          ...sm,
+          texture: tex
+        });
+      }
+      setMaterials(nextMaterials);
+      stateRef.current.materials = nextMaterials;
+      setActiveMatId(snapshot.activeMatId);
+      stateRef.current.activeMatId = snapshot.activeMatId;
+
+      // 2. Kitchen interactive parts materials
+      for (const spec of ctx.payload.specs) {
+        const item = ctx.interactiveMap[spec.id];
+        if (!item) continue;
+        const assignedId = snapshot.partAssignments[spec.id] || null;
+        item.assignedMatId = assignedId;
+        const matEntry = assignedId
+          ? nextMaterials.find((m) => m.id === assignedId)
+          : null;
+        const targets = item.facadeMeshes.length
+          ? item.facadeMeshes
+          : item.meshes;
+        for (const m of targets) {
+          if (matEntry) {
+            applyMatEntryToMesh(m, matEntry, stateRef.current.xrayActive);
+          } else {
+            applyDefaultWhiteToMesh(m, stateRef.current.xrayActive);
+          }
+        }
+      }
+
+      // Static zones materials
+      for (const zKey of Object.keys(ctx.staticTargets)) {
+        const assignedId = snapshot.staticZoneAssignments[zKey] || null;
+        ctx.staticZoneAssignments[zKey] = assignedId;
+        const matEntry = assignedId
+          ? nextMaterials.find((m) => m.id === assignedId)
+          : null;
+        for (const m of ctx.staticTargets[zKey] || []) {
+          if (matEntry) {
+            applyMatEntryToMesh(m, matEntry, stateRef.current.xrayActive);
+          } else {
+            applyDefaultWhiteToMesh(m, stateRef.current.xrayActive);
+          }
+        }
+      }
+
+      // 3. Open/Close state of doors & drawers
+      for (const spec of ctx.payload.specs) {
+        const item = ctx.interactiveMap[spec.id];
+        if (!item) continue;
+        const shouldBeOpen = Boolean(snapshot.openParts[spec.id]);
+        item.isOpen = shouldBeOpen;
+        item.target = shouldBeOpen ? 1 : 0;
+      }
+
+      // 4. Lighting state
+      if (snapshot.lightState) {
+        setLightState({ ...snapshot.lightState });
+        stateRef.current.lightState = { ...snapshot.lightState };
+      }
+
+      // 5. Imported GLB models
+      const currentGlbIds = new Set(Object.keys(ctx.importedMap));
+      const targetGlbMap = new Map();
+      for (const im of snapshot.importedModels || []) {
+        targetGlbMap.set(im.id, im);
+      }
+
+      for (const curId of currentGlbIds) {
+        if (!targetGlbMap.has(curId)) {
+          const entry = ctx.importedMap[curId];
+          if (entry) {
+            if (
+              ctx.transformControls &&
+              ctx.transformControls.object === entry.wrapperGroup
+            ) {
+              ctx.transformControls.detach();
+              ctx.transformControls.visible = false;
+            }
+            disposeModelHierarchy(entry.wrapperGroup);
+            ctx.importedRootGroup.remove(entry.wrapperGroup);
+            ctx.needsShadowUpdate = true;
+            ctx.importedMeshes = ctx.importedMeshes.filter(
+              (m) => m.userData.importedModelId !== curId
+            );
+            ctx.paintableMeshes = ctx.paintableMeshes.filter(
+              (m) => m.userData.importedModelId !== curId
+            );
+            delete ctx.importedMap[curId];
+          }
+        }
+      }
+
+      const restoredGlbList = [];
+      for (const im of snapshot.importedModels || []) {
+        let entry = ctx.importedMap[im.id];
+        if (!entry) {
+          const b64 = im.b64Data || glbBinaryCacheRef.current.get(im.id);
+          if (b64) {
+            glbBinaryCacheRef.current.set(im.id, b64);
+            const buf = base64ToArrayBuffer(b64);
+            const mounted = await mountParsedGlbIntoScene(
+              buf,
+              b64,
+              im.id,
+              im.name,
+              {
+                position: im.position,
+                rotationYDeg: im.rotationYDeg,
+                scale: im.scale
+              },
+              im.subParts,
+              nextMaterials
+            );
+            if (mounted) {
+              restoredGlbList.push(mounted);
+              continue;
+            }
+          }
+        } else {
+          entry.wrapperGroup.position.set(
+            im.position[0],
+            im.position[1],
+            im.position[2]
+          );
+          entry.wrapperGroup.rotation.set(
+            0,
+            THREE.MathUtils.degToRad(im.rotationYDeg),
+            0
+          );
+          entry.wrapperGroup.scale.set(im.scale[0], im.scale[1], im.scale[2]);
+
+          if (im.subParts && entry.meshes) {
+            for (let i = 0; i < entry.meshes.length; i++) {
+              const sp = im.subParts[i];
+              const mesh = entry.meshes[i];
+              if (!sp || !mesh) continue;
+
+              mesh.userData.mechTarget = sp.isOpen ? 1 : 0;
+              if (sp.assignedMatId) {
+                const matEntry = nextMaterials.find(
+                  (m) => m.id === sp.assignedMatId
+                );
+                if (matEntry) {
+                  applyMatEntryToMesh(mesh, matEntry, stateRef.current.xrayActive);
+                }
+              } else if (sp.colorHex) {
+                mesh.material.map = null;
+                mesh.material.color.set(sp.colorHex);
+                mesh.material.userData.assignedMatId = null;
+                mesh.material.needsUpdate = true;
+              } else if (mesh.userData.originalGlbMaterial) {
+                mesh.material = mesh.userData.originalGlbMaterial.clone();
+                mesh.material.needsUpdate = true;
+              }
+            }
+            updateGlbMechanismsIn3D(entry, im.subParts);
+          }
+          restoredGlbList.push(im);
+        }
+      }
+
+      setImportedModels(restoredGlbList);
+      stateRef.current.importedModels = restoredGlbList;
+      if (!restoredGlbList.some((m) => m.id === stateRef.current.selectedGlbId)) {
+        const nextSel = restoredGlbList[0] ? restoredGlbList[0].id : null;
+        setSelectedGlbId(nextSel);
+        stateRef.current.selectedGlbId = nextSel;
+      }
+
+      syncPartsMetaToReact();
+      if (stateRef.current.dimsEnabled) {
+        update3DDimensionsDisplay(ctx.selectedPartId);
+      }
+
+      persistWorkspace({
+        materials: nextMaterials,
+        activeMatId: snapshot.activeMatId,
+        lightState: snapshot.lightState,
+        importedModels: restoredGlbList
+      });
+
+      isRestoringHistoryRef.current = false;
+    },
+    [
+      applyDefaultWhiteToMesh,
+      applyMatEntryToMesh,
+      mountParsedGlbIntoScene,
+      persistWorkspace,
+      syncPartsMetaToReact,
+      update3DDimensionsDisplay
+    ]
+  );
+
+  const handleUndo = useCallback(async () => {
+    if (historyIndexRef.current <= 0) return;
+    const targetIdx = historyIndexRef.current - 1;
+    const snapshot = historyRef.current[targetIdx];
+    if (!snapshot) return;
+
+    historyIndexRef.current = targetIdx;
+    setCanUndo(targetIdx > 0);
+    setCanRedo(true);
+
+    await restoreSnapshot(snapshot);
+
+    const dict = I18N[stateRef.current.lang] || I18N.ro;
+    const desc = snapshot.desc ? ` (${snapshot.desc})` : '';
+    showToast(`↩️ ${dict.undoToast || 'Anulat'}${desc}`);
+  }, [restoreSnapshot, showToast]);
+
+  const handleRedo = useCallback(async () => {
+    if (historyIndexRef.current >= historyRef.current.length - 1) return;
+    const targetIdx = historyIndexRef.current + 1;
+    const snapshot = historyRef.current[targetIdx];
+    if (!snapshot) return;
+
+    historyIndexRef.current = targetIdx;
+    setCanUndo(true);
+    setCanRedo(targetIdx < historyRef.current.length - 1);
+
+    await restoreSnapshot(snapshot);
+
+    const dict = I18N[stateRef.current.lang] || I18N.ro;
+    const desc = snapshot.desc ? ` (${snapshot.desc})` : '';
+    showToast(`↪️ ${dict.redoToast || 'Refăcut'}${desc}`);
+  }, [restoreSnapshot, showToast]);
 
   // Sync TransformControls gizmo attachment & mode
   useEffect(() => {
@@ -450,9 +829,33 @@ export default function KitchenViewer() {
     tc.visible = true;
   }, [selectedGlbId, gizmoMode, importedModels, loading]);
 
-  // Keyboard shortcuts for TransformControls (W = Move, E = Rotate, R = Scale, Esc = Hide)
+  // Keyboard shortcuts for Undo/Redo (Ctrl+Z / Ctrl+Y) and TransformControls (W, E, R, Esc)
   useEffect(() => {
     const onKeyDown = (e) => {
+      const isCtrlOrMeta = e.ctrlKey || e.metaKey;
+      if (isCtrlOrMeta) {
+        const tag = document.activeElement?.tagName?.toLowerCase() || '';
+        const isTextInput =
+          tag === 'input' &&
+          document.activeElement.type !== 'range' &&
+          document.activeElement.type !== 'color';
+        if (!isTextInput && tag !== 'textarea') {
+          if ((e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
+            e.preventDefault();
+            handleUndo();
+            return;
+          } else if (
+            e.key === 'y' ||
+            e.key === 'Y' ||
+            ((e.key === 'z' || e.key === 'Z') && e.shiftKey)
+          ) {
+            e.preventDefault();
+            handleRedo();
+            return;
+          }
+        }
+      }
+
       if (
         !stateRef.current.selectedGlbId ||
         ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)
@@ -470,7 +873,7 @@ export default function KitchenViewer() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [handleUndo, handleRedo]);
 
   // Initialize Three.js Scene
   useEffect(() => {
@@ -511,10 +914,12 @@ export default function KitchenViewer() {
       });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(
-        Math.min(window.devicePixelRatio, isMobile ? 1.75 : 2)
+        Math.min(window.devicePixelRatio, isMobile ? 1.25 : 1.5)
       );
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.autoUpdate = false;
+      renderer.shadowMap.needsUpdate = true;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.08;
       container.appendChild(renderer.domElement);
@@ -582,6 +987,7 @@ export default function KitchenViewer() {
               persistWorkspace({ importedModels: updated });
               return updated;
             });
+            pushHistoryRef.current?.('Transformare 3D ' + (stateRef.current.gizmoMode || 'Model'));
           }
         }
       });
@@ -935,7 +1341,8 @@ export default function KitchenViewer() {
         hoveredGroupId: null,
         selectedPartId: null,
         camAnim: null,
-        isRestoring: false
+        isRestoring: false,
+        needsShadowUpdate: true
       };
       sceneRef.current = ctx;
       setSpecs(payload.specs);
@@ -1059,6 +1466,7 @@ export default function KitchenViewer() {
           const restoredGlbs = [];
           for (const sim of saved.importedModels) {
             if (!sim.b64Data) continue;
+            glbBinaryCacheRef.current.set(sim.id, sim.b64Data);
             try {
               const buf = base64ToArrayBuffer(sim.b64Data);
               const mounted = await mountParsedGlbIntoScene(
@@ -1090,6 +1498,15 @@ export default function KitchenViewer() {
       ctx.isRestoring = false;
       syncPartsMetaToReact();
       setLoading(false);
+
+      // Register initial base state in undo/redo stack
+      const baseSnap = captureSnapshotRef.current?.('Stare inițială');
+      if (baseSnap) {
+        historyRef.current = [baseSnap];
+        historyIndexRef.current = 0;
+        setCanUndo(false);
+        setCanRedo(false);
+      }
 
       // Raycasting & Pointer Events
       const raycaster = new THREE.Raycaster();
@@ -1123,8 +1540,14 @@ export default function KitchenViewer() {
       }
       ctx.setHoveredGroup3D = setHoveredGroup3D;
 
-      const onPointerMove = (e) => {
-        if (e.pointerType === 'touch') return;
+      let hoverRaf = null;
+      let lastPointerEvent = null;
+
+      const runHoverCheck = () => {
+        hoverRaf = null;
+        if (!lastPointerEvent || disposed) return;
+        const e = lastPointerEvent;
+
         pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
         pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
@@ -1140,9 +1563,7 @@ export default function KitchenViewer() {
 
         if ((curDims && curDimMode === 'tape') || curPlaceSurface) {
           renderer.domElement.style.cursor = 'crosshair';
-          setTooltip((prev) =>
-            prev.visible ? { ...prev, visible: false } : prev
-          );
+          updateTooltipDOM(false);
           return;
         }
 
@@ -1176,60 +1597,62 @@ export default function KitchenViewer() {
             const hasMech = sp && sp.mechType && sp.mechType !== 'none';
             const mechLabel = hasMech ? dict[`mech_${sp.mechType}`] || '' : '';
 
-            setTooltip({
-              visible: true,
-              x: e.clientX,
-              y: e.clientY,
-              title: hasMech
-                ? `📦 ${impName} — ${sp.name}`
-                : `📦 ${impName}`,
-              dims: impEntry
-                ? `📏 ${fmtCm(
-                    impEntry.baseDimsCm.w * impEntry.scale[0]
-                  )} × ${fmtCm(
-                    impEntry.baseDimsCm.h * impEntry.scale[1]
-                  )} × ${fmtCm(impEntry.baseDimsCm.d * impEntry.scale[2])} cm${
-                    mechLabel ? ` • ${mechLabel}` : ''
-                  }`
-                : '',
-              sub: curPaint
-                ? `${dict.clickToPaint}${activeMatLabel}`
-                : hasMech
-                ? sp.isOpen
-                  ? dict.clickToClose
-                  : dict.clickToOpen
-                : 'Click pt. Selectare & Mutare 3D'
-            });
+            const dimsText = impEntry
+              ? `📏 ${fmtCm(
+                  impEntry.baseDimsCm.w * impEntry.scale[0]
+                )} × ${fmtCm(
+                  impEntry.baseDimsCm.h * impEntry.scale[1]
+                )} × ${fmtCm(impEntry.baseDimsCm.d * impEntry.scale[2])} cm${
+                  mechLabel ? ` • ${mechLabel}` : ''
+                }`
+              : '';
+
+            const subText = curPaint
+              ? `${dict.clickToPaint}${activeMatLabel}`
+              : hasMech
+              ? sp.isOpen
+                ? dict.clickToClose
+                : dict.clickToOpen
+              : 'Click pt. Selectare & Mutare 3D';
+
+            updateTooltipDOM(
+              true,
+              e.clientX,
+              e.clientY,
+              hasMech ? `📦 ${impName} — ${sp.name}` : `📦 ${impName}`,
+              dimsText,
+              subText
+            );
             return;
           } else if (interactiveMap[gid]) {
             setHoveredGroup3D(gid);
             if (curDims) update3DDimensionsDisplay(gid);
             const item = interactiveMap[gid];
             renderer.domElement.style.cursor = 'pointer';
-            setTooltip({
-              visible: true,
-              x: e.clientX,
-              y: e.clientY,
-              title: getSpecTitle(item.spec, curLang),
-              dims: `📏 ${formatPartDimsText(item.dimsCm, curLang)}`,
-              sub: curPaint
+            updateTooltipDOM(
+              true,
+              e.clientX,
+              e.clientY,
+              getSpecTitle(item.spec, curLang),
+              `📏 ${formatPartDimsText(item.dimsCm, curLang)}`,
+              curPaint
                 ? `${dict.clickToPaint}${activeMatLabel}`
                 : item.isOpen
                 ? dict.clickToClose
                 : dict.clickToOpen
-            });
+            );
             return;
           } else if (curPaint && hitMesh.userData.staticZone) {
             setHoveredGroup3D(null);
             renderer.domElement.style.cursor = 'pointer';
-            setTooltip({
-              visible: true,
-              x: e.clientX,
-              y: e.clientY,
-              title: hitMesh.userData.staticZone.toUpperCase(),
-              dims: '',
-              sub: `${dict.clickToPaint}${activeMatLabel}`
-            });
+            updateTooltipDOM(
+              true,
+              e.clientX,
+              e.clientY,
+              hitMesh.userData.staticZone.toUpperCase(),
+              '',
+              `${dict.clickToPaint}${activeMatLabel}`
+            );
             return;
           }
         }
@@ -1237,12 +1660,27 @@ export default function KitchenViewer() {
         setHoveredGroup3D(null);
         if (curDims) update3DDimensionsDisplay(ctx.selectedPartId);
         renderer.domElement.style.cursor = 'grab';
-        setTooltip((prev) =>
-          prev.visible ? { ...prev, visible: false } : prev
-        );
+        updateTooltipDOM(false);
+      };
+
+      const onPointerMove = (e) => {
+        if (e.pointerType === 'touch') return;
+        lastPointerEvent = e;
+        if (tooltipRef.current && tooltipRef.current.classList.contains('visible')) {
+          tooltipRef.current.style.left = `${e.clientX}px`;
+          tooltipRef.current.style.top = `${e.clientY}px`;
+        }
+        if (!hoverRaf) {
+          hoverRaf = requestAnimationFrame(runHoverCheck);
+        }
       };
 
       const onPointerDown = (e) => {
+        if (hoverRaf) {
+          cancelAnimationFrame(hoverRaf);
+          hoverRaf = null;
+        }
+        updateTooltipDOM(false);
         activePointers.add(e.pointerId);
         if (activePointers.size > 1) {
           hadMultiTouch = true;
@@ -1318,6 +1756,7 @@ export default function KitchenViewer() {
                   nextPos[2] * 100
                 ).toFixed(0)} cm`
               );
+              pushHistoryRef.current?.('Plasare Model 3D');
             }
             return;
           }
@@ -1398,6 +1837,7 @@ export default function KitchenViewer() {
                   return updated;
                 });
                 showToast(`🎨 ${dict.appliedToast}${activeMat.name}`);
+                pushHistoryRef.current?.('Vopsire Model GLB');
               } else if (interactiveMap[gid] && activeMat) {
                 const item = interactiveMap[gid];
                 item.assignedMatId = activeMat.id;
@@ -1412,6 +1852,7 @@ export default function KitchenViewer() {
                 showToast(
                   `🎨 ${getSpecTitle(item.spec, curLang)} → ${activeMat.name}`
                 );
+                pushHistoryRef.current?.('Vopsire ' + getSpecTitle(item.spec, curLang));
               } else if (hitMesh.userData.staticZone && activeMat) {
                 const zKey = hitMesh.userData.staticZone;
                 staticZoneAssignments[zKey] = activeMat.id;
@@ -1420,6 +1861,7 @@ export default function KitchenViewer() {
                 }
                 persistWorkspace();
                 showToast(`🎨 ${dict.appliedToast}${activeMat.name}`);
+                pushHistoryRef.current?.('Vopsire Zonă ' + zKey);
               }
             }
             return;
@@ -1476,6 +1918,7 @@ export default function KitchenViewer() {
                     persistWorkspace({ importedModels: updated });
                     return updated;
                   });
+                  pushHistoryRef.current?.('Comutare Ușă/Sertar GLB');
                 }
               }
               return;
@@ -1597,6 +2040,16 @@ export default function KitchenViewer() {
           update3DDimensionsDisplay(ctx.hoveredGroupId || ctx.selectedPartId);
         }
 
+        if (
+          activePartAnimating ||
+          anyGlbAnimating ||
+          transformControls.dragging ||
+          ctx.needsShadowUpdate
+        ) {
+          renderer.shadowMap.needsUpdate = true;
+          ctx.needsShadowUpdate = false;
+        }
+
         controls.update();
         renderer.render(scene, camera);
       };
@@ -1607,6 +2060,7 @@ export default function KitchenViewer() {
 
     return () => {
       disposed = true;
+      if (hoverRaf) cancelAnimationFrame(hoverRaf);
       if (animFrameId) cancelAnimationFrame(animFrameId);
     };
   }, [
@@ -1669,7 +2123,7 @@ export default function KitchenViewer() {
 
   // Toggle Interactive Door / Drawer
   const toggleInteractivePart = useCallback(
-    (id, forceState = null, withToast = false) => {
+    (id, forceState = null, withToast = false, skipHistory = false) => {
       const ctx = sceneRef.current;
       if (!ctx || !ctx.interactiveMap[id]) return;
 
@@ -1714,6 +2168,9 @@ export default function KitchenViewer() {
 
       syncPartsMetaToReact();
       persistWorkspace();
+      if (!skipHistory) {
+        pushHistoryRef.current?.(`${nextOpen ? 'Deschide' : 'Închide'} ${getSpecTitle(item.spec, stateRef.current.lang)}`);
+      }
     },
     [persistWorkspace, showToast, syncPartsMetaToReact, update3DDimensionsDisplay]
   );
@@ -1754,6 +2211,7 @@ export default function KitchenViewer() {
           );
           if (!mounted) return;
 
+          glbBinaryCacheRef.current.set(newId, b64Data);
           setImportedModels((prev) => {
             const updated = [...prev, mounted];
             setSelectedGlbId(newId);
@@ -1761,6 +2219,7 @@ export default function KitchenViewer() {
             persistWorkspace({ importedModels: updated });
             return updated;
           });
+          pushHistoryRef.current?.('Import ' + cleanName);
           showToast(`📦 Model .GLB importat: ${cleanName}`);
         } catch (err) {
           console.error('Error importing GLB:', err);
@@ -1779,7 +2238,9 @@ export default function KitchenViewer() {
         ctx.transformControls.detach();
         ctx.transformControls.visible = false;
       }
+      disposeModelHierarchy(entry.wrapperGroup);
       ctx.importedRootGroup.remove(entry.wrapperGroup);
+      ctx.needsShadowUpdate = true;
       ctx.importedMeshes = ctx.importedMeshes.filter(
         (m) => m.userData.importedModelId !== modelId
       );
@@ -1797,6 +2258,7 @@ export default function KitchenViewer() {
       persistWorkspace({ importedModels: updated });
       return updated;
     });
+    pushHistoryRef.current?.('Ștergere Model GLB');
   };
 
   const handleDuplicateGlb = async (modelId) => {
@@ -1823,12 +2285,14 @@ export default function KitchenViewer() {
       materials
     );
     if (!mounted) return;
+    glbBinaryCacheRef.current.set(newId, src.b64Data);
     setImportedModels((prev) => {
       const updated = [...prev, mounted];
       setSelectedGlbId(newId);
       persistWorkspace({ importedModels: updated });
       return updated;
     });
+    pushHistoryRef.current?.('Duplicare ' + src.name);
     showToast(`📋 Duplicat: ${src.name}`);
   };
 
@@ -1858,6 +2322,7 @@ export default function KitchenViewer() {
       persistWorkspace({ importedModels: updated });
       return updated;
     });
+    pushHistoryRef.current?.('Transformare GLB', true);
   };
 
   const handlePaintWholeGlbWithActiveMat = (modelId) => {
@@ -1884,6 +2349,7 @@ export default function KitchenViewer() {
       persistWorkspace({ importedModels: updated });
       return updated;
     });
+    pushHistoryRef.current?.('Vopsire Model GLB');
     showToast(`🎨 ${entry.name} → ${activeMat.name}`);
   };
 
@@ -1911,6 +2377,7 @@ export default function KitchenViewer() {
       persistWorkspace({ importedModels: updated });
       return updated;
     });
+    pushHistoryRef.current?.('Culoare Model GLB');
   };
 
   const handleResetGlbMaterials = (modelId) => {
@@ -1944,6 +2411,7 @@ export default function KitchenViewer() {
       persistWorkspace({ importedModels: updated });
       return updated;
     });
+    pushHistoryRef.current?.('Reset Materiale GLB');
     showToast('🔄 Materialele originale .GLB au fost restaurate');
   };
 
@@ -1976,6 +2444,7 @@ export default function KitchenViewer() {
       persistWorkspace({ importedModels: updated });
       return updated;
     });
+    pushHistoryRef.current?.('Vopsire Sub-piesă GLB');
     showToast(`🎨 Sub-piesă → ${activeMat.name}`);
   };
 
@@ -2004,6 +2473,7 @@ export default function KitchenViewer() {
       persistWorkspace({ importedModels: updated });
       return updated;
     });
+    pushHistoryRef.current?.('Culoare Sub-piesă GLB');
   };
 
   // Furniture Mechanism Handlers for Imported .GLB Models
@@ -2031,6 +2501,7 @@ export default function KitchenViewer() {
       persistWorkspace({ importedModels: updated });
       return updated;
     });
+    pushHistoryRef.current?.('Mecanism GLB ' + mechType);
   };
 
   const handleToggleGlbSubMeshOpen = (modelId, subIdx, forceState = null) => {
@@ -2055,6 +2526,7 @@ export default function KitchenViewer() {
       persistWorkspace({ importedModels: updated });
       return updated;
     });
+    pushHistoryRef.current?.('Comutare Ușă/Sertar GLB');
   };
 
   const handleToggleAllGlbParts = (modelId, openState) => {
@@ -2078,6 +2550,7 @@ export default function KitchenViewer() {
       persistWorkspace({ importedModels: updated });
       return updated;
     });
+    pushHistoryRef.current?.(openState ? 'Deschide Tot GLB' : 'Închide Tot GLB');
   };
 
   const handleAutoDetectGlbMechanisms = (modelId) => {
@@ -2109,6 +2582,7 @@ export default function KitchenViewer() {
       showToast(`${dict.mechDetectedToast}${detectedCount}`);
       return updated;
     });
+    pushHistoryRef.current?.('Auto-detectare Mecanisme GLB');
   };
 
   const handleClearGlbMechanisms = (modelId) => {
@@ -2132,6 +2606,7 @@ export default function KitchenViewer() {
       persistWorkspace({ importedModels: updated });
       return updated;
     });
+    pushHistoryRef.current?.('Blocare Mecanisme GLB');
   };
 
   const handleToggleNativeGlbAnimation = (modelId) => {
@@ -2154,13 +2629,15 @@ export default function KitchenViewer() {
   const handleOpenAll = () => {
     const ctx = sceneRef.current;
     if (!ctx) return;
-    ctx.payload.specs.forEach((s) => toggleInteractivePart(s.id, true));
+    ctx.payload.specs.forEach((s) => toggleInteractivePart(s.id, true, false, true));
+    pushHistoryRef.current?.('Deschide Tot');
   };
 
   const handleCloseAll = () => {
     const ctx = sceneRef.current;
     if (!ctx) return;
-    ctx.payload.specs.forEach((s) => toggleInteractivePart(s.id, false));
+    ctx.payload.specs.forEach((s) => toggleInteractivePart(s.id, false, false, true));
+    pushHistoryRef.current?.('Închide Tot');
   };
 
   const handleToggleDrawers = () => {
@@ -2170,7 +2647,8 @@ export default function KitchenViewer() {
       (s) => s.category === 'drawer'
     );
     const anyClosed = drawerSpecs.some((s) => !ctx.interactiveMap[s.id].isOpen);
-    drawerSpecs.forEach((s) => toggleInteractivePart(s.id, anyClosed));
+    drawerSpecs.forEach((s) => toggleInteractivePart(s.id, anyClosed, false, true));
+    pushHistoryRef.current?.('Comută Sertare');
   };
 
   const handleToggleDoors = () => {
@@ -2178,7 +2656,8 @@ export default function KitchenViewer() {
     if (!ctx) return;
     const doorSpecs = ctx.payload.specs.filter((s) => s.category !== 'drawer');
     const anyClosed = doorSpecs.some((s) => !ctx.interactiveMap[s.id].isOpen);
-    doorSpecs.forEach((s) => toggleInteractivePart(s.id, anyClosed));
+    doorSpecs.forEach((s) => toggleInteractivePart(s.id, anyClosed, false, true));
+    pushHistoryRef.current?.('Comută Uși');
   };
 
   const handleToggleXray = () => {
@@ -2316,6 +2795,7 @@ export default function KitchenViewer() {
             persistWorkspace({ materials: next, activeMatId: newId });
             return next;
           });
+          pushHistoryRef.current?.('Upload Textură: ' + cleanName);
           showToast(`📸 Textură încărcată: ${cleanName}`);
         };
         img.src = ev.target.result;
@@ -2344,6 +2824,7 @@ export default function KitchenViewer() {
       persistWorkspace({ materials: next, activeMatId: newId });
       return next;
     });
+    pushHistoryRef.current?.('Adăugare Culoare ' + hex.toUpperCase());
     showToast(`🎨 Culoare adăugată: ${hex.toUpperCase()}`);
   };
 
@@ -2387,6 +2868,7 @@ export default function KitchenViewer() {
       persistWorkspace({ materials: next, activeMatId: nextActive });
       return next;
     });
+    pushHistoryRef.current?.('Ștergere Material');
   };
 
   const handleResetFurnitureToWhite = () => {
@@ -2407,6 +2889,7 @@ export default function KitchenViewer() {
     }
     syncPartsMetaToReact();
     persistWorkspace();
+    pushHistoryRef.current?.('Reset Mobilier la Alb');
     showToast('🔄 Mobilier resetat la Alb Default');
   };
 
@@ -2418,6 +2901,7 @@ export default function KitchenViewer() {
     setActiveMatId(null);
     handleResetFurnitureToWhite();
     persistWorkspace({ materials: [], activeMatId: null });
+    pushHistoryRef.current?.('Șterge Toate Materialele');
     showToast('🗑️ Toate materialele au fost șterse');
   };
 
@@ -2438,6 +2922,7 @@ export default function KitchenViewer() {
       persistWorkspace({ materials: next });
       return next;
     });
+    pushHistoryRef.current?.('Proprietate Material', prop === 'scale');
   };
 
   const handlePaintPart = (partId) => {
@@ -2454,6 +2939,7 @@ export default function KitchenViewer() {
     }
     syncPartsMetaToReact();
     persistWorkspace();
+    pushHistoryRef.current?.('Vopsire ' + getSpecTitle(item.spec, lang));
     showToast(`🎨 ${getSpecTitle(item.spec, lang)} → ${activeMat.name}`);
   };
 
@@ -2525,16 +3011,18 @@ export default function KitchenViewer() {
 
     syncPartsMetaToReact();
     persistWorkspace();
+    pushHistoryRef.current?.('Aplicare Zonă ' + zoneKey);
     showToast(`🎨 ${dict.appliedToast}${activeMat.name}`);
   };
 
   // Lighting Studio Handlers
-  const handleChangeLightState = (partial) => {
+  const handleChangeLightState = (partial, isContinuous = true) => {
     setLightState((prev) => {
       const next = { ...prev, ...partial };
       persistWorkspace({ lightState: next });
       return next;
     });
+    pushHistoryRef.current?.('Iluminare', isContinuous);
   };
 
   const handleToggleLightOrb = () => {
@@ -2571,14 +3059,10 @@ export default function KitchenViewer() {
 
       <div id="canvas-container" ref={canvasContainerRef} />
 
-      <div
-        id="tooltip"
-        className={tooltip.visible ? 'visible' : ''}
-        style={{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }}
-      >
-        <div className="tt-title">{tooltip.title}</div>
-        {tooltip.dims && <div className="tt-dims">{tooltip.dims}</div>}
-        <div className="tt-sub">{tooltip.sub}</div>
+      <div id="tooltip" ref={tooltipRef}>
+        <div className="tt-title" ref={ttTitleRef} />
+        <div className="tt-dims" ref={ttDimsRef} style={{ display: 'none' }} />
+        <div className="tt-sub" ref={ttSubRef} />
       </div>
 
       <div id="mobile-toast" className={toastMsg ? 'show' : ''}>
@@ -2592,6 +3076,10 @@ export default function KitchenViewer() {
         onToggleDims={() => setDimsEnabled((v) => !v)}
         panelOpen={panelOpen}
         onTogglePanel={() => setPanelOpen((v) => !v)}
+        canUndo={canUndo}
+        onUndo={handleUndo}
+        canRedo={canRedo}
+        onRedo={handleRedo}
       />
 
       <DimensionToolbar
@@ -2627,6 +3115,24 @@ export default function KitchenViewer() {
             <span>{dict.quickActions}</span>
           </div>
           <div className="btn-grid">
+            <button
+              className="btn-pill"
+              disabled={!canUndo}
+              onClick={handleUndo}
+              title={dict.undo}
+            >
+              <span>↩️</span>
+              <span>{dict.undoBtn}</span>
+            </button>
+            <button
+              className="btn-pill"
+              disabled={!canRedo}
+              onClick={handleRedo}
+              title={dict.redo}
+            >
+              <span>↪️</span>
+              <span>{dict.redoBtn}</span>
+            </button>
             <button className="btn-pill" onClick={handleOpenAll}>
               <span>🔓</span>
               <span>{dict.openAll}</span>

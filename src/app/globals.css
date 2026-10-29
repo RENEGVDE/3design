@@ -177,6 +177,12 @@ body {
   color: var(--accent);
 }
 
+.action-btn:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
 /* Floating Dimension Bar */
 #dim-toolbar {
   position: fixed;
@@ -930,6 +936,9 @@ body {
 }
 
 @media (max-width: 768px) {
+  .btn-label-desktop {
+    display: none;
+  }
   .brand-text p {
     display: none;
   }

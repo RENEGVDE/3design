@@ -258,7 +258,11 @@ export function buildFollowerMap(meshes, subParts) {
 export function updateGlbMechanismsIn3D(parsedEntry, subParts) {
   if (!parsedEntry || !parsedEntry.meshes || !subParts) return;
   const { meshes, baseDimsCm } = parsedEntry;
-  const followerOf = buildFollowerMap(meshes, subParts);
+  if (!parsedEntry._cachedFollowerOf || parsedEntry._cachedSubPartsMeta !== subParts) {
+    parsedEntry._cachedFollowerOf = buildFollowerMap(meshes, subParts);
+    parsedEntry._cachedSubPartsMeta = subParts;
+  }
+  const followerOf = parsedEntry._cachedFollowerOf;
 
   const activeMatrices = {};
   for (let i = 0; i < meshes.length; i++) {
@@ -313,6 +317,29 @@ export function updateGlbMechanismsIn3D(parsedEntry, subParts) {
 /**
  * Smart CAD & Name Heuristic Auto-Detector for Furniture Doors, Flaps & Drawers in `.glb`
  */
+export function disposeModelHierarchy(root) {
+  if (!root) return;
+  root.traverse((child) => {
+    if (child.isMesh) {
+      if (child.geometry) child.geometry.dispose();
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      mats.forEach((m) => {
+        if (!m) return;
+        if (m.map) m.map.dispose();
+        if (m.normalMap) m.normalMap.dispose();
+        if (m.roughnessMap) m.roughnessMap.dispose();
+        if (m.metalnessMap) m.metalnessMap.dispose();
+        m.dispose();
+      });
+      if (child.userData && child.userData.originalGlbMaterial) {
+        const om = child.userData.originalGlbMaterial;
+        if (om.map) om.map.dispose();
+        om.dispose();
+      }
+    }
+  });
+}
+
 export function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
   const modelW = (baseDimsCm?.w || 60) * 0.01;
   const modelH = (baseDimsCm?.h || 80) * 0.01;
@@ -478,8 +505,9 @@ export function loadGlbModelFromBuffer(arrayBuffer, modelId, modelName) {
             child.castShadow = true;
             child.receiveShadow = true;
 
-            // Capture rest transform and bounding box in innerGroup meter-space
+            // Precompute bounding box & sphere for O(1) frustum culling & raycast acceleration
             child.geometry.computeBoundingBox();
+            child.geometry.computeBoundingSphere();
             const geomBox = child.geometry.boundingBox
               ? child.geometry.boundingBox.clone()
               : new THREE.Box3();

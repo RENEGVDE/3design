@@ -1,18 +1,17 @@
 {
   "hosting": {
     "site": "bucatarie-3d-viewer",
-    "public": ".",
+    "public": "dist/client",
     "ignore": [
       "firebase.json",
       ".firebaserc",
-      "**/.*",
-      "**/node_modules/**",
-      "*.b3d",
-      "*.glb",
-      "*.obj",
-      "*.mtl",
-      "*.txt",
-      "**/*.pdf"
+      "**/.*"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ],
     "headers": [
       {
@@ -21,6 +20,15 @@
           {
             "key": "Cache-Control",
             "value": "public, max-age=300"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(js|css|json)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
           }
         ]
       }
