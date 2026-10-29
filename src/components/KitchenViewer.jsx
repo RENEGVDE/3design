@@ -42,6 +42,8 @@ import TopBar from './TopBar.jsx';
 import DimensionToolbar from './DimensionToolbar.jsx';
 import CameraPresetsBar from './CameraPresetsBar.jsx';
 import MaterialStudioSection from './MaterialStudioSection.jsx';
+import UniversalFurnitureStudioSection from './UniversalFurnitureStudioSection.jsx';
+import BazisKitchenStudioSection from './BazisKitchenStudioSection.jsx';
 import ParametricCabinetSection from './ParametricCabinetSection.jsx';
 import GlbImporterSection from './GlbImporterSection.jsx';
 import LightingStudioSection from './LightingStudioSection.jsx';
@@ -2278,6 +2280,99 @@ export default function KitchenViewer() {
     });
   };
 
+  const handleMountGeneratedFurniture = async (
+    glbBuffer,
+    b64Data,
+    furnId,
+    furnName,
+    initTransform,
+    furnitureConfig
+  ) => {
+    try {
+      const mounted = await mountParsedGlbIntoScene(
+        glbBuffer,
+        b64Data,
+        furnId,
+        furnName,
+        initTransform,
+        null,
+        stateRef.current.materials
+      );
+      if (!mounted) return;
+
+      glbBinaryCacheRef.current.set(furnId, b64Data);
+      mounted.isUniversalFurniture = true;
+      mounted.furnitureConfig = furnitureConfig;
+
+      setImportedModels((prev) => {
+        const updated = [...prev, mounted];
+        setSelectedGlbId(furnId);
+        setGizmoMode('translate');
+        persistWorkspace({ importedModels: updated });
+        return updated;
+      });
+
+      pushHistoryRef.current?.('Generare mobilier ' + furnName);
+      showToast(
+        lang === 'ro'
+          ? `🛋️ Piesa "${furnName}" adăugată în scenă!`
+          : lang === 'ru'
+          ? `🛋️ Изделие "${furnName}" создано в 3D!`
+          : `🛋️ Item "${furnName}" created in 3D!`
+      );
+    } catch (err) {
+      console.error('Error mounting generated universal furniture:', err);
+      showToast('❌ Eroare la generarea mobilierului');
+    }
+  };
+
+  const handleMountGeneratedKitchen = async (
+    glbBuffer,
+    b64Data,
+    kitchenId,
+    kitchenName,
+    initTransform,
+    kitchenConfig
+  ) => {
+    try {
+      const mounted = await mountParsedGlbIntoScene(
+        glbBuffer,
+        b64Data,
+        kitchenId,
+        kitchenName,
+        initTransform,
+        null,
+        stateRef.current.materials
+      );
+      if (!mounted) return;
+
+      glbBinaryCacheRef.current.set(kitchenId, b64Data);
+      mounted.isBazisKitchen = true;
+      mounted.kitchenConfig = kitchenConfig;
+
+      setImportedModels((prev) => {
+        const filtered = prev.filter((m) => !m.isBazisKitchen);
+        const updated = [...filtered, mounted];
+        setSelectedGlbId(kitchenId);
+        setGizmoMode('translate');
+        persistWorkspace({ importedModels: updated });
+        return updated;
+      });
+
+      pushHistoryRef.current?.('Generare bucătărie ' + kitchenName);
+      showToast(
+        lang === 'ro'
+          ? `🏛️ Bucătărie БАЗИС generată cu succes!`
+          : lang === 'ru'
+          ? `🏛️ Кухня БАЗИС успешно сгенерирована!`
+          : `🏛️ BAZIS Kitchen generated successfully!`
+      );
+    } catch (err) {
+      console.error('Error mounting generated Bazis kitchen:', err);
+      showToast('❌ Eroare la generarea bucătăriei');
+    }
+  };
+
   const handleMountGeneratedCabinet = async (
     glbBuffer,
     b64Data,
@@ -3297,6 +3392,22 @@ export default function KitchenViewer() {
             </button>
           </div>
         </div>
+
+        <UniversalFurnitureStudioSection
+          lang={lang}
+          materials={materials}
+          activeMatId={activeMatId}
+          onMountGeneratedFurniture={handleMountGeneratedFurniture}
+          onCaptureScreenshot={handleCaptureScreenshot}
+        />
+
+        <BazisKitchenStudioSection
+          lang={lang}
+          materials={materials}
+          activeMatId={activeMatId}
+          onMountGeneratedKitchen={handleMountGeneratedKitchen}
+          onCaptureScreenshot={handleCaptureScreenshot}
+        />
 
         <ParametricCabinetSection
           lang={lang}
