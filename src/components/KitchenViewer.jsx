@@ -68,7 +68,25 @@ const INITIAL_LIGHT_STATE = {
   distM: 4.5
 };
 
+async function decompressGzipBase64(b64) {
+  if (!b64) return null;
+  const binStr = atob(b64);
+  const len = binStr.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) bytes[i] = binStr.charCodeAt(i);
+  if (typeof DecompressionStream !== 'undefined') {
+    const ds = new DecompressionStream('gzip');
+    const writer = ds.writable.getWriter();
+    writer.write(bytes);
+    writer.close();
+    const resp = new Response(ds.readable);
+    return await resp.arrayBuffer();
+  }
+  return bytes.buffer;
+}
+
 function decodeBase64(b64, TypedArr) {
+  if (!b64) return new TypedArr(0);
   const bin = atob(b64);
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
@@ -889,6 +907,11 @@ export default function KitchenViewer() {
       const payload = await res.json();
       if (disposed) return;
 
+      const rawBuffer = payload.b64
+        ? await decompressGzipBase64(payload.b64)
+        : null;
+      if (disposed) return;
+
       const container = canvasContainerRef.current;
       if (!container) return;
       container.innerHTML = '';
@@ -1166,15 +1189,26 @@ export default function KitchenViewer() {
 
       for (const b of payload.batches) {
         const geom = new THREE.BufferGeometry();
-        const posInt16 = decodeBase64(b.p, Int16Array);
-        const posArr = new Float32Array(posInt16.length);
-        for (let i = 0; i < posInt16.length; i++) posArr[i] = posInt16[i];
+        let posArr, normInt8, idxArr;
 
-        const normInt8 = decodeBase64(b.n, Int8Array);
-        const idxArr = decodeBase64(
-          b.i,
-          b.it === 'uint32' ? Uint32Array : Uint16Array
-        );
+        if (rawBuffer && typeof b.po === 'number') {
+          posArr = new Float32Array(rawBuffer, b.po, b.vc * 3);
+          normInt8 = new Int8Array(rawBuffer, b.no, b.vc * 3);
+          idxArr = b.u32
+            ? new Uint32Array(rawBuffer, b.io, b.ic)
+            : new Uint16Array(rawBuffer, b.io, b.ic);
+        } else if (b.p) {
+          const posInt16 = decodeBase64(b.p, Int16Array);
+          posArr = new Float32Array(posInt16.length);
+          for (let i = 0; i < posInt16.length; i++) posArr[i] = posInt16[i];
+          normInt8 = decodeBase64(b.n, Int8Array);
+          idxArr = decodeBase64(
+            b.i,
+            b.it === 'uint32' ? Uint32Array : Uint16Array
+          );
+        } else {
+          continue;
+        }
 
         const uvArr = new Float32Array(b.vc * 2);
         for (let i = 0; i < b.vc; i++) {
