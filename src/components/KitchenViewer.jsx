@@ -134,6 +134,11 @@ export default function KitchenViewer() {
   const [lightState, setLightState] = useState(INITIAL_LIGHT_STATE);
   const [showLightOrb, setShowLightOrb] = useState(false);
 
+  // Studio Tabs & Navigation State
+  const [activeStudioTab, setActiveStudioTab] = useState('furniture'); // 'furniture' | 'materials' | 'models' | 'lighting' | 'parts'
+  const [furnitureSubTab, setFurnitureSubTab] = useState('universal'); // 'universal' | 'kitchen' | 'single'
+  const [quickActionsExpanded, setQuickActionsExpanded] = useState(false);
+
   // Undo & Redo History State
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
@@ -3323,172 +3328,285 @@ export default function KitchenViewer() {
           </div>
         </div>
 
-        <div className="panel-section">
-          <div className="section-title">
-            <span>{dict.quickActions}</span>
-          </div>
-          <div className="btn-grid">
+        {/* Studio Top Navigation Tab Bar */}
+        <div className="studio-tab-bar">
+          <button
+            className={`studio-tab-btn ${activeStudioTab === 'furniture' ? 'active' : ''}`}
+            onClick={() => setActiveStudioTab('furniture')}
+            title={dict.tabFurniture}
+          >
+            <span className="tab-icon">🛋️</span>
+            <span className="tab-label">{dict.tabFurniture}</span>
+          </button>
+          <button
+            className={`studio-tab-btn ${activeStudioTab === 'materials' ? 'active' : ''}`}
+            onClick={() => setActiveStudioTab('materials')}
+            title={dict.tabMaterials}
+          >
+            <span className="tab-icon">🎨</span>
+            <span className="tab-label">{dict.tabMaterials}</span>
+          </button>
+          <button
+            className={`studio-tab-btn ${activeStudioTab === 'models' ? 'active' : ''}`}
+            onClick={() => setActiveStudioTab('models')}
+            title={dict.tab3DModels}
+          >
+            <span className="tab-icon">📦</span>
+            <span className="tab-label">{dict.tab3DModels}</span>
+          </button>
+          <button
+            className={`studio-tab-btn ${activeStudioTab === 'lighting' ? 'active' : ''}`}
+            onClick={() => setActiveStudioTab('lighting')}
+            title={dict.tabLighting}
+          >
+            <span className="tab-icon">💡</span>
+            <span className="tab-label">{dict.tabLighting}</span>
+          </button>
+          <button
+            className={`studio-tab-btn ${activeStudioTab === 'parts' ? 'active' : ''}`}
+            onClick={() => setActiveStudioTab('parts')}
+            title={dict.tabParts}
+          >
+            <span className="tab-icon">📋</span>
+            <span className="tab-label">{dict.tabParts}</span>
+          </button>
+        </div>
+
+        {/* Compact Quick Actions Strip */}
+        <div className="compact-quick-actions">
+          <div className="quick-actions-bar">
             <button
-              className="btn-pill"
+              className="quick-icon-btn"
               disabled={!canUndo}
               onClick={handleUndo}
               title={dict.undo}
             >
-              <span>↩️</span>
-              <span>{dict.undoBtn}</span>
+              ↩️
             </button>
             <button
-              className="btn-pill"
+              className="quick-icon-btn"
               disabled={!canRedo}
               onClick={handleRedo}
               title={dict.redo}
             >
-              <span>↪️</span>
-              <span>{dict.redoBtn}</span>
+              ↪️
             </button>
-            <button className="btn-pill" onClick={handleOpenAll}>
-              <span>🔓</span>
-              <span>{dict.openAll}</span>
-            </button>
-            <button className="btn-pill" onClick={handleCloseAll}>
-              <span>🔒</span>
-              <span>{dict.closeAll}</span>
-            </button>
-            <button className="btn-pill" onClick={handleToggleDrawers}>
-              <span>🗄️</span>
-              <span>{dict.toggleDrawers}</span>
-            </button>
-            <button className="btn-pill" onClick={handleToggleDoors}>
-              <span>🚪</span>
-              <span>{dict.toggleDoors}</span>
+            <div className="quick-divider" />
+            <button
+              className="quick-icon-btn"
+              onClick={handleOpenAll}
+              title={dict.openAll}
+            >
+              🔓
             </button>
             <button
-              className={`btn-pill ${xrayActive ? 'active' : ''}`}
+              className="quick-icon-btn"
+              onClick={handleCloseAll}
+              title={dict.closeAll}
+            >
+              🔒
+            </button>
+            <button
+              className={`quick-icon-btn ${xrayActive ? 'active' : ''}`}
               onClick={handleToggleXray}
+              title={dict.xrayFronts}
             >
-              <span>👁️</span>
-              <span>{dict.xrayFronts}</span>
+              👁️
             </button>
             <button
-              className={`btn-pill ${countertopHidden ? 'active' : ''}`}
-              onClick={handleToggleCountertop}
-            >
-              <span>🪨</span>
-              <span>{dict.hideCountertop}</span>
-            </button>
-            <button
-              className={`btn-pill ${edgesVisible ? 'active' : ''}`}
+              className={`quick-icon-btn ${edgesVisible ? 'active' : ''}`}
               onClick={handleToggleEdges}
+              title={dict.showEdges}
             >
-              <span>📐</span>
-              <span>{dict.showEdges}</span>
+              📐
             </button>
             <button
-              className={`btn-pill ${dimsEnabled ? 'active' : ''}`}
+              className={`quick-icon-btn ${dimsEnabled ? 'active' : ''}`}
               onClick={() => setDimsEnabled((v) => !v)}
+              title={dict.showDims}
             >
-              <span>📏</span>
-              <span>{dict.showDims}</span>
+              📏
+            </button>
+            <button
+              className={`quick-icon-btn ${quickActionsExpanded ? 'active' : ''}`}
+              onClick={() => setQuickActionsExpanded((v) => !v)}
+              title="Mai multe acțiuni"
+              style={{ marginLeft: 'auto' }}
+            >
+              {quickActionsExpanded ? '▲' : '⚡'}
             </button>
           </div>
+
+          {quickActionsExpanded && (
+            <div className="btn-grid" style={{ marginTop: '8px' }}>
+              <button className="btn-pill" onClick={handleToggleDrawers}>
+                <span>🗄️</span>
+                <span>{dict.toggleDrawers}</span>
+              </button>
+              <button className="btn-pill" onClick={handleToggleDoors}>
+                <span>🚪</span>
+                <span>{dict.toggleDoors}</span>
+              </button>
+              <button
+                className={`btn-pill ${countertopHidden ? 'active' : ''}`}
+                onClick={handleToggleCountertop}
+              >
+                <span>🪨</span>
+                <span>{dict.hideCountertop}</span>
+              </button>
+              <button
+                className={`btn-pill ${dimsEnabled ? 'active' : ''}`}
+                onClick={() => setDimsEnabled((v) => !v)}
+              >
+                <span>📏</span>
+                <span>{dict.showDims}</span>
+              </button>
+            </div>
+          )}
         </div>
 
-        <UniversalFurnitureStudioSection
-          lang={lang}
-          materials={materials}
-          activeMatId={activeMatId}
-          onMountGeneratedFurniture={handleMountGeneratedFurniture}
-          onCaptureScreenshot={handleCaptureScreenshot}
-        />
+        {/* Studio Content Area */}
+        <div className="studio-tab-content">
+          {activeStudioTab === 'furniture' && (
+            <div>
+              {/* Furniture Sub-navigation Pill Switcher */}
+              <div className="furniture-subnav">
+                <button
+                  className={`subnav-btn ${furnitureSubTab === 'universal' ? 'active' : ''}`}
+                  onClick={() => setFurnitureSubTab('universal')}
+                >
+                  <span>🌟</span>
+                  <span>{dict.subUniversal}</span>
+                </button>
+                <button
+                  className={`subnav-btn ${furnitureSubTab === 'kitchen' ? 'active' : ''}`}
+                  onClick={() => setFurnitureSubTab('kitchen')}
+                >
+                  <span>🍳</span>
+                  <span>{dict.subKitchen}</span>
+                </button>
+                <button
+                  className={`subnav-btn ${furnitureSubTab === 'single' ? 'active' : ''}`}
+                  onClick={() => setFurnitureSubTab('single')}
+                >
+                  <span>🧱</span>
+                  <span>{dict.subSingleCabinet}</span>
+                </button>
+              </div>
 
-        <BazisKitchenStudioSection
-          lang={lang}
-          materials={materials}
-          activeMatId={activeMatId}
-          onMountGeneratedKitchen={handleMountGeneratedKitchen}
-          onCaptureScreenshot={handleCaptureScreenshot}
-        />
+              {furnitureSubTab === 'universal' && (
+                <UniversalFurnitureStudioSection
+                  lang={lang}
+                  materials={materials}
+                  activeMatId={activeMatId}
+                  onMountGeneratedFurniture={handleMountGeneratedFurniture}
+                  onCaptureScreenshot={handleCaptureScreenshot}
+                />
+              )}
 
-        <ParametricCabinetSection
-          lang={lang}
-          materials={materials}
-          activeMatId={activeMatId}
-          onMountGeneratedCabinet={handleMountGeneratedCabinet}
-          placedCabinets={importedModels.filter((im) => im.isParametric)}
-          onDeleteCabinet={handleDeleteGlb}
-          onSelectCabinet={(id) => {
-            setSelectedGlbId(id);
-            setGizmoMode('translate');
-          }}
-          selectedCabinetId={selectedGlbId}
-          onCaptureScreenshot={handleCaptureScreenshot}
-        />
+              {furnitureSubTab === 'kitchen' && (
+                <BazisKitchenStudioSection
+                  lang={lang}
+                  materials={materials}
+                  activeMatId={activeMatId}
+                  onMountGeneratedKitchen={handleMountGeneratedKitchen}
+                  onCaptureScreenshot={handleCaptureScreenshot}
+                />
+              )}
 
-        <GlbImporterSection
-          lang={lang}
-          importedModels={importedModels}
-          selectedGlbId={selectedGlbId}
-          onSelectGlb={(id) => {
-            setSelectedGlbId(id);
-            if (!gizmoMode) setGizmoMode('translate');
-          }}
-          onImportGlbFiles={handleImportGlbFiles}
-          onDeleteGlb={handleDeleteGlb}
-          onDuplicateGlb={handleDuplicateGlb}
-          gizmoMode={gizmoMode}
-          onSetGizmoMode={setGizmoMode}
-          placeOnSurfaceMode={placeOnSurfaceMode}
-          onTogglePlaceOnSurface={() => setPlaceOnSurfaceMode((v) => !v)}
-          onUpdateGlbTransform={handleUpdateGlbTransform}
-          onPaintWholeGlbWithActiveMat={handlePaintWholeGlbWithActiveMat}
-          onColorWholeGlb={handleColorWholeGlb}
-          onResetGlbMaterials={handleResetGlbMaterials}
-          onPaintGlbSubMeshWithActiveMat={handlePaintGlbSubMeshWithActiveMat}
-          onColorGlbSubMesh={handleColorGlbSubMesh}
-          onSetGlbSubMeshMechanism={handleSetGlbSubMeshMechanism}
-          onToggleGlbSubMeshOpen={handleToggleGlbSubMeshOpen}
-          onToggleAllGlbParts={handleToggleAllGlbParts}
-          onAutoDetectGlbMechanisms={handleAutoDetectGlbMechanisms}
-          onClearGlbMechanisms={handleClearGlbMechanisms}
-          onToggleNativeGlbAnimation={handleToggleNativeGlbAnimation}
-        />
+              {furnitureSubTab === 'single' && (
+                <ParametricCabinetSection
+                  lang={lang}
+                  materials={materials}
+                  activeMatId={activeMatId}
+                  onMountGeneratedCabinet={handleMountGeneratedCabinet}
+                  placedCabinets={importedModels.filter((im) => im.isParametric)}
+                  onDeleteCabinet={handleDeleteGlb}
+                  onSelectCabinet={(id) => {
+                    setSelectedGlbId(id);
+                    setGizmoMode('translate');
+                  }}
+                  selectedCabinetId={selectedGlbId}
+                  onCaptureScreenshot={handleCaptureScreenshot}
+                />
+              )}
+            </div>
+          )}
 
-        <MaterialStudioSection
-          lang={lang}
-          materials={materials}
-          activeMatId={activeMatId}
-          onSelectMaterial={(id) => {
-            setActiveMatId(id);
-            persistWorkspace({ activeMatId: id });
-          }}
-          onUploadTextures={handleUploadTextures}
-          onAddColorMaterial={handleAddColorMaterial}
-          onDeleteMaterial={handleDeleteMaterial}
-          onDeleteAllMaterials={handleDeleteAllMaterials}
-          onResetFurnitureToWhite={handleResetFurnitureToWhite}
-          onUpdateActiveMaterialProp={handleUpdateActiveMaterialProp}
-          paintModeActive={paintModeActive}
-          onTogglePaintMode={() => setPaintModeActive((v) => !v)}
-          onApplyMaterialToZone={handleApplyMaterialToZone}
-        />
+          {activeStudioTab === 'materials' && (
+            <MaterialStudioSection
+              lang={lang}
+              materials={materials}
+              activeMatId={activeMatId}
+              onSelectMaterial={(id) => {
+                setActiveMatId(id);
+                persistWorkspace({ activeMatId: id });
+              }}
+              onUploadTextures={handleUploadTextures}
+              onAddColorMaterial={handleAddColorMaterial}
+              onDeleteMaterial={handleDeleteMaterial}
+              onDeleteAllMaterials={handleDeleteAllMaterials}
+              onResetFurnitureToWhite={handleResetFurnitureToWhite}
+              onUpdateActiveMaterialProp={handleUpdateActiveMaterialProp}
+              paintModeActive={paintModeActive}
+              onTogglePaintMode={() => setPaintModeActive((v) => !v)}
+              onApplyMaterialToZone={handleApplyMaterialToZone}
+            />
+          )}
 
-        <LightingStudioSection
-          lang={lang}
-          lightState={lightState}
-          onChangeLightState={handleChangeLightState}
-          showLightOrb={showLightOrb}
-          onToggleLightOrb={handleToggleLightOrb}
-        />
+          {activeStudioTab === 'models' && (
+            <GlbImporterSection
+              lang={lang}
+              importedModels={importedModels}
+              selectedGlbId={selectedGlbId}
+              onSelectGlb={(id) => {
+                setSelectedGlbId(id);
+                if (!gizmoMode) setGizmoMode('translate');
+              }}
+              onImportGlbFiles={handleImportGlbFiles}
+              onDeleteGlb={handleDeleteGlb}
+              onDuplicateGlb={handleDuplicateGlb}
+              gizmoMode={gizmoMode}
+              onSetGizmoMode={setGizmoMode}
+              placeOnSurfaceMode={placeOnSurfaceMode}
+              onTogglePlaceOnSurface={() => setPlaceOnSurfaceMode((v) => !v)}
+              onUpdateGlbTransform={handleUpdateGlbTransform}
+              onPaintWholeGlbWithActiveMat={handlePaintWholeGlbWithActiveMat}
+              onColorWholeGlb={handleColorWholeGlb}
+              onResetGlbMaterials={handleResetGlbMaterials}
+              onPaintGlbSubMeshWithActiveMat={handlePaintGlbSubMeshWithActiveMat}
+              onColorGlbSubMesh={handleColorGlbSubMesh}
+              onSetGlbSubMeshMechanism={handleSetGlbSubMeshMechanism}
+              onToggleGlbSubMeshOpen={handleToggleGlbSubMeshOpen}
+              onToggleAllGlbParts={handleToggleAllGlbParts}
+              onAutoDetectGlbMechanisms={handleAutoDetectGlbMechanisms}
+              onClearGlbMechanisms={handleClearGlbMechanisms}
+              onToggleNativeGlbAnimation={handleToggleNativeGlbAnimation}
+            />
+          )}
 
-        <InteractivePartsSection
-          lang={lang}
-          specs={specs}
-          partsMeta={partsMeta}
-          materials={materials}
-          onTogglePart={(id) => toggleInteractivePart(id, null, true)}
-          onPaintPart={handlePaintPart}
-          onHoverPart={handleHoverPart}
-        />
+          {activeStudioTab === 'lighting' && (
+            <LightingStudioSection
+              lang={lang}
+              lightState={lightState}
+              onChangeLightState={handleChangeLightState}
+              showLightOrb={showLightOrb}
+              onToggleLightOrb={handleToggleLightOrb}
+            />
+          )}
+
+          {activeStudioTab === 'parts' && (
+            <InteractivePartsSection
+              lang={lang}
+              specs={specs}
+              partsMeta={partsMeta}
+              materials={materials}
+              onTogglePart={(id) => toggleInteractivePart(id, null, true)}
+              onPaintPart={handlePaintPart}
+              onHoverPart={handleHoverPart}
+            />
+          )}
+        </div>
       </aside>
 
       <CameraPresetsBar
