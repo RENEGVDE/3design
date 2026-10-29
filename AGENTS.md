@@ -42,3 +42,4 @@ npm run deploy                   # Build & deploy directly to Firebase Hosting
 3. **All Materials Must Be Deletable**: Every material in the library (including `Alb (Default)`) has a `×` delete button, plus a `🗑️ Șterge Materiale` button to clear all materials and a `🔄 Reset Mobilier la Alb` button.
 4. **100% Persistence Across Page Refresh (`F5`)**: Every change—uploaded texture photos, added colors, surface assignments, open/closed doors & drawers, lighting position/Kelvin/intensity, and active language—is automatically saved to `IndexedDB` + `localStorage` and restored on page load.
 5. **Undo & Redo Supported**: All user actions (toggles, material painting, transforms, deletes) can be undone (`Ctrl+Z`) and redone (`Ctrl+Y`).
+6. **DO NOT TOUCH GIT**: NEVER run ANY `git` commands (`git add`, `git commit`, `git push`, etc.). The user handles 100% of all git interactions. Only edit files and run build/dev commands.

@@ -2038,10 +2038,12 @@ export default function KitchenViewer() {
         }
 
         // Animate Imported .GLB Mechanisms & Native glTF Animations
+        let anyGlbAnimating = false;
         for (const impId in importedMap) {
           const entry = importedMap[impId];
           if (entry.mixer) {
             entry.mixer.update(dt);
+            anyGlbAnimating = true;
           }
           let glbMechChanged = false;
           for (const m of entry.meshes) {
@@ -2054,6 +2056,7 @@ export default function KitchenViewer() {
                 m.userData.mechProgress = Math.max(0, prog - speed * dt);
               }
               glbMechChanged = true;
+              anyGlbAnimating = true;
             }
           }
           if (glbMechChanged) {
