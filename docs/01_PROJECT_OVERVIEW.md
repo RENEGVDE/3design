@@ -61,3 +61,11 @@ This project provides an interactive 3D CAD visualization and customization plat
     - Tooltip decoupled from React state to eliminate hover re-renders.
     - Throttled raycaster on `pointermove` and precalculated bounding spheres on imported meshes.
     - On-demand shadow map updates (`autoUpdate = false`).
+11. **Full BAZIS-Mebelshchik (БАЗИС-Мебельщик) Suite Integration**:
+    - **Model Structural Tree (Структурное дерево модели)**: Dedicated `🌲 БАЗИС-CAD` tab with a live hierarchical tree of all products, assemblies, panels, and hardware. Supports node inspection, 3D highlights, and individual part visibility toggles (`👁️`).
+    - **Exploded Assembly View (Разнесение сборки / Взрыв-схема)**: Interactive `0%–100%` slider that dynamically offsets all panels outward along their normal vectors, revealing internal cabinet joints, shelves, and construction.
+    - **3D Fasteners & Drilling Patterns (Крепеж и присадка System 32)**: Toggleable 3D procedural hardware models (Confirmat screws, Minifix Rastex cams, beech wood dowels, shelf support pins, and 35mm hinge cups) positioned according to European System 32 manufacturing standards.
+    - **2D Cutting Optimization & Nesting (БАЗИС-Раскрой)**: Multi-sheet 2D guillotine packing engine with master board support ($2800\times 2070$, $2440\times 1830$), kerf width ($4\text{ mm}$), trim margin ($15\text{ mm}$), live calculation of the Material Utilization Coefficient (**К.И.М. %**), scrap area ($m^2$), and total cutting blade distance (m).
+    - **2D Workshop Panel Blueprint (Чертёж детали)**: Interactive technical drawing canvas with dimension lines and arrows, color-coded edge banding indicators per edge (ABS 2mm red, ABS 1mm yellow, ABS 0.4mm cyan), hole crosshairs ($\varnothing 5, \varnothing 7, \varnothing 8, \varnothing 15, \varnothing 35$), and standard engineering title block.
+    - **CNC Drilling Export (БАЗИС-ЧПУ)**: Drilling operations table with coordinates ($X, Y$), diameter, depth, and face, exportable to CNC CSV / G-code format.
+    - **Free Panel CAD Modeler (Создать произвольную деталь)**: Parametric tool for generating custom horizontal, vertical, or frontal panels in mm space with custom edge banding and dimensions.

@@ -49,6 +49,8 @@ import { exportToGlbArrayBuffer } from '../utils/parametricCabinet.js';
 import GlbImporterSection from './GlbImporterSection.jsx';
 import LightingStudioSection from './LightingStudioSection.jsx';
 import InteractivePartsSection from './InteractivePartsSection.jsx';
+import BazisModelTreePanel from './BazisModelTreePanel.jsx';
+import { createFastenerMeshes } from '../utils/bazisEngineering.js';
 import TechnicalReportModal from './TechnicalReportModal.jsx';
 import { calculateMagneticSnap, alignModelDirectly } from '../utils/magneticSnapping.js';
 
@@ -144,9 +146,15 @@ export default function KitchenViewer() {
   const [showLightOrb, setShowLightOrb] = useState(false);
 
   // Studio Tabs & Navigation State
-  const [activeStudioTab, setActiveStudioTab] = useState('furniture'); // 'furniture' | 'materials' | 'models' | 'lighting' | 'parts'
+  const [activeStudioTab, setActiveStudioTab] = useState('furniture'); // 'furniture' | 'materials' | 'models' | 'lighting' | 'parts' | 'bazisTree'
   const [furnitureSubTab, setFurnitureSubTab] = useState('universal'); // 'universal' | 'kitchen' | 'single'
   const [quickActionsExpanded, setQuickActionsExpanded] = useState(false);
+
+  // BAZIS-CAD Engineering & Model Tree States
+  const [explodedProgress, setExplodedProgress] = useState(0);
+  const [showFasteners3d, setShowFasteners3d] = useState(false);
+  const [wireframeActive, setWireframeActive] = useState(false);
+  const [hiddenPartIds, setHiddenPartIds] = useState(new Set());
 
   // Undo & Redo History State
   const [canUndo, setCanUndo] = useState(false);
@@ -1039,11 +1047,11 @@ export default function KitchenViewer() {
               const updated = prev.map((im) =>
                 im.id === gid
                   ? {
-                      ...im,
-                      position: nextPos,
-                      rotationYDeg: nextRot,
-                      scale: nextScale
-                    }
+                    ...im,
+                    position: nextPos,
+                    rotationYDeg: nextRot,
+                    scale: nextScale
+                  }
                   : im
               );
               persistWorkspace({ importedModels: updated });
@@ -1194,6 +1202,12 @@ export default function KitchenViewer() {
       const importedRootGroup = new THREE.Group();
       importedRootGroup.name = 'imported_glb_root';
       scene.add(importedRootGroup);
+
+      // Container for 3D Fasteners & Hardware (БАЗИС-Присадка)
+      const fastenersRootGroup = new THREE.Group();
+      fastenersRootGroup.name = 'bazis_fasteners_root';
+      fastenersRootGroup.visible = false;
+      scene.add(fastenersRootGroup);
 
       const staticGroups = [
         'static_carcass',
@@ -1382,7 +1396,7 @@ export default function KitchenViewer() {
         if (b.vc < 8000 && b.g !== 'static_hardware') {
           const edgesGeo = new THREE.EdgesGeometry(geom, 28);
           const line = new THREE.LineSegments(edgesGeo, edgeMat);
-          line.raycast = () => {};
+          line.raycast = () => { };
           mesh.add(line);
           edgeLines.push(line);
         }
@@ -1448,6 +1462,7 @@ export default function KitchenViewer() {
         allKitchenMeshes,
         edgeLines,
         importedRootGroup,
+        fastenersRootGroup,
         importedMap,
         importedMeshes,
         staticTargets,
@@ -1515,8 +1530,8 @@ export default function KitchenViewer() {
         )
           ? saved.activeCustomMatId
           : restoredMats[0]
-          ? restoredMats[0].id
-          : null;
+            ? restoredMats[0].id
+            : null;
         setActiveMatId(nextActiveId);
         stateRef.current.activeMatId = nextActiveId;
 
@@ -1722,21 +1737,20 @@ export default function KitchenViewer() {
 
             const dimsText = impEntry
               ? `📏 ${fmtCm(
-                  impEntry.baseDimsCm.w * impEntry.scale[0]
-                )} × ${fmtCm(
-                  impEntry.baseDimsCm.h * impEntry.scale[1]
-                )} × ${fmtCm(impEntry.baseDimsCm.d * impEntry.scale[2])} cm${
-                  mechLabel ? ` • ${mechLabel}` : ''
-                }`
+                impEntry.baseDimsCm.w * impEntry.scale[0]
+              )} × ${fmtCm(
+                impEntry.baseDimsCm.h * impEntry.scale[1]
+              )} × ${fmtCm(impEntry.baseDimsCm.d * impEntry.scale[2])} cm${mechLabel ? ` • ${mechLabel}` : ''
+              }`
               : '';
 
             const subText = curPaint
               ? `${dict.clickToPaint}${activeMatLabel}`
               : hasMech
-              ? sp.isOpen
-                ? dict.clickToClose
-                : dict.clickToOpen
-              : 'Click pt. Selectare & Mutare 3D';
+                ? sp.isOpen
+                  ? dict.clickToClose
+                  : dict.clickToOpen
+                : 'Click pt. Selectare & Mutare 3D';
 
             updateTooltipDOM(
               true,
@@ -1761,8 +1775,8 @@ export default function KitchenViewer() {
               curPaint
                 ? `${dict.clickToPaint}${activeMatLabel}`
                 : item.isOpen
-                ? dict.clickToClose
-                : dict.clickToOpen
+                  ? dict.clickToClose
+                  : dict.clickToOpen
             );
             return;
           } else if (curPaint && hitMesh.userData.staticZone) {
@@ -1948,10 +1962,10 @@ export default function KitchenViewer() {
                     const nextSubs = (im.subParts || []).map((sp) =>
                       sp.subIdx === subIdx
                         ? {
-                            ...sp,
-                            assignedMatId: activeMat.id,
-                            colorHex: activeMat.colorHex || sp.colorHex
-                          }
+                          ...sp,
+                          assignedMatId: activeMat.id,
+                          colorHex: activeMat.colorHex || sp.colorHex
+                        }
                         : sp
                     );
                     return { ...im, subParts: nextSubs };
@@ -2016,11 +2030,11 @@ export default function KitchenViewer() {
                 );
                 const targetSubIdx =
                   impRecord.subParts[clickedSubIdx]?.mechType &&
-                  impRecord.subParts[clickedSubIdx].mechType !== 'none'
+                    impRecord.subParts[clickedSubIdx].mechType !== 'none'
                     ? clickedSubIdx
                     : followers[clickedSubIdx] !== undefined
-                    ? followers[clickedSubIdx]
-                    : null;
+                      ? followers[clickedSubIdx]
+                      : null;
 
                 if (targetSubIdx !== null && parsedEntry.meshes[targetSubIdx]) {
                   const curSp = impRecord.subParts[targetSubIdx];
@@ -2286,8 +2300,7 @@ export default function KitchenViewer() {
         const dict = I18N[stateRef.current.lang] || I18N.ro;
         const dimInfo = ` (${fmtCm(item.dimsCm.w)}×${fmtCm(item.dimsCm.h)} cm)`;
         showToast(
-          `${getSpecTitle(item.spec, stateRef.current.lang)}${dimInfo}: ${
-            nextOpen ? dict.statusOpen : dict.statusClosed
+          `${getSpecTitle(item.spec, stateRef.current.lang)}${dimInfo}: ${nextOpen ? dict.statusOpen : dict.statusClosed
           }`
         );
       }
@@ -2393,8 +2406,8 @@ export default function KitchenViewer() {
         lang === 'ro'
           ? `🛋️ Piesa "${furnName}" adăugată în scenă!`
           : lang === 'ru'
-          ? `🛋️ Изделие "${furnName}" создано в 3D!`
-          : `🛋️ Item "${furnName}" created in 3D!`
+            ? `🛋️ Изделие "${furnName}" создано в 3D!`
+            : `🛋️ Item "${furnName}" created in 3D!`
       );
     } catch (err) {
       console.error('Error mounting generated universal furniture:', err);
@@ -2440,8 +2453,8 @@ export default function KitchenViewer() {
         lang === 'ro'
           ? `🏛️ Bucătărie БАЗИС generată cu succes!`
           : lang === 'ru'
-          ? `🏛️ Кухня БАЗИС успешно сгенерирована!`
-          : `🏛️ BAZIS Kitchen generated successfully!`
+            ? `🏛️ Кухня БАЗИС успешно сгенерирована!`
+            : `🏛️ BAZIS Kitchen generated successfully!`
       );
     } catch (err) {
       console.error('Error mounting generated Bazis kitchen:', err);
@@ -2486,8 +2499,8 @@ export default function KitchenViewer() {
         lang === 'ro'
           ? `📐 Corp generat: ${modelName}`
           : lang === 'ru'
-          ? `📐 Шкаф создан: ${modelName}`
-          : `📐 Cabinet created: ${modelName}`
+            ? `📐 Шкаф создан: ${modelName}`
+            : `📐 Cabinet created: ${modelName}`
       );
     } catch (err) {
       console.error('Error mounting generated cabinet:', err);
@@ -2518,8 +2531,8 @@ export default function KitchenViewer() {
       lang === 'ro'
         ? '📸 Poză HD salvată!'
         : lang === 'ru'
-        ? '📸 HD рендер сохранен!'
-        : '📸 HD Render downloaded!'
+          ? '📸 HD рендер сохранен!'
+          : '📸 HD Render downloaded!'
     );
     return dataUrl;
   };
@@ -2727,10 +2740,10 @@ export default function KitchenViewer() {
         const nextSubs = (im.subParts || []).map((sp) =>
           sp.subIdx === subIdx
             ? {
-                ...sp,
-                assignedMatId: activeMat.id,
-                colorHex: activeMat.colorHex || sp.colorHex
-              }
+              ...sp,
+              assignedMatId: activeMat.id,
+              colorHex: activeMat.colorHex || sp.colorHex
+            }
             : sp
         );
         return { ...im, subParts: nextSubs };
@@ -3351,8 +3364,8 @@ export default function KitchenViewer() {
         lang === 'ro'
           ? '🍳 Bucătărie Demo: ' + (nextVal ? 'Vizibilă' : 'Ascunsă')
           : lang === 'ru'
-          ? '🍳 Демо-кухня: ' + (nextVal ? 'Включена' : 'Скрыта')
-          : '🍳 Demo Kitchen: ' + (nextVal ? 'Visible' : 'Hidden')
+            ? '🍳 Демо-кухня: ' + (nextVal ? 'Включена' : 'Скрыта')
+            : '🍳 Demo Kitchen: ' + (nextVal ? 'Visible' : 'Hidden')
       );
       return nextVal;
     });
@@ -3363,8 +3376,8 @@ export default function KitchenViewer() {
       lang === 'ro'
         ? 'Dorești să creezi un proiect nou? Scena curentă va fi curățată.'
         : lang === 'ru'
-        ? 'Создать новый проект? Текущая сцена будет очищена.'
-        : 'Create a new project? The current scene will be cleared.';
+          ? 'Создать новый проект? Текущая сцена будет очищена.'
+          : 'Create a new project? The current scene will be cleared.';
 
     if (!window.confirm(confirmMsg)) return;
 
@@ -3396,8 +3409,8 @@ export default function KitchenViewer() {
       lang === 'ro'
         ? '🆕 Proiect nou creat! Spațiul de lucru este pregătit.'
         : lang === 'ru'
-        ? '🆕 Новый проект создан! Пространство готово.'
-        : '🆕 New project created! Workspace is clean.'
+          ? '🆕 Новый проект создан! Пространство готово.'
+          : '🆕 New project created! Workspace is clean.'
     );
   }, [lang, persistWorkspace, showToast]);
 
@@ -3427,8 +3440,8 @@ export default function KitchenViewer() {
       lang === 'ro'
         ? '💾 Proiectul a fost salvat și descărcat (.3design)!'
         : lang === 'ru'
-        ? '💾 Проект сохранен и скачан (.3design)!'
-        : '💾 Project saved and downloaded (.3design)!'
+          ? '💾 Проект сохранен и скачан (.3design)!'
+          : '💾 Project saved and downloaded (.3design)!'
     );
   }, [lang, showDemoKitchen, activeMatId, materials, lightState, showToast]);
 
@@ -3520,8 +3533,8 @@ export default function KitchenViewer() {
         lang === 'ro'
           ? '⏳ Se exportă scena 3D în format .GLB...'
           : lang === 'ru'
-          ? '⏳ Экспорт 3D сцены в .GLB...'
-          : '⏳ Exporting 3D scene to .GLB...'
+            ? '⏳ Экспорт 3D сцены в .GLB...'
+            : '⏳ Exporting 3D scene to .GLB...'
       );
 
       const toExport = [];
@@ -3537,8 +3550,8 @@ export default function KitchenViewer() {
           lang === 'ro'
             ? '⚠️ Scena este goală, nu există mobilier de exportat'
             : lang === 'ru'
-            ? '⚠️ Сцена пуста'
-            : '⚠️ Scene is empty'
+              ? '⚠️ Сцена пуста'
+              : '⚠️ Scene is empty'
         );
         return;
       }
@@ -3558,8 +3571,8 @@ export default function KitchenViewer() {
         lang === 'ro'
           ? '📦 Scena completă a fost exportată (.glb)!'
           : lang === 'ru'
-          ? '📦 Сцена успешно экспортирована (.glb)!'
-          : '📦 Full scene exported to .GLB!'
+            ? '📦 Сцена успешно экспортирована (.glb)!'
+            : '📦 Full scene exported to .GLB!'
       );
     } catch (err) {
       console.error('Error exporting scene GLB:', err);
@@ -3567,11 +3580,266 @@ export default function KitchenViewer() {
         lang === 'ro'
           ? '❌ Eroare la exportarea scenei GLB'
           : lang === 'ru'
-          ? '❌ Ошибка экспорта сцены в GLB'
-          : '❌ Error exporting scene to GLB'
+            ? '❌ Ошибка экспорта сцены в GLB'
+            : '❌ Error exporting scene to GLB'
       );
     }
   }, [lang, showDemoKitchen, showToast]);
+
+  const handleToggleFasteners3d = useCallback(() => {
+    setShowFasteners3d((prev) => {
+      const next = !prev;
+      const ctx = sceneRef.current;
+      if (!ctx || !ctx.fastenersRootGroup) return next;
+
+      while (ctx.fastenersRootGroup.children.length > 0) {
+        const c = ctx.fastenersRootGroup.children[0];
+        ctx.fastenersRootGroup.remove(c);
+      }
+
+      if (next) {
+        stateRef.current.importedModels.forEach((m) => {
+          const entry = ctx.importedMap[m.id];
+          if (!entry || !entry.wrapperGroup) return;
+
+          const config = m.furnitureConfig || m.cabinetConfig || {
+            widthMm: 600,
+            heightMm: 720,
+            depthMm: 560,
+            boardThicknessMm: 18,
+            shelvesCount: 1,
+            plinthHeightMm: 100,
+            hasDoors: true
+          };
+
+          const { group } = createFastenerMeshes(config);
+          group.scale.set(0.001, 0.001, 0.001);
+          group.position.copy(entry.wrapperGroup.position);
+          group.rotation.copy(entry.wrapperGroup.rotation);
+          ctx.fastenersRootGroup.add(group);
+        });
+
+        if (ctx.kitchenRoot && ctx.kitchenRoot.visible) {
+          const baseKitchenFasteners = new THREE.Group();
+          const fConfig = { widthMm: 800, heightMm: 720, depthMm: 560, boardThicknessMm: 18, shelvesCount: 1, plinthHeightMm: 100, hasDoors: true };
+          const { group: g1 } = createFastenerMeshes(fConfig);
+          g1.scale.set(0.001, 0.001, 0.001);
+          g1.position.set(0.6, 0, 0.28);
+          baseKitchenFasteners.add(g1);
+          ctx.fastenersRootGroup.add(baseKitchenFasteners);
+        }
+
+        ctx.fastenersRootGroup.visible = true;
+      } else {
+        ctx.fastenersRootGroup.visible = false;
+      }
+
+      ctx.needsShadowUpdate = true;
+      showToast(
+        next
+          ? (lang === 'ro' ? '🔩 Feronerie & Îmbinări 3D: ACTIVAT' : lang === 'ru' ? '🔩 Крепеж 3D: ВКЛ' : '🔩 3D Fasteners: ON')
+          : (lang === 'ro' ? '🔩 Feronerie & Îmbinări 3D: DEZACTIVAT' : lang === 'ru' ? '🔩 Крепеж 3D: ВЫКЛ' : '🔩 3D Fasteners: OFF')
+      );
+      return next;
+    });
+  }, [lang, showToast]);
+
+  const handleExplodedProgressChange = useCallback((val) => {
+    setExplodedProgress(val);
+    const ctx = sceneRef.current;
+    if (!ctx) return;
+
+    const offsetM = (val / 100) * 0.25;
+
+    stateRef.current.importedModels.forEach((m) => {
+      const entry = ctx.importedMap[m.id];
+      if (!entry || !entry.wrapperGroup) return;
+
+      entry.wrapperGroup.traverse((child) => {
+        if (child.isMesh && child !== entry.wrapperGroup) {
+          if (!child.userData.bazisOrigPos) {
+            child.userData.bazisOrigPos = child.position.clone();
+          }
+          const orig = child.userData.bazisOrigPos;
+          const name = (child.name || '').toLowerCase();
+
+          if (name.includes('stang') || name.includes('left')) {
+            child.position.x = orig.x - offsetM;
+          } else if (name.includes('dreapt') || name.includes('right')) {
+            child.position.x = orig.x + offsetM;
+          } else if (name.includes('capac') || name.includes('top') || name.includes('blat')) {
+            child.position.y = orig.y + offsetM;
+          } else if (name.includes('fund') || name.includes('bottom') || name.includes('soclu')) {
+            child.position.y = orig.y - offsetM;
+          } else if (name.includes('spate') || name.includes('back') || name.includes('pfl')) {
+            child.position.z = orig.z - offsetM;
+          } else if (name.includes('front') || name.includes('door') || name.includes('usa') || name.includes('sertar')) {
+            child.position.z = orig.z + offsetM * 1.5;
+          } else {
+            const dirX = orig.x >= 0 ? 1 : -1;
+            child.position.x = orig.x + dirX * (offsetM * 0.5);
+          }
+        }
+      });
+    });
+
+    if (ctx.kitchenRoot && ctx.kitchenRoot.visible) {
+      const offsetMm = (val / 100) * 250;
+      ctx.kitchenRoot.traverse((child) => {
+        if (child.isMesh && child.name && !child.name.startsWith('static_hardware')) {
+          if (!child.userData.bazisOrigPos) {
+            child.userData.bazisOrigPos = child.position.clone();
+          }
+          const orig = child.userData.bazisOrigPos;
+          const name = child.name.toLowerCase();
+
+          if (name.includes('front') || name.includes('door') || name.includes('drawer')) {
+            child.position.z = orig.z + offsetMm * 1.2;
+          } else if (name.includes('countertop')) {
+            child.position.y = orig.y + offsetMm * 0.8;
+          }
+        }
+      });
+    }
+
+    ctx.needsShadowUpdate = true;
+  }, []);
+
+  const handleToggleWireframe = useCallback(() => {
+    setWireframeActive((prev) => {
+      const next = !prev;
+      const ctx = sceneRef.current;
+      if (!ctx) return next;
+
+      ctx.scene.traverse((child) => {
+        if (child.isMesh && child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach((mat) => {
+              if (mat.name !== 'Mat_Gizmo') mat.wireframe = next;
+            });
+          } else {
+            if (child.material.name !== 'Mat_Gizmo') child.material.wireframe = next;
+          }
+        }
+      });
+
+      showToast(
+        next
+          ? (lang === 'ro' ? '📐 Wireframe CAD: ACTIVAT' : lang === 'ru' ? '📐 Каркасный режим: ВКЛ' : '📐 Wireframe CAD: ON')
+          : (lang === 'ro' ? '📐 Wireframe CAD: DEZACTIVAT' : lang === 'ru' ? '📐 Каркасный режим: ВЫКЛ' : '📐 Wireframe CAD: OFF')
+      );
+      return next;
+    });
+  }, [lang, showToast]);
+
+  const handleTogglePartVisibility = useCallback((partId) => {
+    setHiddenPartIds((prev) => {
+      const next = new Set(prev);
+      const isCurrentlyHidden = next.has(partId);
+      if (isCurrentlyHidden) {
+        next.delete(partId);
+      } else {
+        next.add(partId);
+      }
+
+      const ctx = sceneRef.current;
+      if (ctx && ctx.importedMap[partId]) {
+        ctx.importedMap[partId].wrapperGroup.visible = isCurrentlyHidden;
+        ctx.needsShadowUpdate = true;
+      }
+      return next;
+    });
+  }, []);
+
+  const handleAddCustomPanel = useCallback(async (config) => {
+    try {
+      const {
+        name = 'Panou Personalizat',
+        orientation = 'horizontal',
+        lengthMm = 600,
+        widthMm = 400,
+        thicknessMm = 18,
+        edgeBanding = 'Cant ABS 1mm',
+        material = 'PAL Melaminat Alb 18mm'
+      } = config;
+
+      let dimX = lengthMm / 1000;
+      let dimY = thicknessMm / 1000;
+      let dimZ = widthMm / 1000;
+
+      if (orientation === 'vertical') {
+        dimX = thicknessMm / 1000;
+        dimY = lengthMm / 1000;
+        dimZ = widthMm / 1000;
+      } else if (orientation === 'frontal') {
+        dimX = lengthMm / 1000;
+        dimY = widthMm / 1000;
+        dimZ = thicknessMm / 1000;
+      }
+
+      const panelGeo = new THREE.BoxGeometry(dimX, dimY, dimZ);
+      const panelMat = new THREE.MeshStandardMaterial({
+        color: 0xf4f4f2,
+        roughness: 0.45,
+        metalness: 0.02
+      });
+      const panelMesh = new THREE.Mesh(panelGeo, panelMat);
+      panelMesh.name = name;
+      panelMesh.position.set(0, dimY / 2, 0);
+
+      const panelGroup = new THREE.Group();
+      panelGroup.name = name;
+      panelGroup.add(panelMesh);
+
+      const buffer = await exportToGlbArrayBuffer(panelGroup);
+      const b64 = arrayBufferToBase64(buffer);
+      const modelId = `panel_custom_${Date.now()}`;
+
+      const mounted = await mountParsedGlbIntoScene(
+        buffer,
+        b64,
+        modelId,
+        name,
+        { pos: [1.8, 0.7, 1.4], rot: [0, 0, 0], scale: [1, 1, 1] },
+        null,
+        stateRef.current.materials
+      );
+      if (!mounted) return;
+
+      mounted.panelCuttingList = [
+        {
+          cabinet: 'Panouri Libere',
+          partName: name,
+          lengthMm,
+          widthMm,
+          thicknessMm,
+          qty: 1,
+          material,
+          grain: orientation === 'vertical' ? 'Vertical' : 'Orizontal',
+          edgeBanding
+        }
+      ];
+
+      setImportedModels((prev) => {
+        const updated = [...prev, mounted];
+        setSelectedGlbId(modelId);
+        setGizmoMode('translate');
+        persistWorkspace({ importedModels: updated });
+        return updated;
+      });
+
+      showToast(
+        lang === 'ro'
+          ? `📐 Panou generat: ${name} (${lengthMm}×${widthMm} mm)`
+          : lang === 'ru'
+            ? `📐 Деталь создана: ${name}`
+            : `📐 Panel created: ${name}`
+      );
+    } catch (err) {
+      console.error('Error adding custom panel:', err);
+      showToast('❌ Eroare la adăugarea panoului');
+    }
+  }, [lang, mountParsedGlbIntoScene, persistWorkspace, showToast]);
 
 
   return (
@@ -3687,6 +3955,14 @@ export default function KitchenViewer() {
           >
             <span className="tab-icon">📋</span>
             <span className="tab-label">{dict.tabParts}</span>
+          </button>
+          <button
+            className={`studio-tab-btn ${activeStudioTab === 'bazisTree' ? 'active' : ''}`}
+            onClick={() => setActiveStudioTab('bazisTree')}
+            title={dict.tabBazisTree || 'БАЗИС CAD'}
+          >
+            <span className="tab-icon">🌲</span>
+            <span className="tab-label">{dict.tabBazisTree || 'БАЗИС CAD'}</span>
           </button>
         </div>
 
@@ -3929,6 +4205,29 @@ export default function KitchenViewer() {
               onTogglePart={(id) => toggleInteractivePart(id, null, true)}
               onPaintPart={handlePaintPart}
               onHoverPart={handleHoverPart}
+            />
+          )}
+
+          {activeStudioTab === 'bazisTree' && (
+            <BazisModelTreePanel
+              lang={lang}
+              importedModels={importedModels}
+              showDemoKitchen={showDemoKitchen}
+              onToggleDemoKitchen={handleToggleDemoKitchen}
+              explodedProgress={explodedProgress}
+              onChangeExplodedProgress={handleExplodedProgressChange}
+              showFasteners3d={showFasteners3d}
+              onToggleFasteners3d={handleToggleFasteners3d}
+              wireframeActive={wireframeActive}
+              onToggleWireframe={handleToggleWireframe}
+              selectedPartId={selectedGlbId}
+              onSelectPart={(id) => {
+                setSelectedGlbId(id);
+                setGizmoMode('translate');
+              }}
+              onTogglePartVisibility={handleTogglePartVisibility}
+              hiddenPartIds={hiddenPartIds}
+              onAddCustomPanel={handleAddCustomPanel}
             />
           )}
         </div>
