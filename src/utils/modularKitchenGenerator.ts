@@ -96,10 +96,10 @@ function createBarHandle(lengthMm, mat) {
 }
 
 /**
- * Builds a complete Bazis-Mebel kitchen layout structure with all modules,
+ * Builds a complete Modular Kitchen CAD kitchen layout structure with all modules,
  * continuous countertop, plinths, and interactive doors & drawers.
  */
-export function buildBazisKitchenComposition(config) {
+export function buildModularKitchenComposition(config) {
   const {
     layoutType = 'l_peninsula',
     mainWallWidthCm = 360,
@@ -118,7 +118,7 @@ export function buildBazisKitchenComposition(config) {
   const roomH = roomHeightCm * 10; // mm
 
   const root = new THREE.Group();
-  root.name = 'Bazis_Kitchen_Composition';
+  root.name = 'Modular_Kitchen_Composition';
 
   const carcassMat = new THREE.MeshStandardMaterial({ color: carcassColor, roughness: 0.42, metalness: 0.02 });
   const facadeMat = new THREE.MeshStandardMaterial({ color: facadeColor, roughness: 0.35, metalness: 0.04 });

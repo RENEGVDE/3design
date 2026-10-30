@@ -433,7 +433,7 @@ export default function ParametricCabinetSection({
             letterSpacing: '0.04em'
           }}
         >
-          {isRo ? 'Producție & Export Atelier (Bazis / CNC)' : isRu ? 'Экспорт для производства' : 'Production & Workshop Export'}
+          {isRo ? 'Producție & Export Atelier (CAD / CNC)' : isRu ? 'Экспорт для производства' : 'Production & Workshop Export'}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

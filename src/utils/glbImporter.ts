@@ -399,7 +399,7 @@ export function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
       continue;
     }
 
-    // 2. Geometric CAD Facade Slab Detection (Bazis-Mebel / 16-24mm front panels)
+    // 2. Geometric CAD Facade Slab Detection (16-24mm front panels)
     const isNearFront = b.max.z >= maxFrontZ - Math.max(0.06, modelD * 0.14);
     const isThinSlabZ = b.size.z >= 0.011 && b.size.z <= 0.048;
     const isValidWidth = b.size.x >= 0.18 && b.size.x <= Math.max(1.25, modelW * 0.98);

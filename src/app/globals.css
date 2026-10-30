@@ -1550,17 +1550,17 @@ body {
 }
 
 /* ==========================================================================
-   BAZIS-CAD STUDIO & MANUFACTURING SUITE (БАЗИС-Мебельщик)
+   CAD STUDIO & MANUFACTURING PRODUCTION SUITE
    ========================================================================== */
 
-.bazis-tree-container {
+.cad-tree-container {
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 4px 0;
 }
 
-.bazis-toolbar-card {
+.cad-toolbar-card {
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(56, 189, 248, 0.25);
   border-radius: 12px;
@@ -1570,13 +1570,13 @@ body {
   gap: 10px;
 }
 
-.bazis-toolbar-header {
+.cad-toolbar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.bazis-badge {
+.cad-badge {
   background: linear-gradient(135deg, #0284c7, #38bdf8);
   color: #fff;
   font-size: 0.68rem;
@@ -1587,14 +1587,14 @@ body {
   text-transform: uppercase;
 }
 
-.bazis-slider-box {
+.cad-slider-box {
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
   padding: 8px 10px;
 }
 
-.bazis-slider-header {
+.cad-slider-header {
   display: flex;
   justify-content: space-between;
   font-size: 0.75rem;
@@ -1603,20 +1603,20 @@ body {
   margin-bottom: 6px;
 }
 
-.bazis-range-slider {
+.cad-range-slider {
   width: 100%;
   accent-color: #38bdf8;
   cursor: pointer;
   height: 6px;
 }
 
-.bazis-toggle-grid {
+.cad-toggle-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 
-.bazis-btn {
+.cad-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1632,19 +1632,19 @@ body {
   transition: all 0.2s ease;
 }
 
-.bazis-btn:hover {
+.cad-btn:hover {
   background: rgba(56, 189, 248, 0.12);
   border-color: rgba(56, 189, 248, 0.4);
   color: #38bdf8;
 }
 
-.bazis-btn.active {
+.cad-btn.active {
   background: rgba(56, 189, 248, 0.22);
   border-color: #38bdf8;
   color: #38bdf8;
 }
 
-.bazis-btn-primary {
+.cad-btn-primary {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1660,12 +1660,12 @@ body {
   transition: all 0.2s ease;
 }
 
-.bazis-btn-primary:hover {
+.cad-btn-primary:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
 }
 
-.bazis-tree-card {
+.cad-tree-card {
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
@@ -1835,13 +1835,13 @@ body {
   color: #64748b;
 }
 
-/* Bazis Manufacturing Suite Modal Extensions */
-.bazis-manufacturing-window {
+/* CAD Manufacturing Suite Modal Extensions */
+.cad-manufacturing-window {
   max-width: 1040px !important;
   width: 95vw;
 }
 
-.bazis-modal-tabs {
+.cad-modal-tabs {
   display: flex;
   gap: 6px;
   padding: 8px 18px;
@@ -1850,7 +1850,7 @@ body {
   overflow-x: auto;
 }
 
-.bazis-modal-tab-btn {
+.cad-modal-tab-btn {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1866,19 +1866,19 @@ body {
   white-space: nowrap;
 }
 
-.bazis-modal-tab-btn:hover {
+.cad-modal-tab-btn:hover {
   color: #e2e8f0;
   background: rgba(255, 255, 255, 0.04);
 }
 
-.bazis-modal-tab-btn.active {
+.cad-modal-tab-btn.active {
   background: rgba(56, 189, 248, 0.15);
   border-color: rgba(56, 189, 248, 0.4);
   color: #38bdf8;
 }
 
 /* Raskroy 2D Nesting Viewport */
-.bazis-raskroy-container {
+.cad-raskroy-container {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1934,7 +1934,7 @@ body {
 }
 
 /* Blueprint 2D Viewport */
-.bazis-blueprint-container {
+.cad-blueprint-container {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1969,8 +1969,63 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
 }
 
-.bazis-cnc-container {
+.cad-cnc-container {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* ==========================================================================
+   2D ARCHITECTURAL FLOOR PLAN OVERLAY
+   ========================================================================== */
+.floorplan-2d-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  background: rgba(10, 14, 23, 0.96);
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(8px);
+}
+
+.floorplan-header {
+  height: 54px;
+  background: #0f172a;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+
+.floorplan-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #f8fafc;
+  font-size: 0.92rem;
+}
+
+.floorplan-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.floorplan-canvas-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.floorplan-canvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  border: 1px solid #1e293b;
 }

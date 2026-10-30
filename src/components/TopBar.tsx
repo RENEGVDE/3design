@@ -3,6 +3,29 @@
 import React, { useState, useRef } from 'react';
 import { I18N } from '../i18n/translations';
 
+export interface TopBarProps {
+  lang: string;
+  onChangeLang: (lang: string) => void;
+  dimsEnabled: boolean;
+  onToggleDims: () => void;
+  panelOpen: boolean;
+  onTogglePanel: () => void;
+  canUndo?: boolean;
+  onUndo?: () => void;
+  canRedo?: boolean;
+  onRedo?: () => void;
+  is2DPlanMode?: boolean;
+  onToggle2DPlanMode?: () => void;
+  onNewProject?: () => void;
+  onSaveProject?: () => void;
+  onLoadProject?: (file: File) => void;
+  onOpenTechnicalReport?: () => void;
+  magneticSnapEnabled?: boolean;
+  onToggleMagneticSnap?: () => void;
+  onCaptureScreenshot?: () => void;
+  onExportSceneGlb?: () => void;
+}
+
 export default function TopBar({
   lang,
   onChangeLang,
@@ -14,8 +37,8 @@ export default function TopBar({
   onUndo,
   canRedo = false,
   onRedo,
-  showDemoKitchen = true,
-  onToggleDemoKitchen,
+  is2DPlanMode = false,
+  onToggle2DPlanMode,
   onNewProject,
   onSaveProject,
   onLoadProject,
@@ -24,15 +47,15 @@ export default function TopBar({
   onToggleMagneticSnap,
   onCaptureScreenshot,
   onExportSceneGlb
-}) {
+}: TopBarProps) {
   const dict = I18N[lang] || I18N.ro;
   const isRo = lang === 'ro';
   const isRu = lang === 'ru';
 
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && onLoadProject) {
       onLoadProject(file);
@@ -87,23 +110,8 @@ export default function TopBar({
                 >
                   <span>🆕</span>
                   <div>
-                    <strong>{isRo ? 'Proiect Nou (Cameră Goală)' : isRu ? 'Новый проект (Пустая комната)' : 'New Project (Empty Room)'}</strong>
-                    <small>{isRo ? 'Curăță scena pentru mobilier personalizat' : isRu ? 'Очистить для новой мебели' : 'Clean room for custom furniture'}</small>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  className="dropdown-item"
-                  onClick={() => {
-                    setProjectMenuOpen(false);
-                    if (onToggleDemoKitchen) onToggleDemoKitchen();
-                  }}
-                >
-                  <span>🍳</span>
-                  <div>
-                    <strong>{isRo ? (showDemoKitchen ? 'Ascunde Bucătăria Demo' : 'Arată Bucătăria Demo') : isRu ? (showDemoKitchen ? 'Скрыть демо-кухню' : 'Показать демо-кухню') : (showDemoKitchen ? 'Hide Demo Kitchen' : 'Show Demo Kitchen')}</strong>
-                    <small>{isRo ? 'Comută modelul demonstrativ de bucătărie' : isRu ? 'Вкл/выкл показ демо кухни' : 'Toggle demo kitchen model'}</small>
+                    <strong>{isRo ? 'Proiect Nou (Cameră Arhitecturală)' : isRu ? 'Новый проект (Пустая комната)' : 'New Project (Empty Room)'}</strong>
+                    <small>{isRo ? 'Inițializează încăperea pentru proiectare de la 0' : isRu ? 'Начать проект с чистого листа' : 'Start new space from scratch'}</small>
                   </div>
                 </button>
 
@@ -120,7 +128,7 @@ export default function TopBar({
                   <span>💾</span>
                   <div>
                     <strong>{isRo ? 'Salvează Proiect (.3design)' : isRu ? 'Сохранить проект (.3design)' : 'Save Project (.3design)'}</strong>
-                    <small>{isRo ? 'Descarcă fișierul cu corpurile și materialele' : isRu ? 'Скачать файл проекта со всеми деталями' : 'Download file with parts & materials'}</small>
+                    <small>{isRo ? 'Descarcă fișierul cu corpurile, camera și materialele' : isRu ? 'Скачать файл проекта со всеми деталями' : 'Download file with parts & materials'}</small>
                   </div>
                 </button>
 
@@ -181,6 +189,24 @@ export default function TopBar({
             onChange={handleFileChange}
           />
         </div>
+
+        {/* 2D Plan View / 3D CAD Perspective Switcher */}
+        {onToggle2DPlanMode && (
+          <button
+            type="button"
+            className={`action-btn ${is2DPlanMode ? 'active' : ''}`}
+            onClick={onToggle2DPlanMode}
+            title={is2DPlanMode ? 'Comută la Perspectivă 3D CAD' : 'Comută la Schiță 2D Plan Arhitectural'}
+            style={is2DPlanMode ? { background: 'rgba(56, 189, 248, 0.25)', borderColor: '#38bdf8' } : {}}
+          >
+            <span>{is2DPlanMode ? '🏛️' : '📐'}</span>
+            <span className="btn-label-desktop">
+              {is2DPlanMode
+                ? (isRo ? 'Vedere 3D' : isRu ? 'Вид 3D' : '3D View')
+                : (isRo ? 'Schiță 2D' : isRu ? 'План 2D' : '2D Plan')}
+            </span>
+          </button>
+        )}
 
         {/* Magnetic Snapping Toggle */}
         <button

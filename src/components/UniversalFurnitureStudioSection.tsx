@@ -172,9 +172,9 @@ export default function UniversalFurnitureStudioSection({
         <span>🛋️</span>
         <span>
           {isRo
-            ? 'Studio Mobilă Universală (БАЗИС CAD)'
+            ? 'Studio Mobilă Universală (CAD Studio)'
             : isRu
-            ? 'Студия Универсальной Мебели (БАЗИС CAD)'
+            ? 'Студия Универсальной Мебели (CAD Studio)'
             : 'Universal Furniture CAD Studio'}
         </span>
       </div>
@@ -504,7 +504,7 @@ export default function UniversalFurnitureStudioSection({
             background: 'rgba(255,255,255,0.03)'
           }}
         >
-          <span>📋 {isRo ? `Panouri & Debitări БАЗИС (${bomMetrics.totalParts} repere)` : isRu ? `Деталировка БАЗИС (${bomMetrics.totalParts} шт)` : `BAZIS Parts List (${bomMetrics.totalParts} pcs)`}</span>
+          <span>📋 {isRo ? `Panouri & Debitări CAD (${bomMetrics.totalParts} repere)` : isRu ? `Деталировка CAD (${bomMetrics.totalParts} шт)` : `CAD Parts List (${bomMetrics.totalParts} pcs)`}</span>
           <span>{showPanelTable ? '▲' : '▼'}</span>
         </button>
 

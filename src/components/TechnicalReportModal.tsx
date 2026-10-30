@@ -6,7 +6,7 @@ import {
   calculateCuttingNesting,
   drawPanelBlueprint,
   generateCncDrillingCsv
-} from '../utils/bazisEngineering';
+} from '../utils/furnitureEngineering';
 
 export default function TechnicalReportModal({
   isOpen,
@@ -29,7 +29,7 @@ export default function TechnicalReportModal({
   const [costPerSlide, setCostPerSlide] = useState(65); // Lei / pereche glisiere
   const [currency, setCurrency] = useState('RON');
 
-  // Nesting / Cutting optimization state (БАЗИС-Раскрой)
+  // Nesting / Cutting optimization state (Optimizare Debit & Croire)
   const [sheetFormat, setSheetFormat] = useState('2800x2070'); // '2800x2070' | '2440x1830'
   const [activeSheetIndex, setActiveSheetIndex] = useState(0);
 
@@ -187,7 +187,7 @@ export default function TechnicalReportModal({
       };
     }, [aggregatedParts, costPerSqM, costPerMEdge, costPerHinge, costPerSlide]);
 
-    // Compute 2D Nesting Cut Plan (БАЗИС-Раскрой)
+    // Compute 2D Nesting Cut Plan (Optimizare Debit & Croire)
     const nestingResult = useMemo(() => {
       const sheetDims = sheetFormat === '2440x1830'
         ? { widthMm: 2440, heightMm: 1830, trimMm: 15, kerfMm: 4 }
@@ -348,12 +348,12 @@ export default function TechnicalReportModal({
           { panel: p.partName, cabinet: p.cabinet, holeType: 'Minifix Ø15', diameter: 15, depth: 13.5, x: 34, y: 32, face: 'Față' }
         );
       });
-      const csv = generateCncDrillingCsv(drillHoles, aggregatedParts);
+      const csv = generateCncDrillingCsv(drillHoles, 'Total_Project');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `bazis-cnc-program-${Date.now()}.csv`;
+      a.download = `cnc-drilling-program-${Date.now()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     };
@@ -362,7 +362,7 @@ export default function TechnicalReportModal({
 
     const getSummaryText = () => {
       return [
-        `🛋️ *SPECIFICAȚIE MOBILIER & OFERTĂ БАЗИС*`,
+        `🛋️ *SPECIFICAȚIE MOBILIER & OFERTĂ PRODUCȚIE*`,
         `━━━━━━━━━━━━━━━━━━━━━━━━`,
         `📦 Module în proiect: ${importedModels.length} corpuri`,
         `📐 Piese debitate: ${stats.totalParts} buc`,
@@ -402,13 +402,13 @@ export default function TechnicalReportModal({
 
     return (
       <div className="report-modal-backdrop" onClick={onClose}>
-          <div className="report-modal-window bazis-manufacturing-window" onClick={(e) => e.stopPropagation()}>
+          <div className="report-modal-window cad-manufacturing-window" onClick={(e) => e.stopPropagation()}>
             {/* Header Bar */}
             <div className="report-header-bar">
               <div className="report-brand">
                 <span className="report-icon">📐</span>
                 <div>
-                  <h2>{isRo ? 'БАЗИС Producție & Fabricație CAD' : isRu ? 'БАЗИС Производственный Центр' : 'BAZIS Furniture CAD & Manufacturing Suite'}</h2>
+                  <h2>{isRo ? 'Centru Producție & Fabricație Tehnică CAD' : isRu ? 'Производственный Центр CAD' : 'CAD Furniture Manufacturing & Production Suite'}</h2>
                   <p>{isRo ? 'Debitări, Hărți de tăiere (Раскрой), Planșe tehnice și Program CNC' : isRu ? 'Раскрой, сметы, чертежи деталей и ЧПУ присадка' : 'Cutting nesting, drawings & CNC drilling'}</p>
                 </div>
               </div>
@@ -449,34 +449,34 @@ export default function TechnicalReportModal({
             </div>
 
             {/* Manufacturing Suite Sub-Navigation Tabs */}
-            <div className="bazis-modal-tabs">
+            <div className="cad-modal-tabs">
               <button
-                className={`bazis-modal-tab-btn ${activeTab === 'bom' ? 'active' : ''}`}
+                className={`cad-modal-tab-btn ${activeTab === 'bom' ? 'active' : ''}`}
                 onClick={() => setActiveTab('bom')}
               >
                 <span>📄</span>
                 <span>{isRo ? '1. Fișă Tehnică & Raport BOM' : isRu ? '1. Спецификация & Смета' : '1. BOM & Spec Sheet'}</span>
               </button>
               <button
-                className={`bazis-modal-tab-btn ${activeTab === 'raskroy' ? 'active' : ''}`}
+                className={`cad-modal-tab-btn ${activeTab === 'raskroy' ? 'active' : ''}`}
                 onClick={() => setActiveTab('raskroy')}
               >
                 <span>🗺️</span>
-                <span>{isRo ? '2. БАЗИС-Раскрой (Hărți Tăiere PAL)' : isRu ? '2. БАЗИС-Раскрой (Карты раскроя)' : '2. BAZIS Cut Nesting (2D)'}</span>
+                <span>{isRo ? '2. Optimizare Debit & Croire (Hărți Tăiere PAL)' : isRu ? '2. Optimizare Debit & Croire (Карты раскроя)' : '2. 2D Cut Nesting (2D)'}</span>
               </button>
               <button
-                className={`bazis-modal-tab-btn ${activeTab === 'blueprint' ? 'active' : ''}`}
+                className={`cad-modal-tab-btn ${activeTab === 'blueprint' ? 'active' : ''}`}
                 onClick={() => setActiveTab('blueprint')}
               >
                 <span>📐</span>
                 <span>{isRo ? '3. Planșă Tehnică Detaliu (Чертёж)' : isRu ? '3. Чертеж детали & Присадка' : '3. Panel Blueprint & Cotation'}</span>
               </button>
               <button
-                className={`bazis-modal-tab-btn ${activeTab === 'cnc' ? 'active' : ''}`}
+                className={`cad-modal-tab-btn ${activeTab === 'cnc' ? 'active' : ''}`}
                 onClick={() => setActiveTab('cnc')}
               >
                 <span>⚙️</span>
-                <span>{isRo ? '4. БАЗИС-ЧПУ (G-Code & Găurire)' : isRu ? '4. БАЗИС-ЧПУ (Сверловка ЧПУ)' : '4. CNC Drilling Program'}</span>
+                <span>{isRo ? '4. Programare CNC & Găurire (G-Code & Găurire)' : isRu ? '4. Programare CNC & Găurire (Сверловка ЧПУ)' : '4. CNC Drilling Program'}</span>
               </button>
             </div>
 
@@ -593,7 +593,7 @@ export default function TechnicalReportModal({
 
                             {/* Cutting BOM Table */}
                             <div className="report-table-section">
-                              <h3>{isRo ? 'Listă Detaliată Debitare Panouri (БАЗИС-Раскрой)' : isRu ? 'Ведомость деталей на раскрой' : 'Detailed Panel Cutting List'}</h3>
+                              <h3>{isRo ? 'Listă Detaliată Debitare Panouri (Optimizare Debit & Croire)' : isRu ? 'Ведомость деталей на раскрой' : 'Detailed Panel Cutting List'}</h3>
                               {aggregatedParts.length === 0 ? (
                                 <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>
                                   {isRo ? 'Nu există corpuri de mobilier create în scenă. Adaugă corpuri din secțiunea "Mobilier (CAD)".' : isRu ? 'В сцене нет мебели. Создайте модули во вкладке Мебель CAD.' : 'No furniture cabinets placed in scene.'}
@@ -642,9 +642,9 @@ export default function TechnicalReportModal({
                         </>
           )}
 
-                              {/* TAB 2: БАЗИС-Раскрой (2D Cut Nesting Engine) */}
+                              {/* TAB 2: Optimizare Debit & Croire (2D Cut Nesting Engine) */}
                               {activeTab === 'raskroy' && (
-                                <div className="bazis-raskroy-container">
+                                <div className="cad-raskroy-container">
                                   {/* Raskroy Toolbar & Statistics */}
                                   <div className="raskroy-stats-bar">
                                     <div className="raskroy-stat-pill">
@@ -722,7 +722,7 @@ export default function TechnicalReportModal({
 
                                           {/* TAB 3: 2D Panel Blueprint & Cotation (Чертёж детали) */}
                                           {activeTab === 'blueprint' && (
-                                            <div className="bazis-blueprint-container">
+                                            <div className="cad-blueprint-container">
                                               {/* Part Selector Bar */}
                                               <div className="blueprint-selector-bar">
                                                 <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: 600 }}>
@@ -754,9 +754,9 @@ export default function TechnicalReportModal({
                                             </div>
                                           )}
 
-                                                  {/* TAB 4: CNC Drilling & G-Code Export (БАЗИС-ЧПУ) */ }
+                                                  {/* TAB 4: CNC Drilling & G-Code Export (Programare CNC & Găurire) */ }
           {activeTab === 'cnc' && (
-                                                  <div className="bazis-cnc-container">
+                                                  <div className="cad-cnc-container">
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                                                       <div>
                                                         <h3 style={{ margin: 0, color: '#f8fafc', fontSize: '1.05rem' }}>{isRo ? 'Program Găurire CNC (System 32)' : isRu ? 'Программа сверловки для станков с ЧПУ' : 'CNC Drilling Coordinates Program'}</h3>

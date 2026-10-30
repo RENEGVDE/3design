@@ -196,7 +196,7 @@ function getHandleMesh(type = 'bar_black', lengthMm = 160) {
 
 /**
  * Procedurally generates ANY piece of furniture (wardrobe, TV console, desk, nightstand, etc.)
- * with structural 18mm panels, interactive doors/drawers/sliding doors, and a full Bazis cutting list.
+ * with structural 18mm panels, interactive doors/drawers/sliding doors, and a full engineering cutting list.
  */
 export function buildUniversalFurniture(config) {
   const {

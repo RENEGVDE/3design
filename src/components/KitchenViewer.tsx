@@ -43,14 +43,28 @@ import DimensionToolbar from './DimensionToolbar';
 import CameraPresetsBar from './CameraPresetsBar';
 import MaterialStudioSection from './MaterialStudioSection';
 import UniversalFurnitureStudioSection from './UniversalFurnitureStudioSection';
-import BazisKitchenStudioSection from './BazisKitchenStudioSection';
+import ModularKitchenStudioSection from './ModularKitchenStudioSection';
 import ParametricCabinetSection from './ParametricCabinetSection';
 import { exportToGlbArrayBuffer } from '../utils/parametricCabinet';
 import GlbImporterSection from './GlbImporterSection';
 import LightingStudioSection from './LightingStudioSection';
 import InteractivePartsSection from './InteractivePartsSection';
-import BazisModelTreePanel from './BazisModelTreePanel';
-import { createFastenerMeshes } from '../utils/bazisEngineering';
+import ModelTreePanel from './ModelTreePanel';
+import ArchitecturalRoomSection from './ArchitecturalRoomSection';
+import ApplianceCatalogSection from './ApplianceCatalogSection';
+import { createFastenerMeshes } from '../utils/furnitureEngineering';
+import {
+  buildArchitecturalRoom,
+  drawArchitecturalFloorPlan,
+  DEFAULT_ROOM_CONFIG,
+  RoomConfig
+} from '../utils/architecturalRoom';
+import {
+  buildAppliance3DModel,
+  APPLIANCE_CATALOG,
+  ApplianceDefinition,
+  ApplianceInstance
+} from '../utils/applianceCatalog';
 import TechnicalReportModal from './TechnicalReportModal';
 import { calculateMagneticSnap, alignModelDirectly } from '../utils/magneticSnapping';
 
@@ -137,8 +151,14 @@ export default function KitchenViewer() {
   const [tapeHasPointA, setTapeHasPointA] = useState(false);
   const [tapeMeasurement, setTapeMeasurement] = useState(null);
 
+  // Architectural Space & Appliances State
+  const [roomConfig, setRoomConfig] = useState<RoomConfig>(DEFAULT_ROOM_CONFIG);
+  const [is2DPlanMode, setIs2DPlanMode] = useState(false);
+  const [appliances, setAppliances] = useState<ApplianceInstance[]>([]);
+  const [selectedApplianceId, setSelectedApplianceId] = useState<string | null>(null);
+  const planCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
   // Project & CAD Studio States
-  const [showDemoKitchen, setShowDemoKitchen] = useState(true);
   const [magneticSnapEnabled, setMagneticSnapEnabled] = useState(true);
   const [technicalReportOpen, setTechnicalReportOpen] = useState(false);
 
@@ -146,15 +166,15 @@ export default function KitchenViewer() {
   const [showLightOrb, setShowLightOrb] = useState(false);
 
   // Studio Tabs & Navigation State
-  const [activeStudioTab, setActiveStudioTab] = useState('furniture'); // 'furniture' | 'materials' | 'models' | 'lighting' | 'parts' | 'bazisTree'
+  const [activeStudioTab, setActiveStudioTab] = useState('furniture'); // 'architecture' | 'furniture' | 'appliances' | 'materials' | 'models' | 'lighting' | 'parts' | 'tree'
   const [furnitureSubTab, setFurnitureSubTab] = useState('universal'); // 'universal' | 'kitchen' | 'single'
   const [quickActionsExpanded, setQuickActionsExpanded] = useState(false);
 
-  // BAZIS-CAD Engineering & Model Tree States
+  // CAD Engineering & Model Tree States
   const [explodedProgress, setExplodedProgress] = useState(0);
   const [showFasteners3d, setShowFasteners3d] = useState(false);
   const [wireframeActive, setWireframeActive] = useState(false);
-  const [hiddenPartIds, setHiddenPartIds] = useState(new Set());
+  const [hiddenPartIds, setHiddenPartIds] = useState<Set<string>>(new Set());
 
   // Undo & Redo History State
   const [canUndo, setCanUndo] = useState(false);
@@ -216,7 +236,11 @@ export default function KitchenViewer() {
     dimsEnabled,
     dimMode,
     magneticSnapEnabled,
-    lightState
+    lightState,
+    roomConfig,
+    appliances,
+    selectedApplianceId,
+    is2DPlanMode
   });
   useEffect(() => {
     stateRef.current = {
@@ -232,7 +256,11 @@ export default function KitchenViewer() {
       dimsEnabled,
       dimMode,
       magneticSnapEnabled,
-      lightState
+      lightState,
+      roomConfig,
+      appliances,
+      selectedApplianceId,
+      is2DPlanMode
     };
   }, [
     lang,
@@ -246,7 +274,11 @@ export default function KitchenViewer() {
     xrayActive,
     dimsEnabled,
     dimMode,
-    lightState
+    lightState,
+    roomConfig,
+    appliances,
+    selectedApplianceId,
+    is2DPlanMode
   ]);
 
   const syncPartsMetaToReact = useCallback(() => {
@@ -276,6 +308,8 @@ export default function KitchenViewer() {
     const curLight = overrides.lightState ?? stateRef.current.lightState;
     const curImported =
       overrides.importedModels ?? stateRef.current.importedModels;
+    const curRoom = overrides.roomConfig ?? stateRef.current.roomConfig;
+    const curApps = overrides.appliances ?? stateRef.current.appliances;
 
     const serializedMats = curMats.map((m) => ({
       id: m.id,
@@ -938,13 +972,8 @@ export default function KitchenViewer() {
     }
 
     async function initScene() {
-      const res = await fetch('/data/kitchen-payload.json');
-      const payload = await res.json();
-      if (disposed) return;
-
-      const rawBuffer = payload.b64
-        ? await decompressGzipBase64(payload.b64)
-        : null;
+      const payload = { specs: [], batches: [] };
+      const rawBuffer = null;
       if (disposed) return;
 
       const container = canvasContainerRef.current;
@@ -1026,6 +1055,19 @@ export default function KitchenViewer() {
               Math.round(p.z * 1000) / 1000
             ];
 
+            if (stateRef.current.selectedApplianceId) {
+              const aid = stateRef.current.selectedApplianceId;
+              const appMesh = sceneRef.current?.appliancesRootGroup?.children.find((c: any) => c.userData?.applianceId === aid);
+              if (appMesh) {
+                const ap = appMesh.position;
+                const ar = appMesh.rotation;
+                setAppliances((prev) => {
+                  const updated = prev.map((a) => a.id === aid ? { ...a, position: { x: ap.x, y: ap.y, z: ap.z }, rotation: { x: ar.x, y: ar.y, z: ar.z } } : a);
+                  persistWorkspace({ appliances: updated });
+                  return updated;
+                });
+              }
+            }
             if (stateRef.current.magneticSnapEnabled && (stateRef.current.gizmoMode === 'translate' || !stateRef.current.gizmoMode)) {
               const snapResult = calculateMagneticSnap(
                 gid,
@@ -1202,14 +1244,23 @@ export default function KitchenViewer() {
       kitchenRoot.scale.set(0.001, 0.001, 0.001);
       scene.add(kitchenRoot);
 
-      // Container for Imported .GLB Models
+      // 3D Parametric Architectural Room
+      const roomRoot = buildArchitecturalRoom(stateRef.current.roomConfig || DEFAULT_ROOM_CONFIG);
+      scene.add(roomRoot);
+
+      // Container for Built-in Appliances
+      const appliancesRootGroup = new THREE.Group();
+      appliancesRootGroup.name = 'appliances_root';
+      scene.add(appliancesRootGroup);
+
+      // Container for Imported & Parametric Furniture Models
       const importedRootGroup = new THREE.Group();
       importedRootGroup.name = 'imported_glb_root';
       scene.add(importedRootGroup);
 
-      // Container for 3D Fasteners & Hardware (БАЗИС-Присадка)
+      // Container for 3D Fasteners & Hardware (System 32)
       const fastenersRootGroup = new THREE.Group();
-      fastenersRootGroup.name = 'bazis_fasteners_root';
+      fastenersRootGroup.name = 'cad_fasteners_root';
       fastenersRootGroup.visible = false;
       scene.add(fastenersRootGroup);
 
@@ -1465,6 +1516,8 @@ export default function KitchenViewer() {
         paintableMeshes,
         allKitchenMeshes,
         edgeLines,
+        roomRoot,
+        appliancesRootGroup,
         importedRootGroup,
         fastenersRootGroup,
         importedMap,
@@ -1597,6 +1650,26 @@ export default function KitchenViewer() {
           const mergedLight = { ...INITIAL_LIGHT_STATE, ...saved.lightState };
           setLightState(mergedLight);
           stateRef.current.lightState = mergedLight;
+        }
+
+        if (saved.roomConfig) {
+          setRoomConfig(saved.roomConfig);
+          stateRef.current.roomConfig = saved.roomConfig;
+          if (ctx.roomRoot) {
+            scene.remove(ctx.roomRoot);
+            const newRoom = buildArchitecturalRoom(saved.roomConfig);
+            scene.add(newRoom);
+            ctx.roomRoot = newRoom;
+          }
+        }
+
+        if (Array.isArray(saved.appliances) && saved.appliances.length > 0) {
+          setAppliances(saved.appliances);
+          stateRef.current.appliances = saved.appliances;
+          for (const app of saved.appliances) {
+            const mesh = buildAppliance3DModel(app);
+            ctx.appliancesRootGroup.add(mesh);
+          }
         }
 
         // Restore Imported .GLB Models from IndexedDB
@@ -2440,11 +2513,11 @@ export default function KitchenViewer() {
       if (!mounted) return;
 
       glbBinaryCacheRef.current.set(kitchenId, b64Data);
-      mounted.isBazisKitchen = true;
+      mounted.isModularKitchen = true;
       mounted.kitchenConfig = kitchenConfig;
 
       setImportedModels((prev) => {
-        const filtered = prev.filter((m) => !m.isBazisKitchen);
+        const filtered = prev.filter((m) => !m.isModularKitchen);
         const updated = [...filtered, mounted];
         setSelectedGlbId(kitchenId);
         setGizmoMode('translate');
@@ -2455,13 +2528,13 @@ export default function KitchenViewer() {
       pushHistoryRef.current?.('Generare bucătărie ' + kitchenName);
       showToast(
         lang === 'ro'
-          ? `🏛️ Bucătărie БАЗИС generată cu succes!`
+          ? `🏛️ Bucătărie Modulară CAD generată cu succes!`
           : lang === 'ru'
-            ? `🏛️ Кухня БАЗИС успешно сгенерирована!`
-            : `🏛️ BAZIS Kitchen generated successfully!`
+            ? `🏛️ Модульная кухня CAD успешно сгенерирована!`
+            : `🏛️ Modular Kitchen CAD generated successfully!`
       );
     } catch (err) {
-      console.error('Error mounting generated Bazis kitchen:', err);
+      console.error('Error mounting generated modular kitchen:', err);
       showToast('❌ Eroare la generarea bucătăriei');
     }
   };
@@ -3356,24 +3429,6 @@ export default function KitchenViewer() {
   };
 
   const dict = I18N[lang] || I18N.ro;
-  const handleToggleDemoKitchen = useCallback(() => {
-    setShowDemoKitchen((prev) => {
-      const nextVal = !prev;
-      if (sceneRef.current?.kitchenRoot) {
-        sceneRef.current.kitchenRoot.visible = nextVal;
-        sceneRef.current.needsShadowUpdate = true;
-      }
-      persistWorkspace({ showDemoKitchen: nextVal });
-      showToast(
-        lang === 'ro'
-          ? '🍳 Bucătărie Demo: ' + (nextVal ? 'Vizibilă' : 'Ascunsă')
-          : lang === 'ru'
-            ? '🍳 Демо-кухня: ' + (nextVal ? 'Включена' : 'Скрыта')
-            : '🍳 Demo Kitchen: ' + (nextVal ? 'Visible' : 'Hidden')
-      );
-      return nextVal;
-    });
-  }, [lang, persistWorkspace, showToast]);
 
   const handleNewProject = useCallback(() => {
     const confirmMsg =
@@ -3389,15 +3444,18 @@ export default function KitchenViewer() {
       for (const m of stateRef.current.importedModels) {
         disposeModelHierarchy(m.id, sceneRef.current);
       }
-      if (sceneRef.current.kitchenRoot) {
-        sceneRef.current.kitchenRoot.visible = false;
-        sceneRef.current.needsShadowUpdate = true;
+      if (sceneRef.current.appliancesRootGroup) {
+        while (sceneRef.current.appliancesRootGroup.children.length > 0) {
+          sceneRef.current.appliancesRootGroup.remove(sceneRef.current.appliancesRootGroup.children[0]);
+        }
       }
     }
 
     setImportedModels([]);
     setSelectedGlbId(null);
-    setShowDemoKitchen(false);
+    setAppliances([]);
+    setSelectedApplianceId(null);
+    setRoomConfig(DEFAULT_ROOM_CONFIG);
     historyRef.current = [];
     historyIndexRef.current = -1;
     setCanUndo(false);
@@ -3406,25 +3464,27 @@ export default function KitchenViewer() {
     persistWorkspace({
       importedModels: [],
       selectedGlbId: null,
-      showDemoKitchen: false
+      appliances: [],
+      roomConfig: DEFAULT_ROOM_CONFIG
     });
 
     showToast(
       lang === 'ro'
-        ? '🆕 Proiect nou creat! Spațiul de lucru este pregătit.'
+        ? '🆕 Proiect nou creat! Spațiul arhitectural este pregătit.'
         : lang === 'ru'
           ? '🆕 Новый проект создан! Пространство готово.'
-          : '🆕 New project created! Workspace is clean.'
+          : '🆕 New project created! Architectural space is ready.'
     );
   }, [lang, persistWorkspace, showToast]);
 
   const handleSaveProject = useCallback(() => {
     const projectData = {
-      format: '3design_project',
-      version: '1.2',
+      format: '3design_cad_project',
+      version: '2.0',
       savedAt: new Date().toISOString(),
       lang,
-      showDemoKitchen,
+      roomConfig: stateRef.current.roomConfig,
+      appliances: stateRef.current.appliances,
       activeMatId,
       materials,
       lightState,
@@ -3436,18 +3496,18 @@ export default function KitchenViewer() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'proiect-mobilier-' + new Date().toISOString().slice(0, 10) + '.3design';
+    a.download = 'proiect-cad-mobilier-' + new Date().toISOString().slice(0, 10) + '.3design';
     a.click();
     URL.revokeObjectURL(url);
 
     showToast(
       lang === 'ro'
-        ? '💾 Proiectul a fost salvat și descărcat (.3design)!'
+        ? '💾 Proiectul CAD a fost salvat și descărcat (.3design)!'
         : lang === 'ru'
-          ? '💾 Проект сохранен и скачан (.3design)!'
-          : '💾 Project saved and downloaded (.3design)!'
+          ? '💾 Проект CAD сохранен и скачан (.3design)!'
+          : '💾 CAD Project saved and downloaded (.3design)!'
     );
-  }, [lang, showDemoKitchen, activeMatId, materials, lightState, showToast]);
+  }, [lang, activeMatId, materials, lightState, showToast]);
 
   const handleLoadProject = useCallback(async (file) => {
     try {
@@ -3464,10 +3524,19 @@ export default function KitchenViewer() {
         }
       }
 
-      if (typeof proj.showDemoKitchen === 'boolean') {
-        setShowDemoKitchen(proj.showDemoKitchen);
-        if (sceneRef.current?.kitchenRoot) {
-          sceneRef.current.kitchenRoot.visible = proj.showDemoKitchen;
+      if (proj.roomConfig) {
+        handleChangeRoomConfig(proj.roomConfig);
+      }
+      if (Array.isArray(proj.appliances)) {
+        setAppliances(proj.appliances);
+        if (sceneRef.current?.appliancesRootGroup) {
+          while (sceneRef.current.appliancesRootGroup.children.length > 0) {
+            sceneRef.current.appliancesRootGroup.remove(sceneRef.current.appliancesRootGroup.children[0]);
+          }
+          for (const app of proj.appliances) {
+            const mesh = buildAppliance3DModel(app);
+            sceneRef.current.appliancesRootGroup.add(mesh);
+          }
         }
       }
 
@@ -3502,7 +3571,7 @@ export default function KitchenViewer() {
 
       persistWorkspace({
         importedModels: proj.importedModels || [],
-        showDemoKitchen: proj.showDemoKitchen ?? true
+        roomConfig: proj.roomConfig || DEFAULT_ROOM_CONFIG, appliances: proj.appliances || []
       });
 
       showToast('📥 Proiect încărcat cu succes!');
@@ -3542,11 +3611,14 @@ export default function KitchenViewer() {
       );
 
       const toExport = [];
-      if (showDemoKitchen && ctx.kitchenRoot && ctx.kitchenRoot.visible) {
-        toExport.push(ctx.kitchenRoot);
+      if (ctx.roomRoot) {
+        toExport.push(ctx.roomRoot);
       }
       if (ctx.importedRootGroup && ctx.importedRootGroup.children.length > 0) {
         toExport.push(ctx.importedRootGroup);
+      }
+      if (ctx.appliancesRootGroup && ctx.appliancesRootGroup.children.length > 0) {
+        toExport.push(ctx.appliancesRootGroup);
       }
 
       if (toExport.length === 0) {
@@ -3588,7 +3660,138 @@ export default function KitchenViewer() {
             : '❌ Error exporting scene to GLB'
       );
     }
-  }, [lang, showDemoKitchen, showToast]);
+  }, [lang, showToast]);
+
+  const handleChangeRoomConfig = useCallback((newConfig: RoomConfig) => {
+    setRoomConfig(newConfig);
+    stateRef.current.roomConfig = newConfig;
+
+    const ctx = sceneRef.current;
+    if (ctx && ctx.scene) {
+      if (ctx.roomRoot) {
+        ctx.scene.remove(ctx.roomRoot);
+      }
+      const newRoomRoot = buildArchitecturalRoom(newConfig);
+      ctx.scene.add(newRoomRoot);
+      ctx.roomRoot = newRoomRoot;
+      ctx.needsShadowUpdate = true;
+    }
+
+    persistWorkspace({ roomConfig: newConfig });
+  }, [persistWorkspace]);
+
+  const handleAddAppliance = useCallback((def: ApplianceDefinition, finish: string) => {
+    const ctx = sceneRef.current;
+    if (!ctx) return;
+
+    const id = `app_${Date.now()}`;
+    let pos = { x: (roomConfig.widthCm / 100) / 2, y: 0.85, z: (roomConfig.lengthCm / 100) / 2 };
+    if (stateRef.current.selectedGlbId) {
+      const selectedModel = stateRef.current.importedModels.find((m: any) => m.id === stateRef.current.selectedGlbId);
+      if (selectedModel && selectedModel.position) {
+        pos = {
+          x: selectedModel.position[0],
+          y: selectedModel.position[1] + (def.mountingType === 'countertop_cutout' ? 0.85 : 0.4),
+          z: selectedModel.position[2]
+        };
+      }
+    }
+
+    const instance: ApplianceInstance = {
+      id,
+      type: def.type,
+      name: lang === 'ro' ? def.nameRo : lang === 'ru' ? def.nameRu : def.nameEn,
+      position: pos,
+      rotation: { x: 0, y: 0, z: 0 },
+      dimensions: { ...def.defaultDimensions },
+      finish,
+      powerKw: def.powerKw
+    };
+
+    const meshGroup = buildAppliance3DModel(instance);
+    ctx.appliancesRootGroup.add(meshGroup);
+
+    setAppliances((prev) => {
+      const updated = [...prev, instance];
+      persistWorkspace({ appliances: updated });
+      return updated;
+    });
+
+    setSelectedApplianceId(id);
+    setSelectedGlbId(null);
+    ctx.transformControls.attach(meshGroup);
+    ctx.transformControls.visible = true;
+
+    showToast(
+      lang === 'ro'
+        ? `🍳 ${instance.name} adăugat în proiect!`
+        : `🍳 ${instance.name} added to scene!`
+    );
+  }, [lang, roomConfig, persistWorkspace, showToast]);
+
+  const handleDeleteAppliance = useCallback((id: string) => {
+    const ctx = sceneRef.current;
+    if (!ctx) return;
+
+    const meshGroup = ctx.appliancesRootGroup.children.find((c: any) => c.userData?.applianceId === id);
+    if (meshGroup) {
+      if (ctx.transformControls.object === meshGroup) {
+        ctx.transformControls.detach();
+        ctx.transformControls.visible = false;
+      }
+      ctx.appliancesRootGroup.remove(meshGroup);
+    }
+
+    setAppliances((prev) => {
+      const updated = prev.filter((a) => a.id !== id);
+      persistWorkspace({ appliances: updated });
+      return updated;
+    });
+    if (selectedApplianceId === id) {
+      setSelectedApplianceId(null);
+    }
+  }, [selectedApplianceId, persistWorkspace]);
+
+  const handleSelectAppliance = useCallback((id: string | null) => {
+    setSelectedApplianceId(id);
+    const ctx = sceneRef.current;
+    if (!ctx) return;
+
+    if (!id) {
+      if (selectedApplianceId) {
+        ctx.transformControls.detach();
+        ctx.transformControls.visible = false;
+      }
+      return;
+    }
+
+    setSelectedGlbId(null);
+    const meshGroup = ctx.appliancesRootGroup.children.find((c: any) => c.userData?.applianceId === id);
+    if (meshGroup) {
+      ctx.transformControls.attach(meshGroup);
+      ctx.transformControls.visible = true;
+    }
+  }, [selectedApplianceId]);
+
+  useEffect(() => {
+    if (is2DPlanMode && planCanvasRef.current) {
+      drawArchitecturalFloorPlan(
+        planCanvasRef.current,
+        roomConfig,
+        importedModels,
+        appliances
+      );
+    }
+  }, [is2DPlanMode, roomConfig, importedModels, appliances]);
+
+  const handleDownload2DPlanPng = useCallback(() => {
+    if (!planCanvasRef.current) return;
+    const dataUrl = planCanvasRef.current.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `schita_2d_plan_${Date.now()}.png`;
+    a.click();
+  }, []);
 
   const handleToggleFasteners3d = useCallback(() => {
     setShowFasteners3d((prev) => {
@@ -3661,10 +3864,10 @@ export default function KitchenViewer() {
 
       entry.wrapperGroup.traverse((child) => {
         if (child.isMesh && child !== entry.wrapperGroup) {
-          if (!child.userData.bazisOrigPos) {
-            child.userData.bazisOrigPos = child.position.clone();
+          if (!child.userData.cadOrigPos) {
+            child.userData.cadOrigPos = child.position.clone();
           }
-          const orig = child.userData.bazisOrigPos;
+          const orig = child.userData.cadOrigPos;
           const name = (child.name || '').toLowerCase();
 
           if (name.includes('stang') || name.includes('left')) {
@@ -3691,10 +3894,10 @@ export default function KitchenViewer() {
       const offsetMm = (val / 100) * 250;
       ctx.kitchenRoot.traverse((child) => {
         if (child.isMesh && child.name && !child.name.startsWith('static_hardware')) {
-          if (!child.userData.bazisOrigPos) {
-            child.userData.bazisOrigPos = child.position.clone();
+          if (!child.userData.cadOrigPos) {
+            child.userData.cadOrigPos = child.position.clone();
           }
-          const orig = child.userData.bazisOrigPos;
+          const orig = child.userData.cadOrigPos;
           const name = child.name.toLowerCase();
 
           if (name.includes('front') || name.includes('door') || name.includes('drawer')) {
@@ -3878,8 +4081,8 @@ export default function KitchenViewer() {
         onUndo={handleUndo}
         canRedo={canRedo}
         onRedo={handleRedo}
-        showDemoKitchen={showDemoKitchen}
-        onToggleDemoKitchen={handleToggleDemoKitchen}
+        is2DPlanMode={is2DPlanMode}
+        onToggle2DPlanMode={() => setIs2DPlanMode((v) => !v)}
         onNewProject={handleNewProject}
         onSaveProject={handleSaveProject}
         onLoadProject={handleLoadProject}
@@ -3961,12 +4164,12 @@ export default function KitchenViewer() {
             <span className="tab-label">{dict.tabParts}</span>
           </button>
           <button
-            className={`studio-tab-btn ${activeStudioTab === 'bazisTree' ? 'active' : ''}`}
-            onClick={() => setActiveStudioTab('bazisTree')}
-            title={dict.tabBazisTree || 'БАЗИС CAD'}
+            className={`studio-tab-btn ${activeStudioTab === 'tree' ? 'active' : ''}`}
+            onClick={() => setActiveStudioTab('tree')}
+            title={dict.tabModelTree || 'Arbore CAD'}
           >
             <span className="tab-icon">🌲</span>
-            <span className="tab-label">{dict.tabBazisTree || 'БАЗИС CAD'}</span>
+            <span className="tab-label">{dict.tabModelTree || 'Arbore CAD'}</span>
           </button>
         </div>
 
@@ -4072,6 +4275,26 @@ export default function KitchenViewer() {
 
         {/* Studio Content Area */}
         <div className="studio-tab-content">
+          {activeStudioTab === 'architecture' && (
+            <ArchitecturalRoomSection
+              lang={lang}
+              roomConfig={roomConfig}
+              onChangeRoomConfig={handleChangeRoomConfig}
+              onOpen2DPlanView={() => setIs2DPlanMode(true)}
+            />
+          )}
+
+          {activeStudioTab === 'appliances' && (
+            <ApplianceCatalogSection
+              lang={lang}
+              appliances={appliances}
+              selectedApplianceId={selectedApplianceId}
+              onAddAppliance={handleAddAppliance}
+              onSelectAppliance={handleSelectAppliance}
+              onDeleteAppliance={handleDeleteAppliance}
+            />
+          )}
+
           {activeStudioTab === 'furniture' && (
             <div>
               {/* Furniture Sub-navigation Pill Switcher */}
@@ -4110,7 +4333,7 @@ export default function KitchenViewer() {
               )}
 
               {furnitureSubTab === 'kitchen' && (
-                <BazisKitchenStudioSection
+                <ModularKitchenStudioSection
                   lang={lang}
                   materials={materials}
                   activeMatId={activeMatId}
@@ -4212,26 +4435,36 @@ export default function KitchenViewer() {
             />
           )}
 
-          {activeStudioTab === 'bazisTree' && (
-            <BazisModelTreePanel
+          {activeStudioTab === 'tree' && (
+            <ModelTreePanel
               lang={lang}
               importedModels={importedModels}
-              showDemoKitchen={showDemoKitchen}
-              onToggleDemoKitchen={handleToggleDemoKitchen}
+              appliances={appliances}
               explodedProgress={explodedProgress}
               onChangeExplodedProgress={handleExplodedProgressChange}
               showFasteners3d={showFasteners3d}
               onToggleFasteners3d={handleToggleFasteners3d}
               wireframeActive={wireframeActive}
               onToggleWireframe={handleToggleWireframe}
-              selectedPartId={selectedGlbId}
+              selectedPartId={selectedGlbId || selectedApplianceId}
               onSelectPart={(id) => {
-                setSelectedGlbId(id);
-                setGizmoMode('translate');
+                if (appliances.some((a) => a.id === id)) {
+                  handleSelectAppliance(id);
+                } else {
+                  setSelectedGlbId(id);
+                  setGizmoMode('translate');
+                }
               }}
               onTogglePartVisibility={handleTogglePartVisibility}
               hiddenPartIds={hiddenPartIds}
               onAddCustomPanel={handleAddCustomPanel}
+              onDeleteModel={(id) => {
+                if (appliances.some((a) => a.id === id)) {
+                  handleDeleteAppliance(id);
+                } else {
+                  handleDeleteGlb(id);
+                }
+              }}
             />
           )}
         </div>
@@ -4243,6 +4476,51 @@ export default function KitchenViewer() {
         autoRotate={autoRotate}
         onToggleAutoRotate={handleToggleAutoRotate}
       />
+
+      {/* 2D Architectural Floor Plan Overlay */}
+      {is2DPlanMode && (
+        <div className="floorplan-2d-overlay">
+          <div className="floorplan-header">
+            <div className="floorplan-title">
+              <span>📐</span>
+              <strong>
+                {lang === 'ro'
+                  ? 'Schiță 2D Plan Arhitectural & Mobilier'
+                  : lang === 'ru'
+                  ? '2D Архитектурный план помещения'
+                  : '2D Architectural Floor Plan'}
+              </strong>
+            </div>
+            <div className="floorplan-actions">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handleDownload2DPlanPng}
+                title="Descarcă Schiță Plan PNG"
+              >
+                <span>📥</span>
+                <span>{lang === 'ro' ? 'Exportă Plan PNG' : 'Export Plan PNG'}</span>
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => setIs2DPlanMode(false)}
+              >
+                <span>🏛️</span>
+                <span>{lang === 'ro' ? 'Înapoi la Perspectivă 3D' : 'Back to 3D View'}</span>
+              </button>
+            </div>
+          </div>
+          <div className="floorplan-canvas-container">
+            <canvas
+              ref={planCanvasRef}
+              width={1600}
+              height={1200}
+              className="floorplan-canvas"
+            />
+          </div>
+        </div>
+      )}
 
       <TechnicalReportModal
         isOpen={technicalReportOpen}

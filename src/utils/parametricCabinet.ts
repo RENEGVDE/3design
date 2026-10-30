@@ -569,7 +569,7 @@ export function buildParametricCabinetHierarchy(config) {
 
 /**
  * Builds the Bill of Materials / Cutting List (Listă de debitare)
- * for CNC / panel cutting software (Cutting 3, Bazis-Raskroy, Giben, Cut Rite).
+ * for CNC / panel cutting software (Cutting 3, Giben, Cut Rite, CNC).
  */
 export function buildCuttingList(config) {
   const {

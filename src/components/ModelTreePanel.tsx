@@ -3,11 +3,28 @@
 import React, { useState } from 'react';
 import { I18N } from '../i18n/translations';
 
-export default function BazisModelTreePanel({
+export interface ModelTreePanelProps {
+  lang?: string;
+  importedModels?: any[];
+  appliances?: any[];
+  explodedProgress?: number;
+  onChangeExplodedProgress?: (val: number) => void;
+  showFasteners3d?: boolean;
+  onToggleFasteners3d?: () => void;
+  wireframeActive?: boolean;
+  onToggleWireframe?: () => void;
+  selectedPartId?: string | null;
+  onSelectPart?: (id: string | null) => void;
+  onTogglePartVisibility?: (id: string) => void;
+  hiddenPartIds?: Set<string>;
+  onAddCustomPanel?: (config: any) => void;
+  onDeleteModel?: (id: string) => void;
+}
+
+export default function ModelTreePanel({
   lang = 'ro',
   importedModels = [],
-  showDemoKitchen = true,
-  onToggleDemoKitchen,
+  appliances = [],
   explodedProgress = 0,
   onChangeExplodedProgress,
   showFasteners3d = false,
@@ -18,20 +35,21 @@ export default function BazisModelTreePanel({
   onSelectPart,
   onTogglePartVisibility,
   hiddenPartIds = new Set(),
-  onAddCustomPanel
-}) {
+  onAddCustomPanel,
+  onDeleteModel
+}: ModelTreePanelProps) {
   const isRo = lang === 'ro';
   const isRu = lang === 'ru';
 
-  const [expandedNodes, setExpandedNodes] = useState({
+  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({
     root: true,
-    demoKitchen: true,
-    customModels: true
+    furnitureModels: true,
+    appliancesNode: true
   });
 
   const [newPanelModalOpen, setNewPanelModalOpen] = useState(false);
   const [newPanelConfig, setNewPanelConfig] = useState({
-    name: 'Panou Personalizat',
+    name: 'Panou CAD Personalizat',
     orientation: 'horizontal', // 'horizontal' | 'vertical' | 'frontal'
     lengthMm: 600,
     widthMm: 400,
@@ -40,7 +58,7 @@ export default function BazisModelTreePanel({
     material: 'PAL Melaminat Alb 18mm'
   });
 
-  const toggleNode = (nodeKey) => {
+  const toggleNode = (nodeKey: string) => {
     setExpandedNodes((prev) => ({
       ...prev,
       [nodeKey]: !prev[nodeKey]
@@ -55,20 +73,20 @@ export default function BazisModelTreePanel({
   };
 
   return (
-    <div className="bazis-tree-container">
-      {/* Bazis Engineering Control Toolbar */}
-      <div className="bazis-toolbar-card">
-        <div className="bazis-toolbar-header">
-          <span className="bazis-badge">БАЗИС-CAD</span>
+    <div className="cad-tree-container">
+      {/* CAD Engineering Control Toolbar */}
+      <div className="cad-toolbar-card">
+        <div className="cad-toolbar-header">
+          <span className="cad-badge">CAD Studio</span>
           <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
             {isRo ? 'Control Asamblare & Proiectare' : isRu ? 'Управление сборкой и моделью' : 'Assembly & CAD Controls'}
           </span>
         </div>
 
-        {/* Exploded View Slider (Разнесение деталей) */}
-        <div className="bazis-slider-box">
-          <div className="bazis-slider-header">
-            <span>{isRo ? '💥 Vzryv-Schema (Exploded View):' : isRu ? '💥 Разнесение сборки (Взрыв-схема):' : '💥 Exploded Assembly View:'}</span>
+        {/* Exploded View Slider */}
+        <div className="cad-slider-box">
+          <div className="cad-slider-header">
+            <span>{isRo ? '💥 Schemă Explodată (Exploded View):' : isRu ? '💥 Разнесение сборки (Взрыв-схема):' : '💥 Exploded Assembly View:'}</span>
             <strong style={{ color: '#38bdf8' }}>{explodedProgress}%</strong>
           </div>
           <input
@@ -77,31 +95,31 @@ export default function BazisModelTreePanel({
             max="100"
             step="1"
             value={explodedProgress}
-            onChange={(e) => onChangeExplodedProgress(Number(e.target.value))}
-            className="bazis-range-slider"
+            onChange={(e) => onChangeExplodedProgress && onChangeExplodedProgress(Number(e.target.value))}
+            className="cad-range-slider"
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#64748b', marginTop: '2px' }}>
-            <span>0% (Asamblat)</span>
+            <span>0% ({isRo ? 'Asamblat' : isRu ? 'Собрано' : 'Assembled'})</span>
             <span>50%</span>
-            <span>100% (Dezasamblat)</span>
+            <span>100% ({isRo ? 'Dezasamblat' : isRu ? 'Разобрано' : 'Disassembled'})</span>
           </div>
         </div>
 
         {/* Quick Toggles: Fasteners & Wireframe */}
-        <div className="bazis-toggle-grid">
+        <div className="cad-toggle-grid">
           <button
             type="button"
-            className={`bazis-btn ${showFasteners3d ? 'active' : ''}`}
+            className={`cad-btn ${showFasteners3d ? 'active' : ''}`}
             onClick={onToggleFasteners3d}
-            title={isRo ? 'Afișează elementele de îmbinare (Euroșuruburi, Minifix, Știfturi, Balamale)' : isRu ? 'Показать крепеж и присадку 3D' : 'Toggle 3D Fasteners & Hardware'}
+            title={isRo ? 'Afișează feronerie 3D (Euroșuruburi, Minifix, Știfturi, Balamale)' : isRu ? 'Показать крепеж и присадку 3D' : 'Toggle 3D Fasteners & Hardware'}
           >
             <span>🔩</span>
-            <span>{showFasteners3d ? (isRo ? 'Feronerie 3D: ON' : isRu ? 'Крепеж 3D: ВКЛ' : 'Fasteners: ON') : (isRo ? 'Feronerie 3D: OFF' : isRu ? 'Крепеж 3D: ВЫКЛ' : 'Fasteners: OFF')}</span>
+            <span>{showFasteners3d ? (isRo ? 'Feronerie 3D: ON' : isRu ? 'Крепеж: ВКЛ' : 'Fasteners: ON') : (isRo ? 'Feronerie 3D: OFF' : isRu ? 'Крепеж: ВЫКЛ' : 'Fasteners: OFF')}</span>
           </button>
 
           <button
             type="button"
-            className={`bazis-btn ${wireframeActive ? 'active' : ''}`}
+            className={`cad-btn ${wireframeActive ? 'active' : ''}`}
             onClick={onToggleWireframe}
             title={isRo ? 'Mod transparent tip schelet tehnic' : isRu ? 'Каркасный режим (Wireframe)' : 'CAD Wireframe Mode'}
           >
@@ -113,7 +131,7 @@ export default function BazisModelTreePanel({
         {/* Add Free Panel Button */}
         <button
           type="button"
-          className="bazis-btn-primary"
+          className="cad-btn-primary"
           onClick={() => setNewPanelModalOpen(true)}
           style={{ width: '100%', marginTop: '6px' }}
         >
@@ -122,8 +140,8 @@ export default function BazisModelTreePanel({
         </button>
       </div>
 
-      {/* Hierarchical Model Structural Tree (Структурное дерево модели) */}
-      <div className="bazis-tree-card">
+      {/* Hierarchical Model Structural Tree */}
+      <div className="cad-tree-card">
         <div className="tree-card-header">
           <span style={{ fontSize: '1rem' }}>🌲</span>
           <strong>{isRo ? 'Arbore Structură Model' : isRu ? 'Структурное дерево модели' : 'Model Structure Tree'}</strong>
@@ -137,80 +155,29 @@ export default function BazisModelTreePanel({
                 {expandedNodes.root ? '▼' : '▶'}
               </span>
               <span className="node-icon">🏠</span>
-              <span className="node-label"><strong>{isRo ? 'Proiect Mobilier (Complet)' : isRu ? 'Изделие / Проект целиком' : 'Project Furniture Root'}</strong></span>
+              <span className="node-label"><strong>{isRo ? 'Proiect Mobilier & Arhitectură' : isRu ? 'Проект интерьера и мебели' : 'Project Furniture & Architecture'}</strong></span>
             </div>
 
             {expandedNodes.root && (
               <div className="tree-children">
-                {/* 1. Base Kitchen Node */}
+                {/* 1. Custom Imported & Parametric Furniture Modules Node */}
                 <div className="tree-node">
                   <div className="tree-node-row">
-                    <span className="tree-expander" onClick={() => toggleNode('demoKitchen')}>
-                      {expandedNodes.demoKitchen ? '▼' : '▶'}
-                    </span>
-                    <span className="node-icon">🍳</span>
-                    <span className="node-label" style={{ opacity: showDemoKitchen ? 1 : 0.4 }}>
-                      {isRo ? 'Bucătărie Modulară (Compoziție)' : isRu ? 'Модульный кухонный гарнитур' : 'Modular Kitchen Composition'}
-                    </span>
-                    <button
-                      type="button"
-                      className="tree-eye-btn"
-                      onClick={onToggleDemoKitchen}
-                      title={showDemoKitchen ? 'Ascunde Bucătăria' : 'Arată Bucătăria'}
-                    >
-                      {showDemoKitchen ? '👁️' : '🕶️'}
-                    </button>
-                  </div>
-
-                  {expandedNodes.demoKitchen && showDemoKitchen && (
-                    <div className="tree-children">
-                      <div className="tree-leaf">
-                        <span className="leaf-icon">🗄️</span>
-                        <span className="leaf-label">{isRo ? 'Corpuri Inferioare + Sertare' : isRu ? 'Нижние шкафы с ящиками' : 'Base Cabinets & Drawers'}</span>
-                        <span className="leaf-meta">720×560 mm</span>
-                      </div>
-                      <div className="tree-leaf">
-                        <span className="leaf-icon">🚪</span>
-                        <span className="leaf-label">{isRo ? 'Corpuri Suspendate Superioare' : isRu ? 'Верхние навесные шкафы' : 'Upper Wall Cabinets'}</span>
-                        <span className="leaf-meta">720×320 mm</span>
-                      </div>
-                      <div className="tree-leaf">
-                        <span className="leaf-icon">🏢</span>
-                        <span className="leaf-label">{isRo ? 'Coloane Înalte (Frigider/Cuptor)' : isRu ? 'Пеналы и колонны' : 'Tall Columns'}</span>
-                        <span className="leaf-meta">2040×560 mm</span>
-                      </div>
-                      <div className="tree-leaf">
-                        <span className="leaf-icon">🪵</span>
-                        <span className="leaf-label">{isRo ? 'Blat Termorezistent Continuu' : isRu ? 'Столешница HPL 38мм' : 'Continuous Worktop'}</span>
-                        <span className="leaf-meta">38 mm</span>
-                      </div>
-                      <div className="tree-leaf">
-                        <span className="leaf-icon">🔩</span>
-                        <span className="leaf-label">{isRo ? 'Feronerie (33 Uși & Sertare)' : isRu ? 'Фурнитура (33 фасада)' : 'Hardware (33 Fronts)'}</span>
-                        <span className="leaf-meta">System 32</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 2. Custom Imported & Parametric Modules Node */}
-                <div className="tree-node">
-                  <div className="tree-node-row">
-                    <span className="tree-expander" onClick={() => toggleNode('customModels')}>
-                      {expandedNodes.customModels ? '▼' : '▶'}
+                    <span className="tree-expander" onClick={() => toggleNode('furnitureModels')}>
+                      {expandedNodes.furnitureModels ? '▼' : '▶'}
                     </span>
                     <span className="node-icon">📦</span>
                     <span className="node-label">
-                      <strong>{isRo ? 'Module Parametrice Personalizate' : isRu ? 'Параметрические модули' : 'Parametric Cabinets'}</strong>
+                      <strong>{isRo ? 'Corpuri de Mobilier Parametrice' : isRu ? 'Параметрические модули мебели' : 'Furniture Cabinets'}</strong>
                       <small style={{ color: '#94a3b8', marginLeft: '6px' }}>({importedModels.length})</small>
                     </span>
                   </div>
 
-                  {expandedNodes.customModels && (
+                  {expandedNodes.furnitureModels && (
                     <div className="tree-children">
                       {importedModels.length === 0 ? (
                         <div style={{ padding: '6px 12px', fontSize: '0.7rem', color: '#64748b', fontStyle: 'italic' }}>
-                          {isRo ? 'Niciun corp parametric adăugat încă. Folosește secțiunea "Mobilier (CAD)" pentru a adăuga dulapuri, comode sau dressinguri.' : isRu ? 'Нет добавленных модулей. Создайте мебель во вкладке CAD.' : 'No custom cabinets yet. Create one in Furniture CAD tab.'}
+                          {isRo ? 'Niciun corp creat încă. Adaugă dulapuri, comode, dressinguri sau bucătării modulare.' : isRu ? 'Нет добавленных модулей. Создайте мебель во вкладке CAD.' : 'No custom cabinets yet. Create one in Furniture CAD tab.'}
                         </div>
                       ) : (
                         importedModels.map((model, idx) => {
@@ -228,7 +195,7 @@ export default function BazisModelTreePanel({
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div className="cabinet-title">{model.name || `Corp #${idx + 1}`}</div>
                                   <div className="cabinet-meta">
-                                    {model.furnitureConfig?.category || 'Corp Mobilier'} • {cuttingList.length} piese
+                                    {model.furnitureConfig?.category || 'Corp Mobilier'} • {cuttingList.length} {isRo ? 'piese' : 'repere'}
                                   </div>
                                 </div>
                                 <button
@@ -238,24 +205,108 @@ export default function BazisModelTreePanel({
                                     e.stopPropagation();
                                     if (onTogglePartVisibility) onTogglePartVisibility(model.id);
                                   }}
-                                  title={isHidden ? 'Arată' : 'Ascunde'}
+                                  title={isHidden ? (isRo ? 'Arată' : 'Show') : (isRo ? 'Ascunde' : 'Hide')}
                                 >
                                   {isHidden ? '🕶️' : '👁️'}
                                 </button>
+                                {onDeleteModel && (
+                                  <button
+                                    type="button"
+                                    className="tree-eye-btn"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onDeleteModel(model.id);
+                                    }}
+                                    title={isRo ? 'Șterge corp' : 'Delete'}
+                                    style={{ color: '#f87171' }}
+                                  >
+                                    ✕
+                                  </button>
+                                )}
                               </div>
 
                               {/* Sub-panels inside cabinet */}
                               {cuttingList.length > 0 && (
                                 <div className="cabinet-subparts">
-                                  {cuttingList.map((p, pIdx) => (
+                                  {cuttingList.map((p: any, pIdx: number) => (
                                     <div key={pIdx} className="subpart-row">
                                       <span style={{ color: '#38bdf8' }}>▫</span>
-                                      <span className="subpart-name">{p.partName}</span>
-                                      <span className="subpart-dims">{p.lengthMm}×{p.widthMm}</span>
+                                      <span className="subpart-name">{p.partName || p.name}</span>
+                                      <span className="subpart-dims">{p.lengthMm || p.length}×{p.widthMm || p.width} mm</span>
                                     </div>
                                   ))}
                                 </div>
                               )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Appliances Node */}
+                <div className="tree-node">
+                  <div className="tree-node-row">
+                    <span className="tree-expander" onClick={() => toggleNode('appliancesNode')}>
+                      {expandedNodes.appliancesNode ? '▼' : '▶'}
+                    </span>
+                    <span className="node-icon">🍳</span>
+                    <span className="node-label">
+                      <strong>{isRo ? 'Electrocasnice & Dotări Tehnice' : isRu ? 'Встраиваемая техника' : 'Built-in Appliances'}</strong>
+                      <small style={{ color: '#94a3b8', marginLeft: '6px' }}>({appliances.length})</small>
+                    </span>
+                  </div>
+
+                  {expandedNodes.appliancesNode && (
+                    <div className="tree-children">
+                      {appliances.length === 0 ? (
+                        <div style={{ padding: '6px 12px', fontSize: '0.7rem', color: '#64748b', fontStyle: 'italic' }}>
+                          {isRo ? 'Niciun aparat electrocasnic adăugat încă. Deschide secțiunea "Tehnică & Dotări".' : isRu ? 'Техника не добавлена.' : 'No appliances added yet.'}
+                        </div>
+                      ) : (
+                        appliances.map((app, idx) => {
+                          const isHidden = hiddenPartIds.has(app.id);
+                          const isSelected = selectedPartId === app.id;
+                          return (
+                            <div key={app.id || idx} className={`tree-cabinet-block ${isSelected ? 'selected' : ''}`}>
+                              <div
+                                className="tree-cabinet-header"
+                                onClick={() => onSelectPart && onSelectPart(app.id)}
+                              >
+                                <span className="leaf-icon">⚡</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div className="cabinet-title">{app.name}</div>
+                                  <div className="cabinet-meta">
+                                    {app.dimensions?.width}×{app.dimensions?.height} mm • {app.powerKw > 0 ? `${app.powerKw} kW` : 'Plumbing'}
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="tree-eye-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onTogglePartVisibility) onTogglePartVisibility(app.id);
+                                  }}
+                                  title={isHidden ? 'Arată' : 'Ascunde'}
+                                >
+                                  {isHidden ? '🕶️' : '👁️'}
+                                </button>
+                                {onDeleteModel && (
+                                  <button
+                                    type="button"
+                                    className="tree-eye-btn"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onDeleteModel(app.id);
+                                    }}
+                                    title={isRo ? 'Șterge aparat' : 'Delete'}
+                                    style={{ color: '#f87171' }}
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           );
                         })
@@ -269,7 +320,7 @@ export default function BazisModelTreePanel({
         </div>
       </div>
 
-      {/* Modal for Creating Custom Panel */}
+      {/* Modal for Creating Custom Free Panel */}
       {newPanelModalOpen && (
         <div className="report-modal-backdrop" onClick={() => setNewPanelModalOpen(false)}>
           <div className="report-modal-window" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
@@ -277,7 +328,7 @@ export default function BazisModelTreePanel({
               <div className="report-brand">
                 <span className="report-icon">📐</span>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1rem', color: '#f8fafc' }}>{isRo ? 'Adăugare Panou Liber' : isRu ? 'Создать произвольную деталь' : 'Add Custom Panel'}</h3>
+                  <h3 style={{ margin: 0, fontSize: '1rem', color: '#f8fafc' }}>{isRo ? 'Adăugare Panou CAD Liber' : isRu ? 'Создать произвольную деталь' : 'Add Custom Panel'}</h3>
                   <small style={{ color: '#94a3b8' }}>{isRo ? 'Specifică dimensiunile milimetrice și orientarea' : isRu ? 'Параметры детали в мм' : 'Specify mm dimensions'}</small>
                 </div>
               </div>
@@ -382,4 +433,3 @@ export default function BazisModelTreePanel({
     </div>
   );
 }
-
