@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { fmtCm } from '../i18n/translations.js';
+import { fmtCm } from '../i18n/translations';
 
 const labelTexCache = new Map();
 
@@ -168,9 +168,10 @@ export function renderPartDimensions3D({
   if (box.isEmpty()) return null;
 
   const boxHelper = new THREE.Box3Helper(box, 0x38bdf8);
-  boxHelper.material.depthTest = false;
-  boxHelper.material.transparent = true;
-  boxHelper.material.opacity = 0.7;
+  const boxMat = boxHelper.material as THREE.LineBasicMaterial;
+  boxMat.depthTest = false;
+  boxMat.transparent = true;
+  boxMat.opacity = 0.7;
   boxHelper.renderOrder = 996;
   boxHelper.raycast = () => {};
   partDimsGroup.add(boxHelper);

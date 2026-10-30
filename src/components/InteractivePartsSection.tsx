@@ -6,8 +6,8 @@ import {
   CATEGORIES_ORDER,
   getSpecTitle,
   formatPartDimsText
-} from '../i18n/translations.js';
-import { DEFAULT_WHITE_HEX } from '../utils/textures.js';
+} from '../i18n/translations';
+import { DEFAULT_WHITE_HEX } from '../utils/textures';
 
 export default function InteractivePartsSection({
   lang,

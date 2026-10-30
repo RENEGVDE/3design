@@ -4,13 +4,13 @@ import React, { useState, useMemo } from 'react';
 import {
   KITCHEN_LAYOUT_TYPES,
   buildBazisKitchenComposition
-} from '../utils/bazisKitchenGenerator.js';
+} from '../utils/bazisKitchenGenerator';
 import {
   exportToGlbArrayBuffer,
   generateCuttingListCsv,
   downloadFile
-} from '../utils/parametricCabinet.js';
-import { arrayBufferToBase64 } from '../utils/glbImporter.js';
+} from '../utils/parametricCabinet';
+import { arrayBufferToBase64 } from '../utils/glbImporter';
 
 export default function BazisKitchenStudioSection({
   lang = 'ro',

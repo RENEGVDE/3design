@@ -7,7 +7,7 @@ export const metadata = {
     'Interactive 3D CAD Kitchen Configurator with Custom Material Upload, Lighting Studio, and Dimensions in cm'
 };
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ro">
       <head>

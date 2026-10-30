@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { I18N, fmtCm } from '../i18n/translations.js';
+import { I18N, fmtCm } from '../i18n/translations';
 
 export default function GlbImporterSection({
   lang,

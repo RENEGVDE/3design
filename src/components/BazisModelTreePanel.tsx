@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { I18N } from '../i18n/translations.js';
+import { I18N } from '../i18n/translations';
 
 export default function BazisModelTreePanel({
   lang = 'ro',

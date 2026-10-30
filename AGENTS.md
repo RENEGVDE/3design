@@ -9,7 +9,7 @@
 - **Repository**: [https://github.com/RENEGVDE/3design](https://github.com/RENEGVDE/3design)
 - **Live Firebase Hosting URL**: [https://bucatarie-3d-viewer.web.app](https://bucatarie-3d-viewer.web.app) (Firebase Project ID: `trysmthwtf`, site: `bucatarie-3d-viewer`)
 - **Primary User Language**: Romanian (`ro`), with multi-language UI support in **RO / EN / RU**.
-- **Framework**: **Vinext** (`vinext@1.3.1` — Next.js App Router running on **Vite 8** + **React 19** + **Three.js r160**). The build output (`dist/client`) is statically prerendered with `output: 'export'` for direct Firebase Hosting without any external Python scripts.
+- **Framework**: **Vinext** with **TypeScript** (`vinext@1.3.1` — Next.js App Router running on **Vite 8** + **React 19** + **Three.js r160**). The build output (`dist/client`) is statically prerendered with `output: 'export'` for direct Firebase Hosting without any external Python scripts.
 
 ---
 
@@ -28,6 +28,7 @@ All detailed technical knowledge is stored in `docs/`:
 npm install --legacy-peer-deps   # Install dependencies
 npm run dev                      # Start Vinext + Vite dev server with instant HMR
 npm run build                    # Prerender and build production bundle (dist/client)
+npm run type-check               # Validate TypeScript types without emitting files
 npm run start                    # Run local production server
 npm run deploy                   # Build & deploy directly to Firebase Hosting
 ```

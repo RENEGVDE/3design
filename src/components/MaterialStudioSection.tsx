@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { I18N, ZONE_BUTTONS } from '../i18n/translations.js';
-import { FINISH_MODES } from '../utils/textures.js';
+import { I18N, ZONE_BUTTONS } from '../i18n/translations';
+import { FINISH_MODES } from '../utils/textures';
 
 export default function MaterialStudioSection({
   lang,

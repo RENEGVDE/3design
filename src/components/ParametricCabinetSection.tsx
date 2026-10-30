@@ -8,8 +8,8 @@ import {
   generateCuttingListCsv,
   downloadFile,
   exportToGlbArrayBuffer
-} from '../utils/parametricCabinet.js';
-import { arrayBufferToBase64 } from '../utils/glbImporter.js';
+} from '../utils/parametricCabinet';
+import { arrayBufferToBase64 } from '../utils/glbImporter';
 
 export default function ParametricCabinetSection({
   lang = 'ro',
@@ -22,7 +22,7 @@ export default function ParametricCabinetSection({
   selectedCabinetId = null,
   onToggleCabinetOpen,
   onCaptureScreenshot
-}) {
+}: any) {
   const isRo = lang === 'ro';
   const isRu = lang === 'ru';
 

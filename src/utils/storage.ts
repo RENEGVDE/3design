@@ -3,27 +3,27 @@ const DB_STORE = 'workspace_store';
 const DB_KEY = 'saved_workspace';
 const LS_KEY = 'bucatarie_3d_workspace_v1';
 
-function openConfigDB() {
+function openConfigDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined' || !window.indexedDB) {
       return reject(new Error('No IndexedDB'));
     }
     const req = window.indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = (e) => {
-      const db = e.target.result;
+    req.onupgradeneeded = (e: IDBVersionChangeEvent) => {
+      const db = (e.target as IDBOpenDBRequest).result;
       if (!db.objectStoreNames.contains(DB_STORE)) {
         db.createObjectStore(DB_STORE);
       }
     };
-    req.onsuccess = (e) => resolve(e.target.result);
-    req.onerror = (e) => reject(e.target.error);
+    req.onsuccess = (e: Event) => resolve((e.target as IDBOpenDBRequest).result);
+    req.onerror = (e: Event) => reject((e.target as IDBOpenDBRequest).error);
   });
 }
 
-let pendingWriteTimer = null;
-let lastPendingData = null;
+let pendingWriteTimer: ReturnType<typeof setTimeout> | null = null;
+let lastPendingData: any = null;
 
-export async function writePersistedData(dataObj, immediate = false) {
+export async function writePersistedData(dataObj: any, immediate = false) {
   lastPendingData = dataObj;
   if (!immediate) {
     if (pendingWriteTimer) clearTimeout(pendingWriteTimer);
@@ -39,15 +39,15 @@ export async function writePersistedData(dataObj, immediate = false) {
   await commitPersistedData(dataObj);
 }
 
-async function commitPersistedData(dataObj) {
+async function commitPersistedData(dataObj: any) {
   if (!dataObj) return;
   try {
     const db = await openConfigDB();
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(DB_STORE, 'readwrite');
       tx.objectStore(DB_STORE).put(dataObj, DB_KEY);
       tx.oncomplete = () => resolve();
-      tx.onerror = (e) => reject(e.target.error);
+      tx.onerror = (e: Event) => reject((e.target as IDBRequest).error);
     });
   } catch (err) {
     console.warn('IndexedDB save fallback to localStorage:', err);
@@ -61,7 +61,7 @@ async function commitPersistedData(dataObj) {
       if (Array.isArray(dataObj.importedModels) && dataObj.importedModels.length > 0) {
         lsObj = {
           ...dataObj,
-          importedModels: dataObj.importedModels.map((im) => ({
+          importedModels: dataObj.importedModels.map((im: any) => ({
             ...im,
             b64Data: null
           }))
@@ -74,14 +74,14 @@ async function commitPersistedData(dataObj) {
   }
 }
 
-export async function readPersistedData() {
+export async function readPersistedData(): Promise<any> {
   try {
     const db = await openConfigDB();
     const res = await new Promise((resolve, reject) => {
       const tx = db.transaction(DB_STORE, 'readonly');
       const req = tx.objectStore(DB_STORE).get(DB_KEY);
       req.onsuccess = () => resolve(req.result || null);
-      req.onerror = (e) => reject(e.target.error);
+      req.onerror = (e: Event) => reject((e.target as IDBRequest).error);
     });
     if (res) return res;
   } catch (err) {

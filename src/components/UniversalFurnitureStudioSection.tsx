@@ -4,13 +4,13 @@ import React, { useState, useMemo } from 'react';
 import {
   UNIVERSAL_FURNITURE_TYPES,
   buildUniversalFurniture
-} from '../utils/universalFurnitureGenerator.js';
+} from '../utils/universalFurnitureGenerator';
 import {
   exportToGlbArrayBuffer,
   generateCuttingListCsv,
   downloadFile
-} from '../utils/parametricCabinet.js';
-import { arrayBufferToBase64 } from '../utils/glbImporter.js';
+} from '../utils/parametricCabinet';
+import { arrayBufferToBase64 } from '../utils/glbImporter';
 
 export default function UniversalFurnitureStudioSection({
   lang = 'ro',

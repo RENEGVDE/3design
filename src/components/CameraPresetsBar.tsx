@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { I18N } from '../i18n/translations.js';
+import { I18N } from '../i18n/translations';
 
 const CAMERA_BUTTONS = [
   { key: 'overview', icon: '🏠', i18nKey: 'camOverview' },

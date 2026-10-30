@@ -11,8 +11,8 @@ import {
   fmtCm,
   getSpecTitle,
   formatPartDimsText
-} from '../i18n/translations.js';
-import { writePersistedData, readPersistedData } from '../utils/storage.js';
+} from '../i18n/translations';
+import { writePersistedData, readPersistedData } from '../utils/storage';
 import {
   DEFAULT_WHITE_HEX,
   FINISH_MODES,
@@ -21,13 +21,13 @@ import {
   createOvenDisplayTexture,
   createTextureFromDataUrl,
   buildDefaultMaterialsTable
-} from '../utils/textures.js';
+} from '../utils/textures';
 import {
   addCadDimLine,
   buildStaticDimensions,
   renderPartDimensions3D,
   createPinMarker
-} from '../utils/dimensions3d.js';
+} from '../utils/dimensions3d';
 import {
   loadGlbModelFromBuffer,
   arrayBufferToBase64,
@@ -36,23 +36,23 @@ import {
   autoDetectGlbMechanisms,
   buildFollowerMap,
   disposeModelHierarchy
-} from '../utils/glbImporter.js';
+} from '../utils/glbImporter';
 
-import TopBar from './TopBar.jsx';
-import DimensionToolbar from './DimensionToolbar.jsx';
-import CameraPresetsBar from './CameraPresetsBar.jsx';
-import MaterialStudioSection from './MaterialStudioSection.jsx';
-import UniversalFurnitureStudioSection from './UniversalFurnitureStudioSection.jsx';
-import BazisKitchenStudioSection from './BazisKitchenStudioSection.jsx';
-import ParametricCabinetSection from './ParametricCabinetSection.jsx';
-import { exportToGlbArrayBuffer } from '../utils/parametricCabinet.js';
-import GlbImporterSection from './GlbImporterSection.jsx';
-import LightingStudioSection from './LightingStudioSection.jsx';
-import InteractivePartsSection from './InteractivePartsSection.jsx';
-import BazisModelTreePanel from './BazisModelTreePanel.jsx';
-import { createFastenerMeshes } from '../utils/bazisEngineering.js';
-import TechnicalReportModal from './TechnicalReportModal.jsx';
-import { calculateMagneticSnap, alignModelDirectly } from '../utils/magneticSnapping.js';
+import TopBar from './TopBar';
+import DimensionToolbar from './DimensionToolbar';
+import CameraPresetsBar from './CameraPresetsBar';
+import MaterialStudioSection from './MaterialStudioSection';
+import UniversalFurnitureStudioSection from './UniversalFurnitureStudioSection';
+import BazisKitchenStudioSection from './BazisKitchenStudioSection';
+import ParametricCabinetSection from './ParametricCabinetSection';
+import { exportToGlbArrayBuffer } from '../utils/parametricCabinet';
+import GlbImporterSection from './GlbImporterSection';
+import LightingStudioSection from './LightingStudioSection';
+import InteractivePartsSection from './InteractivePartsSection';
+import BazisModelTreePanel from './BazisModelTreePanel';
+import { createFastenerMeshes } from '../utils/bazisEngineering';
+import TechnicalReportModal from './TechnicalReportModal';
+import { calculateMagneticSnap, alignModelDirectly } from '../utils/magneticSnapping';
 
 const INITIAL_WHITE_MAT = {
   id: 'mat_default_white',
@@ -106,8 +106,8 @@ function easeInOutCubic(t) {
 }
 
 export default function KitchenViewer() {
-  const canvasContainerRef = useRef(null);
-  const sceneRef = useRef(null);
+  const canvasContainerRef = useRef<HTMLDivElement | null>(null);
+  const sceneRef = useRef<any>(null);
 
   const [loading, setLoading] = useState(true);
   const [lang, setLang] = useState('ro');
@@ -203,7 +203,7 @@ export default function KitchenViewer() {
     }, 2200);
   }, []);
 
-  const stateRef = useRef({
+  const stateRef = useRef<any>({
     lang,
     materials,
     activeMatId,
@@ -215,6 +215,7 @@ export default function KitchenViewer() {
     xrayActive,
     dimsEnabled,
     dimMode,
+    magneticSnapEnabled,
     lightState
   });
   useEffect(() => {
@@ -230,6 +231,7 @@ export default function KitchenViewer() {
       xrayActive,
       dimsEnabled,
       dimMode,
+      magneticSnapEnabled,
       lightState
     };
   }, [
@@ -264,7 +266,7 @@ export default function KitchenViewer() {
     setPartsMeta(nextMeta);
   }, []);
 
-  const persistWorkspace = useCallback((overrides = {}) => {
+  const persistWorkspace = useCallback((overrides: any = {}) => {
     const ctx = sceneRef.current;
     if (!ctx || ctx.isRestoring) return;
 
@@ -503,7 +505,7 @@ export default function KitchenViewer() {
       const ctx = sceneRef.current;
       if (!ctx) return null;
 
-      const parsed = await loadGlbModelFromBuffer(
+      const parsed: any = await loadGlbModelFromBuffer(
         arrayBuffer,
         modelId,
         modelName
@@ -587,7 +589,7 @@ export default function KitchenViewer() {
       if (b64Data) {
         glbBinaryCacheRef.current.set(modelId, b64Data);
       }
-      return {
+      return ({
         id: modelId,
         name: modelName,
         position: pos,
@@ -596,7 +598,7 @@ export default function KitchenViewer() {
         baseDimsCm: parsed.baseDimsCm,
         hasNativeAnimations: parsed.hasNativeAnimations,
         subParts: finalSubParts
-      };
+      }) as any;
     },
     [applyMatEntryToMesh]
   );
@@ -884,10 +886,11 @@ export default function KitchenViewer() {
       const isCtrlOrMeta = e.ctrlKey || e.metaKey;
       if (isCtrlOrMeta) {
         const tag = document.activeElement?.tagName?.toLowerCase() || '';
+        const activeInput = document.activeElement as HTMLInputElement;
         const isTextInput =
           tag === 'input' &&
-          document.activeElement.type !== 'range' &&
-          document.activeElement.type !== 'color';
+          activeInput?.type !== 'range' &&
+          activeInput?.type !== 'color';
         if (!isTextInput && tag !== 'textarea') {
           if ((e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
             e.preventDefault();
@@ -927,7 +930,8 @@ export default function KitchenViewer() {
   // Initialize Three.js Scene
   useEffect(() => {
     let disposed = false;
-    let animFrameId = null;
+    let animFrameId: any = null;
+    let hoverRaf: any = null;
 
     if (typeof window !== 'undefined' && window.innerWidth <= 768) {
       setPanelOpen(false);
@@ -1003,9 +1007,9 @@ export default function KitchenViewer() {
         camera,
         renderer.domElement
       );
-      transformControls.setSize(isMobile ? 0.95 : 0.8);
-      transformControls.visible = false;
-      scene.add(transformControls);
+      (transformControls as any).setSize(isMobile ? 0.95 : 0.8);
+      (transformControls as any).visible = false;
+      scene.add(transformControls as any);
 
       transformControls.addEventListener('dragging-changed', (event) => {
         controls.enabled = !event.value;
@@ -1676,9 +1680,9 @@ export default function KitchenViewer() {
           }
         }
       }
-      ctx.setHoveredGroup3D = setHoveredGroup3D;
+      (ctx as any).setHoveredGroup3D = setHoveredGroup3D;
 
-      let hoverRaf = null;
+      hoverRaf = null;
       let lastPointerEvent = null;
 
       const runHoverCheck = () => {
@@ -2061,8 +2065,8 @@ export default function KitchenViewer() {
               return;
             }
             const gid = hitObj.userData.groupId;
-            if (ctx.toggleInteractivePart) {
-              ctx.toggleInteractivePart(gid, null, true);
+            if ((ctx as any).toggleInteractivePart) {
+              (ctx as any).toggleInteractivePart(gid, null, true);
             }
           }
         }
@@ -3103,7 +3107,7 @@ export default function KitchenViewer() {
           pushHistoryRef.current?.('Upload Textură: ' + cleanName);
           showToast(`📸 Textură încărcată: ${cleanName}`);
         };
-        img.src = ev.target.result;
+        img.src = (ev.target?.result as string) || '';
       };
       reader.readAsDataURL(file);
     });
@@ -3557,7 +3561,7 @@ export default function KitchenViewer() {
       }
 
       const buffer = await exportToGlbArrayBuffer(toExport);
-      const blob = new Blob([buffer], { type: 'model/gltf-binary' });
+      const blob = new Blob([buffer as BlobPart], { type: 'model/gltf-binary' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

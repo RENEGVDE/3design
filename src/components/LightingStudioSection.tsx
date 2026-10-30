@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { I18N } from '../i18n/translations.js';
-import { LIGHT_POS_PRESETS } from '../utils/textures.js';
+import { I18N } from '../i18n/translations';
+import { LIGHT_POS_PRESETS } from '../utils/textures';
 
 export default function LightingStudioSection({
   lang,

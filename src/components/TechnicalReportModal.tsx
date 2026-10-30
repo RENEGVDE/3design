@@ -6,7 +6,7 @@ import {
   calculateCuttingNesting,
   drawPanelBlueprint,
   generateCncDrillingCsv
-} from '../utils/bazisEngineering.js';
+} from '../utils/bazisEngineering';
 
 export default function TechnicalReportModal({
   isOpen,
