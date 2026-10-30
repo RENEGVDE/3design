@@ -21,7 +21,9 @@ export default function TopBar({
   onLoadProject,
   onOpenTechnicalReport,
   magneticSnapEnabled = true,
-  onToggleMagneticSnap
+  onToggleMagneticSnap,
+  onCaptureScreenshot,
+  onExportSceneGlb
 }) {
   const dict = I18N[lang] || I18N.ro;
   const isRo = lang === 'ro';
@@ -136,6 +138,21 @@ export default function TopBar({
                   </div>
                 </button>
 
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    setProjectMenuOpen(false);
+                    if (onExportSceneGlb) onExportSceneGlb();
+                  }}
+                >
+                  <span>📦</span>
+                  <div>
+                    <strong>{isRo ? 'Exportă Scena Completă (.glb)' : isRu ? 'Экспорт всей сцены (.glb)' : 'Export Full Scene (.glb)'}</strong>
+                    <small>{isRo ? 'Model 3D binar cu mobilierul din cameră' : isRu ? '3D модель комнаты для Blender / 3ds Max' : 'Binary 3D model for Blender / 3ds Max'}</small>
+                  </div>
+                </button>
+
                 <div className="dropdown-divider" />
 
                 <button
@@ -186,6 +203,17 @@ export default function TopBar({
         >
           <span>📄</span>
           <span className="btn-label-desktop">{isRo ? 'Fișă Tehnică' : isRu ? 'Спецификация' : 'Cutting List'}</span>
+        </button>
+
+        {/* Screenshot HD Direct Button */}
+        <button
+          type="button"
+          className="action-btn"
+          onClick={onCaptureScreenshot}
+          title={isRo ? 'Captură Foto HD (Randare 3D)' : isRu ? 'Снимок HD (3D рендер)' : 'Download HD 3D Screenshot'}
+        >
+          <span>📸</span>
+          <span className="btn-label-desktop">{isRo ? 'Foto HD' : isRu ? 'Фото HD' : 'HD Photo'}</span>
         </button>
 
         <button

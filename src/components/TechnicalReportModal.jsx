@@ -23,7 +23,7 @@ export default function TechnicalReportModal({
   useEffect(() => {
     if (isOpen && onCaptureScreenshot) {
       try {
-        const shot = onCaptureScreenshot();
+        const shot = onCaptureScreenshot(true);
         if (shot) setScreenshotUrl(shot);
       } catch (e) {
         console.warn('Screenshot capture failed', e);
@@ -176,6 +176,42 @@ export default function TechnicalReportModal({
     URL.revokeObjectURL(url);
   };
 
+  const [copied, setCopied] = useState(false);
+
+  const getSummaryText = () => {
+    return [
+      `🛋️ *SPECIFICAȚIE MOBILIER & OFERTĂ 3DESIGN*`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `📦 Module în proiect: ${importedModels.length} corpuri`,
+      `📐 Piese debitate: ${stats.totalParts} buc`,
+      `🪵 PAL carcasă: ${stats.carcassSqM} m² | Fațade: ${stats.facadeSqM} m²`,
+      `📊 Total PAL: ${stats.totalSqM} m² (~${stats.estimatedSheets} plăci standard 2800×2070)`,
+      `📏 Cant aplicat: ~${stats.edgeMeters} ml`,
+      `🔩 Feronerie: ${stats.hingesCount} balamale, ${stats.slidesCount} glisiere, ${stats.handlesCount} mânere`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `💰 *Total Estimativ: ${stats.totalCost.toLocaleString('ro-RO')} ${currency}*`,
+      ``,
+      `Generat cu 3Design Studio (bucatarie-3d-viewer.web.app)`
+    ].join('\n');
+  };
+
+  const handleCopySummary = async () => {
+    try {
+      const text = getSummaryText();
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.error('Failed to copy summary:', e);
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    const text = getSummaryText();
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -195,6 +231,28 @@ export default function TechnicalReportModal({
             </div>
           </div>
           <div className="report-actions">
+            <button
+              className="btn-pill"
+              onClick={handleCopySummary}
+              title={isRo ? 'Copiază specificația și prețul pentru ofertă' : isRu ? 'Копировать смету' : 'Copy summary'}
+              style={{
+                borderColor: copied ? '#22c55e' : undefined,
+                color: copied ? '#22c55e' : undefined,
+                fontWeight: 600
+              }}
+            >
+              <span>{copied ? '✅' : '📋'}</span>
+              <span>{copied ? (isRo ? 'Copiat!' : isRu ? 'Скопировано!' : 'Copied!') : (isRo ? 'Copiază Sumar' : isRu ? 'Копировать' : 'Copy Summary')}</span>
+            </button>
+            <button
+              className="btn-pill"
+              onClick={handleShareWhatsApp}
+              title="Trimite rezumatul comenzii pe WhatsApp"
+              style={{ color: '#25D366', borderColor: 'rgba(37, 211, 102, 0.4)', fontWeight: 600 }}
+            >
+              <span>💬</span>
+              <span>WhatsApp</span>
+            </button>
             <button className="btn-pill" onClick={handleDownloadCsv} title="Export CSV pentru utilaje de debitare">
               <span>📥</span>
               <span>CSV Debitare</span>

@@ -45,6 +45,7 @@ import MaterialStudioSection from './MaterialStudioSection.jsx';
 import UniversalFurnitureStudioSection from './UniversalFurnitureStudioSection.jsx';
 import BazisKitchenStudioSection from './BazisKitchenStudioSection.jsx';
 import ParametricCabinetSection from './ParametricCabinetSection.jsx';
+import { exportToGlbArrayBuffer } from '../utils/parametricCabinet.js';
 import GlbImporterSection from './GlbImporterSection.jsx';
 import LightingStudioSection from './LightingStudioSection.jsx';
 import InteractivePartsSection from './InteractivePartsSection.jsx';
@@ -125,6 +126,7 @@ export default function KitchenViewer() {
   const [xrayActive, setXrayActive] = useState(false);
   const [countertopHidden, setCountertopHidden] = useState(false);
   const [edgesVisible, setEdgesVisible] = useState(true);
+  const [roomWallsActive, setRoomWallsActive] = useState(false);
   const [autoRotate, setAutoRotate] = useState(false);
 
   const [dimsEnabled, setDimsEnabled] = useState(false);
@@ -1137,6 +1139,50 @@ export default function KitchenViewer() {
       gridHelper.position.set(1.8, -0.001, 1.4);
       scene.add(gridHelper);
 
+      // Studio Room Reference Walls (Back & Left Corner)
+      const roomWallsGroup = new THREE.Group();
+      roomWallsGroup.name = 'studio_room_walls';
+      roomWallsGroup.visible = false;
+
+      const wallMat = new THREE.MeshStandardMaterial({
+        color: 0x222732,
+        roughness: 0.92,
+        metalness: 0.04
+      });
+      const skirtingMat = new THREE.MeshStandardMaterial({
+        color: 0x15181f,
+        roughness: 0.65,
+        metalness: 0.1
+      });
+
+      // Back Wall (Width 6.8m, Height 2.8m, Thickness 0.08m)
+      const backWallGeo = new THREE.BoxGeometry(6.8, 2.8, 0.08);
+      const backWallMesh = new THREE.Mesh(backWallGeo, wallMat);
+      backWallMesh.position.set(2.2, 1.4, -0.06);
+      backWallMesh.receiveShadow = true;
+      roomWallsGroup.add(backWallMesh);
+
+      // Back Skirting
+      const backSkirtingGeo = new THREE.BoxGeometry(6.8, 0.09, 0.02);
+      const backSkirtingMesh = new THREE.Mesh(backSkirtingGeo, skirtingMat);
+      backSkirtingMesh.position.set(2.2, 0.045, -0.01);
+      roomWallsGroup.add(backSkirtingMesh);
+
+      // Left Wall (Depth 5.2m, Height 2.8m, Thickness 0.08m)
+      const leftWallGeo = new THREE.BoxGeometry(0.08, 2.8, 5.2);
+      const leftWallMesh = new THREE.Mesh(leftWallGeo, wallMat);
+      leftWallMesh.position.set(-0.36, 1.4, 2.5);
+      leftWallMesh.receiveShadow = true;
+      roomWallsGroup.add(leftWallMesh);
+
+      // Left Skirting
+      const leftSkirtingGeo = new THREE.BoxGeometry(0.02, 0.09, 5.2);
+      const leftSkirtingMesh = new THREE.Mesh(leftSkirtingGeo, skirtingMat);
+      leftSkirtingMesh.position.set(-0.31, 0.045, 2.5);
+      roomWallsGroup.add(leftSkirtingMesh);
+
+      scene.add(roomWallsGroup);
+
       const displayTex = createOvenDisplayTexture();
       const matDefs = buildDefaultMaterialsTable(displayTex);
 
@@ -1377,6 +1423,8 @@ export default function KitchenViewer() {
       const ctx = {
         payload,
         scene,
+        kitchenRoot,
+        roomWallsGroup,
         camera,
         renderer,
         controls,
@@ -2447,14 +2495,18 @@ export default function KitchenViewer() {
     }
   };
 
-  const handleCaptureScreenshot = () => {
+  const handleCaptureScreenshot = (onlyReturnData = false) => {
     const ctx = sceneRef.current;
-    if (!ctx || !ctx.renderer) return;
+    if (!ctx || !ctx.renderer) return null;
 
     if (ctx.transformControls) ctx.transformControls.visible = false;
     ctx.renderer.render(ctx.scene, ctx.camera);
     const dataUrl = ctx.renderer.domElement.toDataURL('image/png');
     if (ctx.transformControls) ctx.transformControls.visible = true;
+
+    if (onlyReturnData) {
+      return dataUrl;
+    }
 
     const a = document.createElement('a');
     a.href = dataUrl;
@@ -2469,6 +2521,7 @@ export default function KitchenViewer() {
         ? '📸 HD рендер сохранен!'
         : '📸 HD Render downloaded!'
     );
+    return dataUrl;
   };
 
   const handleDeleteGlb = (modelId) => {
@@ -3442,6 +3495,84 @@ export default function KitchenViewer() {
     }
   }, [persistWorkspace, showToast]);
 
+  const handleToggleRoomWalls = useCallback(() => {
+    setRoomWallsActive((prev) => {
+      const next = !prev;
+      if (sceneRef.current?.roomWallsGroup) {
+        sceneRef.current.roomWallsGroup.visible = next;
+        sceneRef.current.needsShadowUpdate = true;
+      }
+      showToast(
+        next
+          ? (lang === 'ro' ? '🧱 Pereți cameră: ACTIVAT' : lang === 'ru' ? '🧱 Стены комнаты: ВКЛ' : '🧱 Room walls: ON')
+          : (lang === 'ro' ? '🧱 Pereți cameră: DEZACTIVAT' : lang === 'ru' ? '🧱 Стены комнаты: ВЫКЛ' : '🧱 Room walls: OFF')
+      );
+      return next;
+    });
+  }, [lang, showToast]);
+
+  const handleExportFullSceneGlb = useCallback(async () => {
+    const ctx = sceneRef.current;
+    if (!ctx) return;
+
+    try {
+      showToast(
+        lang === 'ro'
+          ? '⏳ Se exportă scena 3D în format .GLB...'
+          : lang === 'ru'
+          ? '⏳ Экспорт 3D сцены в .GLB...'
+          : '⏳ Exporting 3D scene to .GLB...'
+      );
+
+      const toExport = [];
+      if (showDemoKitchen && ctx.kitchenRoot && ctx.kitchenRoot.visible) {
+        toExport.push(ctx.kitchenRoot);
+      }
+      if (ctx.importedRootGroup && ctx.importedRootGroup.children.length > 0) {
+        toExport.push(ctx.importedRootGroup);
+      }
+
+      if (toExport.length === 0) {
+        showToast(
+          lang === 'ro'
+            ? '⚠️ Scena este goală, nu există mobilier de exportat'
+            : lang === 'ru'
+            ? '⚠️ Сцена пуста'
+            : '⚠️ Scene is empty'
+        );
+        return;
+      }
+
+      const buffer = await exportToGlbArrayBuffer(toExport);
+      const blob = new Blob([buffer], { type: 'model/gltf-binary' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `3design_scena_${new Date().toISOString().slice(0, 10)}.glb`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast(
+        lang === 'ro'
+          ? '📦 Scena completă a fost exportată (.glb)!'
+          : lang === 'ru'
+          ? '📦 Сцена успешно экспортирована (.glb)!'
+          : '📦 Full scene exported to .GLB!'
+      );
+    } catch (err) {
+      console.error('Error exporting scene GLB:', err);
+      showToast(
+        lang === 'ro'
+          ? '❌ Eroare la exportarea scenei GLB'
+          : lang === 'ru'
+          ? '❌ Ошибка экспорта сцены в GLB'
+          : '❌ Error exporting scene to GLB'
+      );
+    }
+  }, [lang, showDemoKitchen, showToast]);
+
 
   return (
     <>
@@ -3483,6 +3614,8 @@ export default function KitchenViewer() {
         onOpenTechnicalReport={() => setTechnicalReportOpen(true)}
         magneticSnapEnabled={magneticSnapEnabled}
         onToggleMagneticSnap={() => setMagneticSnapEnabled((v) => !v)}
+        onCaptureScreenshot={handleCaptureScreenshot}
+        onExportSceneGlb={handleExportFullSceneGlb}
       />
 
       <DimensionToolbar
@@ -3611,6 +3744,13 @@ export default function KitchenViewer() {
               title={dict.showDims}
             >
               📏
+            </button>
+            <button
+              className={`quick-icon-btn ${roomWallsActive ? 'active' : ''}`}
+              onClick={handleToggleRoomWalls}
+              title={lang === 'ro' ? 'Pereți de Referință Cameră (ON/OFF)' : lang === 'ru' ? 'Стены комнаты (Вкл/Выкл)' : 'Room Reference Walls (ON/OFF)'}
+            >
+              🧱
             </button>
             <button
               className={`quick-icon-btn ${quickActionsExpanded ? 'active' : ''}`}
