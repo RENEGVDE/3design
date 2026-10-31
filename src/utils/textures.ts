@@ -18,13 +18,10 @@ export const LIGHT_POS_PRESETS = {
 };
 
 export const CAM_PRESETS = {
-  overview:  { pos: [-1.65, 2.35, 4.65], target: [1.85, 1.10, 1.05] },
-  front:     { pos: [1.55, 1.38, 3.85],  target: [1.55, 1.22, 0.40] },
-  cooking:   { pos: [2.05, 1.15, 2.15],  target: [2.10, 0.55, 0.45] },
-  peninsula: { pos: [1.35, 1.35, 2.25],  target: [3.45, 0.60, 1.65] },
-  sideboard: { pos: [2.65, 1.45, 1.35],  target: [3.34, 1.15, 2.70] },
-  left:      { pos: [2.35, 1.40, 1.65],  target: [0.15, 1.25, 1.05] },
-  top:       { pos: [1.85, 6.20, 1.55],  target: [1.85, 0.50, 1.45] }
+  overview: { pos: [-1.8, 2.6, 4.2], target: [1.8, 1.0, 1.8] },
+  front:    { pos: [1.8, 1.2, 4.8],  target: [1.8, 1.1, 1.8] },
+  side:     { pos: [5.2, 1.2, 1.8],  target: [1.8, 1.1, 1.8] },
+  top:      { pos: [1.8, 6.5, 1.8],  target: [1.8, 0.0, 1.8] }
 };
 
 export function kelvinToColor(k) {
@@ -38,26 +35,6 @@ export function kelvinToColor(k) {
     const t = Math.max(0, Math.min(1, (k - 4000) / (6500 - 4000)));
     return cNeutral.clone().lerp(cCool, t);
   }
-}
-
-export function createOvenDisplayTexture() {
-  const c = document.createElement('canvas');
-  c.width = 256;
-  c.height = 64;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = '#08090c';
-  ctx.fillRect(0, 0, 256, 64);
-  ctx.strokeStyle = '#222630';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(4, 4, 248, 56);
-  ctx.fillStyle = '#38bdf8';
-  ctx.font = 'bold 24px monospace';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('12:45  180°C', 128, 33);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
 }
 
 export function createTextureFromDataUrl(dataUrl) {
@@ -81,26 +58,4 @@ export function createTextureFromDataUrl(dataUrl) {
     img.onerror = () => resolve(null);
     img.src = dataUrl;
   });
-}
-
-export function buildDefaultMaterialsTable(displayTex) {
-  return [
-    new THREE.MeshStandardMaterial({ color: DEFAULT_WHITE_HEX, roughness: 0.42, metalness: 0.02 }), // 0: Carcass
-    new THREE.MeshStandardMaterial({ color: DEFAULT_WHITE_HEX, roughness: 0.42, metalness: 0.02 }), // 1: Facades
-    new THREE.MeshStandardMaterial({ color: DEFAULT_WHITE_HEX, roughness: 0.42, metalness: 0.02 }), // 2: Countertop
-    new THREE.MeshStandardMaterial({ color: DEFAULT_WHITE_HEX, roughness: 0.42, metalness: 0.02 }), // 3: Vitrine / Wood
-    new THREE.MeshStandardMaterial({ color: 0xbec4cc, roughness: 0.28, metalness: 0.85 }), // 4: Brushed Steel
-    new THREE.MeshStandardMaterial({ color: 0x16181d, roughness: 0.15, metalness: 0.65 }), // 5: Dark Appliance Glass
-    new THREE.MeshStandardMaterial({ color: DEFAULT_WHITE_HEX, roughness: 0.42, metalness: 0.02 }), // 6: Plinth
-    new THREE.MeshStandardMaterial({ color: DEFAULT_WHITE_HEX, roughness: 0.42, metalness: 0.02 }), // 7: Light panel
-    new THREE.MeshStandardMaterial({ color: DEFAULT_WHITE_HEX, roughness: 0.42, metalness: 0.02 }), // 8: Panel
-    new THREE.MeshStandardMaterial({ color: 0xffffff, map: displayTex, emissive: 0x38bdf8, emissiveMap: displayTex, emissiveIntensity: 0.65, roughness: 0.2 }), // 9: Oven LED
-    new THREE.MeshStandardMaterial({ color: 0x0d0f12, roughness: 0.10, metalness: 0.25 }), // 10: Induction Hob Glass
-    new THREE.MeshStandardMaterial({ color: 0xd4d8dd, roughness: 0.22, metalness: 0.90 }), // 11: Chrome Faucet
-    new THREE.MeshStandardMaterial({ color: 0x22252b, roughness: 0.45, metalness: 0.50 }), // 12: Dark Hardware
-    new THREE.MeshStandardMaterial({ color: 0x9fa6b0, roughness: 0.30, metalness: 0.82 }), // 13: Sink Inox
-    new THREE.MeshStandardMaterial({ color: 0x262930, roughness: 0.35, metalness: 0.75 }), // 14: Anodized Frame
-    new THREE.MeshStandardMaterial({ color: 0x1c1e24, roughness: 0.40, metalness: 0.30 }), // 15: Dark Gasket
-    new THREE.MeshStandardMaterial({ color: DEFAULT_WHITE_HEX, roughness: 0.08, metalness: 0.18, transparent: true, opacity: 0.60, depthWrite: false }) // 16: Vitrine Glass
-  ];
 }

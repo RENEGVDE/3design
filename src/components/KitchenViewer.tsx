@@ -18,9 +18,7 @@ import {
   FINISH_MODES,
   CAM_PRESETS,
   kelvinToColor,
-  createOvenDisplayTexture,
-  createTextureFromDataUrl,
-  buildDefaultMaterialsTable
+  createTextureFromDataUrl
 } from '../utils/textures';
 import {
   addCadDimLine,
@@ -53,7 +51,6 @@ import ParametricCabinetSection from './ParametricCabinetSection';
 import { exportToGlbArrayBuffer } from '../utils/parametricCabinet';
 import GlbImporterSection from './GlbImporterSection';
 import LightingStudioSection from './LightingStudioSection';
-import InteractivePartsSection from './InteractivePartsSection';
 import ModelTreePanel from './ModelTreePanel';
 import ArchitecturalRoomSection from './ArchitecturalRoomSection';
 import ApplianceCatalogSection from './ApplianceCatalogSection';
@@ -139,7 +136,6 @@ export default function KitchenViewer() {
   const [loading, setLoading] = useState(true);
   const [lang, setLang] = useState('ro');
   const [panelOpen, setPanelOpen] = useState(true);
-  const [specs, setSpecs] = useState([]);
   const [partsMeta, setPartsMeta] = useState({});
 
   const [materials, setMaterials] = useState([INITIAL_WHITE_MAT]);
@@ -153,8 +149,6 @@ export default function KitchenViewer() {
   const [placeOnSurfaceMode, setPlaceOnSurfaceMode] = useState(false);
 
   const [xrayActive, setXrayActive] = useState(false);
-  const [countertopHidden, setCountertopHidden] = useState(false);
-  const [edgesVisible, setEdgesVisible] = useState(true);
   const [roomWallsActive, setRoomWallsActive] = useState(false);
   const [autoRotate, setAutoRotate] = useState(false);
 
@@ -179,9 +173,8 @@ export default function KitchenViewer() {
   const [showLightOrb, setShowLightOrb] = useState(false);
 
   // Studio Tabs & Navigation State
-  const [activeStudioTab, setActiveStudioTab] = useState('furniture'); // 'architecture' | 'furniture' | 'appliances' | 'materials' | 'models' | 'lighting' | 'parts' | 'tree'
+  const [activeStudioTab, setActiveStudioTab] = useState('furniture'); // 'furniture' | 'appliances' | 'materials' | 'models' | 'architecture' | 'tree' | 'lighting'
   const [furnitureSubTab, setFurnitureSubTab] = useState('universal'); // 'universal' | 'kitchen' | 'single'
-  const [quickActionsExpanded, setQuickActionsExpanded] = useState(false);
 
   // CAD Engineering & Model Tree States
   const [explodedProgress, setExplodedProgress] = useState(0);
@@ -1256,13 +1249,6 @@ export default function KitchenViewer() {
 
       scene.add(roomWallsGroup);
 
-      const displayTex = createOvenDisplayTexture();
-      const matDefs = buildDefaultMaterialsTable(displayTex);
-
-      const kitchenRoot = new THREE.Group();
-      kitchenRoot.scale.set(0.001, 0.001, 0.001);
-      scene.add(kitchenRoot);
-
       // 3D Parametric Architectural Room
       const roomRoot = buildArchitecturalRoom(stateRef.current.roomConfig || DEFAULT_ROOM_CONFIG);
       roomRoot.visible = false; // Clean CAD scene by default; enabled via Architectural Room button
@@ -1284,216 +1270,16 @@ export default function KitchenViewer() {
       fastenersRootGroup.visible = false;
       scene.add(fastenersRootGroup);
 
-      const staticGroups = [
-        'static_carcass',
-        'static_countertop',
-        'static_appliances',
-        'static_plinth',
-        'static_hardware'
-      ];
-      const groupContainers = {};
-      for (const sg of staticGroups) {
-        const g = new THREE.Group();
-        g.name = sg;
-        kitchenRoot.add(g);
-        groupContainers[sg] = g;
-      }
-
-      const interactiveMap = {};
-      const interactiveMeshes = [];
-      const paintableMeshes = [];
-      const allKitchenMeshes = [];
-      const edgeLines = [];
-      const importedMap = {};
-      const importedMeshes = [];
-
-      const staticTargets = {
-        countertop: [],
-        carcass: [],
-        vitrine_carcass: [],
-        plinth: []
-      };
-      const staticZoneAssignments = {
-        countertop: null,
-        carcass: null,
-        vitrine_carcass: null,
-        plinth: null
-      };
-
-      const edgeMat = new THREE.LineBasicMaterial({
-        color: 0x1a1c20,
-        transparent: true,
-        opacity: 0.28
-      });
-
-      for (const spec of payload.specs) {
-        const outer = new THREE.Group();
-        outer.name = spec.id + '_outer';
-        kitchenRoot.add(outer);
-
-        let container = outer;
-        if (spec.type === 'rotate' && spec.pivot) {
-          outer.position.set(spec.pivot[0], spec.pivot[1], spec.pivot[2]);
-          const inner = new THREE.Group();
-          inner.position.set(-spec.pivot[0], -spec.pivot[1], -spec.pivot[2]);
-          outer.add(inner);
-          container = inner;
-        }
-
-        groupContainers[spec.id] = container;
-        interactiveMap[spec.id] = {
-          spec,
-          outer,
-          container,
-          isOpen: false,
-          progress: 0,
-          target: 0,
-          meshes: [],
-          facadeMeshes: [],
-          assignedMatId: null,
-          bboxMm: {
-            min: [Infinity, Infinity, Infinity],
-            max: [-Infinity, -Infinity, -Infinity]
-          },
-          dimsCm: { w: 0, h: 0, d: 0, orientZ: false }
-        };
-      }
-
-      for (const b of payload.batches) {
-        const geom = new THREE.BufferGeometry();
-        let posArr, normInt8, idxArr;
-
-        if (rawBuffer && typeof b.po === 'number') {
-          posArr = new Float32Array(rawBuffer, b.po, b.vc * 3);
-          normInt8 = new Int8Array(rawBuffer, b.no, b.vc * 3);
-          idxArr = b.u32
-            ? new Uint32Array(rawBuffer, b.io, b.ic)
-            : new Uint16Array(rawBuffer, b.io, b.ic);
-        } else if (b.p) {
-          const posInt16 = decodeBase64(b.p, Int16Array);
-          posArr = new Float32Array(posInt16.length);
-          for (let i = 0; i < posInt16.length; i++) posArr[i] = posInt16[i];
-          normInt8 = decodeBase64(b.n, Int8Array);
-          idxArr = decodeBase64(
-            b.i,
-            b.it === 'uint32' ? Uint32Array : Uint16Array
-          );
-        } else {
-          continue;
-        }
-
-        const uvArr = new Float32Array(b.vc * 2);
-        for (let i = 0; i < b.vc; i++) {
-          const px = posArr[i * 3] * 0.002;
-          const py = posArr[i * 3 + 1] * 0.002;
-          const pz = posArr[i * 3 + 2] * 0.002;
-          const nx = Math.abs(normInt8[i * 3]);
-          const ny = Math.abs(normInt8[i * 3 + 1]);
-          const nz = Math.abs(normInt8[i * 3 + 2]);
-          if (ny > nx && ny > nz) {
-            uvArr[i * 2] = px;
-            uvArr[i * 2 + 1] = pz;
-          } else if (nx > nz) {
-            uvArr[i * 2] = pz;
-            uvArr[i * 2 + 1] = py;
-          } else {
-            uvArr[i * 2] = px;
-            uvArr[i * 2 + 1] = py;
-          }
-        }
-
-        geom.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
-        geom.setAttribute('normal', new THREE.BufferAttribute(normInt8, 3, true));
-        geom.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2));
-        geom.setIndex(new THREE.BufferAttribute(idxArr, 1));
-        geom.computeBoundingBox();
-
-        let mat = matDefs[b.m] || matDefs[0];
-        const isInteractive = Boolean(interactiveMap[b.g]);
-        const isPaintableStatic = [
-          'static_countertop',
-          'static_carcass',
-          'static_plinth'
-        ].includes(b.g);
-
-        if (isInteractive || isPaintableStatic) {
-          mat = mat.clone();
-          mat.userData.baseMatIdx = b.m;
-        }
-
-        const mesh = new THREE.Mesh(geom, mat);
-        mesh.castShadow = b.g !== 'static_hardware';
-        mesh.receiveShadow = true;
-        mesh.userData.groupId = b.g;
-        mesh.userData.matIdx = b.m;
-
-        const parentGroup =
-          groupContainers[b.g] || groupContainers['static_carcass'];
-        parentGroup.add(mesh);
-        allKitchenMeshes.push(mesh);
-
-        if (isInteractive) {
-          const item = interactiveMap[b.g];
-          item.meshes.push(mesh);
-          interactiveMeshes.push(mesh);
-          if ([1, 3, 16, 7, 8].includes(b.m)) {
-            item.facadeMeshes.push(mesh);
-            paintableMeshes.push(mesh);
-          }
-          const bb = geom.boundingBox;
-          if (bb) {
-            item.bboxMm.min[0] = Math.min(item.bboxMm.min[0], bb.min.x);
-            item.bboxMm.min[1] = Math.min(item.bboxMm.min[1], bb.min.y);
-            item.bboxMm.min[2] = Math.min(item.bboxMm.min[2], bb.min.z);
-            item.bboxMm.max[0] = Math.max(item.bboxMm.max[0], bb.max.x);
-            item.bboxMm.max[1] = Math.max(item.bboxMm.max[1], bb.max.y);
-            item.bboxMm.max[2] = Math.max(item.bboxMm.max[2], bb.max.z);
-          }
-        } else if (isPaintableStatic) {
-          paintableMeshes.push(mesh);
-          if (b.g === 'static_countertop') {
-            mesh.userData.staticZone = 'countertop';
-            staticTargets.countertop.push(mesh);
-          } else if (b.g === 'static_plinth') {
-            mesh.userData.staticZone = 'plinth';
-            staticTargets.plinth.push(mesh);
-          } else if (b.g === 'static_carcass') {
-            if (b.m === 3) {
-              mesh.userData.staticZone = 'vitrine_carcass';
-              staticTargets.vitrine_carcass.push(mesh);
-            } else {
-              mesh.userData.staticZone = 'carcass';
-              staticTargets.carcass.push(mesh);
-            }
-          }
-        }
-
-        if (b.vc < 8000 && b.g !== 'static_hardware') {
-          const edgesGeo = new THREE.EdgesGeometry(geom, 28);
-          const line = new THREE.LineSegments(edgesGeo, edgeMat);
-          line.raycast = () => { };
-          mesh.add(line);
-          edgeLines.push(line);
-        }
-      }
-
-      for (const id in interactiveMap) {
-        const item = interactiveMap[id];
-        const dxCm = (item.bboxMm.max[0] - item.bboxMm.min[0]) / 10.0;
-        const dyCm = (item.bboxMm.max[1] - item.bboxMm.min[1]) / 10.0;
-        const dzCm = (item.bboxMm.max[2] - item.bboxMm.min[2]) / 10.0;
-        const cat = item.spec.category;
-        const orientZ = cat === 'peninsula_door' || cat === 'left_door';
-        item.dimsCm = {
-          w: orientZ ? dzCm : dxCm,
-          h: dyCm,
-          d: orientZ ? dxCm : dzCm,
-          dxCm,
-          dyCm,
-          dzCm,
-          orientZ
-        };
-      }
+      const importedMap: Record<string, any> = {};
+      const importedMeshes: THREE.Mesh[] = [];
+      const interactiveMap: Record<string, any> = {};
+      const groupContainers: Record<string, THREE.Group> = {};
+      const staticTargets: Record<string, any[]> = {};
+      const staticZoneAssignments: Record<string, any> = {};
+      const interactiveMeshes: THREE.Mesh[] = [];
+      const paintableMeshes: THREE.Mesh[] = [];
+      const allKitchenMeshes: THREE.Mesh[] = [];
+      const edgeLines: THREE.LineSegments[] = [];
 
       const dimsRootGroup = new THREE.Group();
       dimsRootGroup.visible = false;
@@ -1512,7 +1298,6 @@ export default function KitchenViewer() {
       const ctx = {
         payload,
         scene,
-        kitchenRoot,
         roomWallsGroup,
         camera,
         renderer,
@@ -1556,7 +1341,6 @@ export default function KitchenViewer() {
         needsShadowUpdate: true
       };
       sceneRef.current = ctx;
-      setSpecs(payload.specs);
 
       const initPreset = CAM_PRESETS.overview;
       const portraitScale = window.innerHeight > window.innerWidth ? 1.25 : 1.0;
@@ -3178,82 +2962,7 @@ export default function KitchenViewer() {
     }
   };
 
-  // Quick Actions Handlers
-  const handleOpenAll = () => {
-    const ctx = sceneRef.current;
-    if (!ctx) return;
-    ctx.payload.specs.forEach((s) => toggleInteractivePart(s.id, true, false, true));
-    pushHistoryRef.current?.('Deschide Tot');
-  };
 
-  const handleCloseAll = () => {
-    const ctx = sceneRef.current;
-    if (!ctx) return;
-    ctx.payload.specs.forEach((s) => toggleInteractivePart(s.id, false, false, true));
-    pushHistoryRef.current?.('Închide Tot');
-  };
-
-  const handleToggleDrawers = () => {
-    const ctx = sceneRef.current;
-    if (!ctx) return;
-    const drawerSpecs = ctx.payload.specs.filter(
-      (s) => s.category === 'drawer'
-    );
-    const anyClosed = drawerSpecs.some((s) => !ctx.interactiveMap[s.id].isOpen);
-    drawerSpecs.forEach((s) => toggleInteractivePart(s.id, anyClosed, false, true));
-    pushHistoryRef.current?.('Comută Sertare');
-  };
-
-  const handleToggleDoors = () => {
-    const ctx = sceneRef.current;
-    if (!ctx) return;
-    const doorSpecs = ctx.payload.specs.filter((s) => s.category !== 'drawer');
-    const anyClosed = doorSpecs.some((s) => !ctx.interactiveMap[s.id].isOpen);
-    doorSpecs.forEach((s) => toggleInteractivePart(s.id, anyClosed, false, true));
-    pushHistoryRef.current?.('Comută Uși');
-  };
-
-  const handleToggleXray = () => {
-    const ctx = sceneRef.current;
-    const next = !xrayActive;
-    setXrayActive(next);
-    if (!ctx) return;
-    for (const m of ctx.interactiveMeshes) {
-      const assignedId = m.material.userData.assignedMatId;
-      const matEntry = materials.find((x) => x.id === assignedId);
-      const isGlass =
-        m.userData.matIdx === 16 || (matEntry && matEntry.finishIdx === 3);
-      if (isGlass) {
-        m.material.transparent = true;
-        m.material.opacity = next ? 0.25 : 0.6;
-        m.material.depthWrite = false;
-        m.material.needsUpdate = true;
-      } else if ([1, 3].includes(m.userData.matIdx)) {
-        m.material.transparent = next;
-        m.material.opacity = next ? 0.28 : 1.0;
-        m.material.depthWrite = !next;
-        m.material.needsUpdate = true;
-      }
-    }
-  };
-
-  const handleToggleCountertop = () => {
-    const ctx = sceneRef.current;
-    const next = !countertopHidden;
-    setCountertopHidden(next);
-    if (ctx && ctx.groupContainers['static_countertop']) {
-      ctx.groupContainers['static_countertop'].visible = !next;
-    }
-  };
-
-  const handleToggleEdges = () => {
-    const ctx = sceneRef.current;
-    const next = !edgesVisible;
-    setEdgesVisible(next);
-    if (ctx) {
-      for (const line of ctx.edgeLines) line.visible = next;
-    }
-  };
 
   const handleClearTape = () => {
     const ctx = sceneRef.current;
@@ -3267,10 +2976,55 @@ export default function KitchenViewer() {
   };
 
   // Camera Presets & AutoRotate
-  const handleSelectCamera = (camKey) => {
+  const handleSelectCamera = (camKey: string) => {
     const ctx = sceneRef.current;
-    const preset = CAM_PRESETS[camKey];
-    if (!ctx || !preset) return;
+    if (!ctx) return;
+
+    if (camKey === 'focus') {
+      const box = new THREE.Box3();
+      let hasObjects = false;
+      if (selectedGlbId && ctx.importedMap[selectedGlbId]?.wrapperGroup) {
+        box.setFromObject(ctx.importedMap[selectedGlbId].wrapperGroup);
+        hasObjects = true;
+      } else {
+        if (ctx.importedRootGroup && ctx.importedRootGroup.children.length > 0) {
+          box.expandByObject(ctx.importedRootGroup);
+          hasObjects = true;
+        }
+        if (ctx.appliancesRootGroup && ctx.appliancesRootGroup.children.length > 0) {
+          box.expandByObject(ctx.appliancesRootGroup);
+          hasObjects = true;
+        }
+      }
+      if (!hasObjects) {
+        box.set(new THREE.Vector3(0, 0, 0), new THREE.Vector3(3.6, 2.4, 3.6));
+      }
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z, 1.2);
+      const dist = maxDim * 1.6;
+
+      const pVec = new THREE.Vector3(center.x - dist * 0.7, center.y + dist * 0.55, center.z + dist * 0.9);
+      const tVec = center;
+
+      ctx.camAnim = {
+        startPos: ctx.camera.position.clone(),
+        endPos: pVec,
+        startTarget: ctx.controls.target.clone(),
+        endTarget: tVec,
+        startTime: performance.now(),
+        duration: 650
+      };
+      if (window.innerWidth <= 768) {
+        setPanelOpen(false);
+      }
+      return;
+    }
+
+    const preset = (CAM_PRESETS as any)[camKey];
+    if (!preset) return;
     const portraitScale = window.innerHeight > window.innerWidth ? 1.25 : 1.0;
     const tVec = new THREE.Vector3(...preset.target);
     const pVec = new THREE.Vector3(...preset.pos);
@@ -3496,77 +3250,43 @@ export default function KitchenViewer() {
     showToast(`🎨 ${getSpecTitle(item.spec, lang)} → ${activeMat.name}`);
   };
 
-  const handleApplyMaterialToZone = (zoneKey) => {
-    const ctx = sceneRef.current;
-    const activeMat =
-      materials.find((m) => m.id === activeMatId) || materials[0] || null;
-    if (!ctx || !activeMat) return;
-    const dict = I18N[lang] || I18N.ro;
-
-    const assignPart = (id) => {
-      const item = ctx.interactiveMap[id];
-      if (!item) return;
-      item.assignedMatId = activeMat.id;
-      const targets = item.facadeMeshes.length ? item.facadeMeshes : item.meshes;
-      for (const m of targets) applyMatEntryToMesh(m, activeMat, xrayActive);
-    };
-
-    const assignStatic = (sKey) => {
-      ctx.staticZoneAssignments[sKey] = activeMat.id;
-      for (const m of ctx.staticTargets[sKey] || []) {
-        applyMatEntryToMesh(m, activeMat, xrayActive);
-      }
-    };
-
-    if (zoneKey === 'all_facades') {
-      ctx.payload.specs.forEach((s) => assignPart(s.id));
-      assignStatic('vitrine_carcass');
-    } else if (zoneKey === 'upper_doors') {
-      ctx.payload.specs
-        .filter((s) => s.category === 'upper_door' || s.category === 'left_door')
-        .forEach((s) => assignPart(s.id));
-    } else if (zoneKey === 'lower_facades') {
-      ctx.payload.specs
-        .filter((s) =>
-          ['drawer', 'base_door', 'appliance', 'peninsula_door'].includes(
-            s.category
-          )
-        )
-        .forEach((s) => assignPart(s.id));
-    } else if (zoneKey === 'drawers_only') {
-      ctx.payload.specs
-        .filter((s) => s.category === 'drawer')
-        .forEach((s) => assignPart(s.id));
-    } else if (zoneKey === 'base_doors_only') {
-      ctx.payload.specs
-        .filter((s) => s.category === 'base_door' || s.category === 'appliance')
-        .forEach((s) => assignPart(s.id));
-    } else if (zoneKey === 'tall_columns') {
-      ctx.payload.specs
-        .filter((s) => s.category === 'tall_door')
-        .forEach((s) => assignPart(s.id));
-    } else if (zoneKey === 'peninsula') {
-      ctx.payload.specs
-        .filter((s) => s.category === 'peninsula_door')
-        .forEach((s) => assignPart(s.id));
-    } else if (zoneKey === 'vitrine_glass') {
-      ['door_oak_top_l', 'door_oak_top_r'].forEach((id) => assignPart(id));
-    } else if (zoneKey === 'vitrine_body') {
-      ['door_oak_bot_l', 'door_oak_bot_r'].forEach((id) => assignPart(id));
-      assignStatic('vitrine_carcass');
-    } else if (zoneKey === 'countertop') {
-      assignStatic('countertop');
-    } else if (zoneKey === 'carcass') {
-      assignStatic('carcass');
-    } else if (zoneKey === 'plinth') {
-      assignStatic('plinth');
+  const handleApplyMatToSelectedModel = useCallback(() => {
+    const activeMat = materials.find((m) => m.id === activeMatId) || materials[0];
+    if (!activeMat || !selectedGlbId) {
+      showToast(
+        lang === 'ro'
+          ? '⚠️ Selectează mai întâi un corp din scenă sau din panou'
+          : lang === 'ru'
+            ? '⚠️ Выберите изделие в сцене'
+            : '⚠️ Select a model in the scene first'
+      );
+      return;
     }
+    handlePaintWholeGlbWithActiveMat(selectedGlbId);
+    showToast(
+      lang === 'ro'
+        ? `🎨 Finisajul "${activeMat.name}" a fost aplicat pe corpul selectat!`
+        : `🎨 Applied "${activeMat.name}" to selected model!`
+    );
+  }, [activeMatId, materials, selectedGlbId, handlePaintWholeGlbWithActiveMat, lang, showToast]);
 
-    syncPartsMetaToReact();
-    persistWorkspace();
-    pushHistoryRef.current?.('Aplicare Zonă ' + zoneKey);
-    showToast(`🎨 ${dict.appliedToast}${activeMat.name}`);
-  };
+  const handleApplyMatToAllModels = useCallback(() => {
+    const activeMat = materials.find((m) => m.id === activeMatId) || materials[0];
+    if (!activeMat) return;
+    const allModels = stateRef.current.importedModels || [];
+    if (allModels.length === 0) {
+      showToast(lang === 'ro' ? '⚠️ Nu există corpuri în scenă' : '⚠️ No models in scene');
+      return;
+    }
+    for (const m of allModels) {
+      handlePaintWholeGlbWithActiveMat(m.id);
+    }
+    showToast(
+      lang === 'ro'
+        ? `🎨 Finisajul "${activeMat.name}" a fost aplicat pe toate cele ${allModels.length} corpuri!`
+        : `🎨 Applied "${activeMat.name}" to all ${allModels.length} models!`
+    );
+  }, [activeMatId, materials, handlePaintWholeGlbWithActiveMat, lang, showToast]);
 
   // Lighting Studio Handlers
   const handleChangeLightState = (partial, isContinuous = true) => {
@@ -4175,16 +3895,6 @@ export default function KitchenViewer() {
           ctx.fastenersRootGroup.add(group);
         });
 
-        if (ctx.kitchenRoot && ctx.kitchenRoot.visible) {
-          const baseKitchenFasteners = new THREE.Group();
-          const fConfig = { widthMm: 800, heightMm: 720, depthMm: 560, boardThicknessMm: 18, shelvesCount: 1, plinthHeightMm: 100, hasDoors: true };
-          const { group: g1 } = createFastenerMeshes(fConfig);
-          g1.scale.set(0.001, 0.001, 0.001);
-          g1.position.set(0.6, 0, 0.28);
-          baseKitchenFasteners.add(g1);
-          ctx.fastenersRootGroup.add(baseKitchenFasteners);
-        }
-
         ctx.fastenersRootGroup.visible = true;
       } else {
         ctx.fastenersRootGroup.visible = false;
@@ -4238,25 +3948,6 @@ export default function KitchenViewer() {
         }
       });
     });
-
-    if (ctx.kitchenRoot && ctx.kitchenRoot.visible) {
-      const offsetMm = (val / 100) * 250;
-      ctx.kitchenRoot.traverse((child) => {
-        if (child.isMesh && child.name && !child.name.startsWith('static_hardware')) {
-          if (!child.userData.cadOrigPos) {
-            child.userData.cadOrigPos = child.position.clone();
-          }
-          const orig = child.userData.cadOrigPos;
-          const name = child.name.toLowerCase();
-
-          if (name.includes('front') || name.includes('door') || name.includes('drawer')) {
-            child.position.z = orig.z + offsetMm * 1.2;
-          } else if (name.includes('countertop')) {
-            child.position.y = orig.y + offsetMm * 0.8;
-          }
-        }
-      });
-    }
 
     ctx.needsShadowUpdate = true;
   }, []);
@@ -4483,6 +4174,14 @@ export default function KitchenViewer() {
             <span className="tab-label">{dict.tabFurniture}</span>
           </button>
           <button
+            className={`studio-tab-btn ${activeStudioTab === 'appliances' ? 'active' : ''}`}
+            onClick={() => setActiveStudioTab('appliances')}
+            title={lang === 'ro' ? 'Electrocasnice' : lang === 'ru' ? 'Техника' : 'Appliances'}
+          >
+            <span className="tab-icon">🍳</span>
+            <span className="tab-label">{lang === 'ro' ? 'Tehnică' : lang === 'ru' ? 'Техника' : 'Appliances'}</span>
+          </button>
+          <button
             className={`studio-tab-btn ${activeStudioTab === 'materials' ? 'active' : ''}`}
             onClick={() => setActiveStudioTab('materials')}
             title={dict.tabMaterials}
@@ -4499,20 +4198,12 @@ export default function KitchenViewer() {
             <span className="tab-label">{dict.tab3DModels}</span>
           </button>
           <button
-            className={`studio-tab-btn ${activeStudioTab === 'lighting' ? 'active' : ''}`}
-            onClick={() => setActiveStudioTab('lighting')}
-            title={dict.tabLighting}
+            className={`studio-tab-btn ${activeStudioTab === 'architecture' ? 'active' : ''}`}
+            onClick={() => setActiveStudioTab('architecture')}
+            title={lang === 'ro' ? 'Arhitectură Cameră' : lang === 'ru' ? 'Архитектура комнаты' : 'Room Architecture'}
           >
-            <span className="tab-icon">💡</span>
-            <span className="tab-label">{dict.tabLighting}</span>
-          </button>
-          <button
-            className={`studio-tab-btn ${activeStudioTab === 'parts' ? 'active' : ''}`}
-            onClick={() => setActiveStudioTab('parts')}
-            title={dict.tabParts}
-          >
-            <span className="tab-icon">📋</span>
-            <span className="tab-label">{dict.tabParts}</span>
+            <span className="tab-icon">🏛️</span>
+            <span className="tab-label">{lang === 'ro' ? 'Cameră' : lang === 'ru' ? 'Комната' : 'Room'}</span>
           </button>
           <button
             className={`studio-tab-btn ${activeStudioTab === 'tree' ? 'active' : ''}`}
@@ -4521,6 +4212,14 @@ export default function KitchenViewer() {
           >
             <span className="tab-icon">🌲</span>
             <span className="tab-label">{dict.tabModelTree || 'Arbore CAD'}</span>
+          </button>
+          <button
+            className={`studio-tab-btn ${activeStudioTab === 'lighting' ? 'active' : ''}`}
+            onClick={() => setActiveStudioTab('lighting')}
+            title={dict.tabLighting}
+          >
+            <span className="tab-icon">💡</span>
+            <span className="tab-label">{dict.tabLighting}</span>
           </button>
         </div>
 
@@ -4545,30 +4244,16 @@ export default function KitchenViewer() {
             </button>
             <div className="quick-divider" />
             <button
-              className="quick-icon-btn"
-              onClick={handleOpenAll}
-              title={dict.openAll}
+              className={`quick-icon-btn ${magneticSnapEnabled ? 'active' : ''}`}
+              onClick={() => setMagneticSnapEnabled((v) => !v)}
+              title={lang === 'ro' ? 'Aliniere & Snap Magnetic CAD' : lang === 'ru' ? 'Магнитная привязка CAD' : 'Magnetic Snap CAD'}
             >
-              🔓
+              🧲
             </button>
             <button
-              className="quick-icon-btn"
-              onClick={handleCloseAll}
-              title={dict.closeAll}
-            >
-              🔒
-            </button>
-            <button
-              className={`quick-icon-btn ${xrayActive ? 'active' : ''}`}
-              onClick={handleToggleXray}
-              title={dict.xrayFronts}
-            >
-              👁️
-            </button>
-            <button
-              className={`quick-icon-btn ${edgesVisible ? 'active' : ''}`}
-              onClick={handleToggleEdges}
-              title={dict.showEdges}
+              className={`quick-icon-btn ${is2DPlanMode ? 'active' : ''}`}
+              onClick={() => setIs2DPlanMode((v) => !v)}
+              title={lang === 'ro' ? 'Comută Mod Schiță 2D / Plan Tehnic' : lang === 'ru' ? 'Режим 2D плана' : '2D Floor Plan Mode'}
             >
               📐
             </button>
@@ -4587,41 +4272,21 @@ export default function KitchenViewer() {
               🧱
             </button>
             <button
-              className={`quick-icon-btn ${quickActionsExpanded ? 'active' : ''}`}
-              onClick={() => setQuickActionsExpanded((v) => !v)}
-              title="Mai multe acțiuni"
+              className={`quick-icon-btn ${activeStudioTab === 'tree' ? 'active' : ''}`}
+              onClick={() => setActiveStudioTab('tree')}
+              title={lang === 'ro' ? 'Arbore CAD & Structură' : lang === 'ru' ? 'Дерево сборки CAD' : 'CAD Assembly Tree'}
+            >
+              🌲
+            </button>
+            <button
+              className="quick-icon-btn"
+              onClick={() => handleCaptureScreenshot()}
+              title={lang === 'ro' ? 'Captură Imagine 3D' : lang === 'ru' ? 'Снимок 3D' : 'Capture 3D View'}
               style={{ marginLeft: 'auto' }}
             >
-              {quickActionsExpanded ? '▲' : '⚡'}
+              📸
             </button>
           </div>
-
-          {quickActionsExpanded && (
-            <div className="btn-grid" style={{ marginTop: '8px' }}>
-              <button className="btn-pill" onClick={handleToggleDrawers}>
-                <span>🗄️</span>
-                <span>{dict.toggleDrawers}</span>
-              </button>
-              <button className="btn-pill" onClick={handleToggleDoors}>
-                <span>🚪</span>
-                <span>{dict.toggleDoors}</span>
-              </button>
-              <button
-                className={`btn-pill ${countertopHidden ? 'active' : ''}`}
-                onClick={handleToggleCountertop}
-              >
-                <span>🪨</span>
-                <span>{dict.hideCountertop}</span>
-              </button>
-              <button
-                className={`btn-pill ${dimsEnabled ? 'active' : ''}`}
-                onClick={() => setDimsEnabled((v) => !v)}
-              >
-                <span>📏</span>
-                <span>{dict.showDims}</span>
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Studio Content Area */}
@@ -4729,7 +4394,8 @@ export default function KitchenViewer() {
               onUpdateActiveMaterialProp={handleUpdateActiveMaterialProp}
               paintModeActive={paintModeActive}
               onTogglePaintMode={() => setPaintModeActive((v) => !v)}
-              onApplyMaterialToZone={handleApplyMaterialToZone}
+              onApplyToSelectedModel={handleApplyMatToSelectedModel}
+              onApplyToAllModels={handleApplyMatToAllModels}
             />
           )}
 
@@ -4775,18 +4441,6 @@ export default function KitchenViewer() {
               onChangeLightState={handleChangeLightState}
               showLightOrb={showLightOrb}
               onToggleLightOrb={handleToggleLightOrb}
-            />
-          )}
-
-          {activeStudioTab === 'parts' && (
-            <InteractivePartsSection
-              lang={lang}
-              specs={specs}
-              partsMeta={partsMeta}
-              materials={materials}
-              onTogglePart={(id) => toggleInteractivePart(id, null, true)}
-              onPaintPart={handlePaintPart}
-              onHoverPart={handleHoverPart}
             />
           )}
 

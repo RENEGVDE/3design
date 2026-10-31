@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { I18N, ZONE_BUTTONS } from '../i18n/translations';
+import { I18N } from '../i18n/translations';
 import { FINISH_MODES } from '../utils/textures';
 
 export default function MaterialStudioSection({
@@ -17,26 +17,44 @@ export default function MaterialStudioSection({
   onUpdateActiveMaterialProp,
   paintModeActive,
   onTogglePaintMode,
-  onApplyMaterialToZone
+  onApplyToSelectedModel,
+  onApplyToAllModels
+}: {
+  lang: string;
+  materials: any[];
+  activeMatId: string | null;
+  onSelectMaterial: (id: string) => void;
+  onUploadTextures: (files: File[]) => void;
+  onAddColorMaterial: (hex: string) => void;
+  onDeleteMaterial: (id: string) => void;
+  onDeleteAllMaterials: () => void;
+  onResetFurnitureToWhite: () => void;
+  onUpdateActiveMaterialProp: (prop: string, val: any) => void;
+  paintModeActive: boolean;
+  onTogglePaintMode: () => void;
+  onApplyToSelectedModel?: () => void;
+  onApplyToAllModels?: () => void;
 }) {
   const dict = I18N[lang] || I18N.ro;
-  const fileInputRef = useRef(null);
-  const colorInputRef = useRef(null);
+  const isRo = lang === 'ro';
+  const isRu = lang === 'ru';
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const colorInputRef = useRef<HTMLInputElement>(null);
 
   const activeMat = materials.find((m) => m.id === activeMatId) || materials[0] || null;
   const finObj = activeMat
     ? FINISH_MODES[activeMat.finishIdx] || FINISH_MODES[0]
     : FINISH_MODES[0];
 
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files || []);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []) as File[];
     if (files.length > 0) {
       onUploadTextures(files);
     }
     e.target.value = '';
   };
 
-  const handleColorChange = (e) => {
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.value) {
       onAddColorMaterial(e.target.value);
     }
@@ -199,18 +217,32 @@ export default function MaterialStudioSection({
           <span>{paintModeActive ? dict.paintModeActiveBtn : dict.paintModeBtn}</span>
         </button>
 
-        <div className="zone-title">{dict.applyZoneTitle}</div>
-        <div className="zone-grid">
-          {ZONE_BUTTONS.map((z) => (
+        <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ fontSize: '0.73rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+            {isRo ? 'Aplicare Finisaj Activ pe Mobilier:' : isRu ? 'Применить активный материал:' : 'Apply Active Material to Furniture:'}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
             <button
-              key={z.zone}
-              className="zone-btn"
-              onClick={() => onApplyMaterialToZone(z.zone)}
+              type="button"
+              className="btn-pill"
+              style={{ justifyContent: 'center', fontSize: '0.74rem', padding: '7px 4px' }}
+              title={isRo ? 'Aplică finisajul pe corpul CAD selectat în scenă' : 'Apply to selected model'}
+              onClick={onApplyToSelectedModel}
             >
-              <span>{z.icon}</span>
-              <span>{dict[z.i18nKey]}</span>
+              <span>🛋️</span>
+              <span>{isRo ? 'Corp Selectat' : isRu ? 'Выбранное' : 'Selected'}</span>
             </button>
-          ))}
+            <button
+              type="button"
+              className="btn-pill"
+              style={{ justifyContent: 'center', fontSize: '0.74rem', padding: '7px 4px' }}
+              title={isRo ? 'Aplică finisajul pe toate corpurile de mobilier din scenă' : 'Apply to all models in scene'}
+              onClick={onApplyToAllModels}
+            >
+              <span>🏠</span>
+              <span>{isRo ? 'Toate Corpurile' : isRu ? 'Все изделия' : 'All Models'}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

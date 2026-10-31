@@ -77,13 +77,11 @@ export const I18N = {
     lightDistLbl: 'Light Distance',
     showLightOrbBtn: 'Show 3D Light Source Helper in Scene',
     interactiveParts: 'Interactive Parts (Click 🖌️ to Apply Material)',
-    camOverview: 'Overview',
+    camOverview: 'Isometric (3D)',
     camFront: 'Front',
-    camCooking: 'Cooking Zone',
-    camPeninsula: 'Peninsula',
-    camSideboard: 'Glass Sideboard',
-    camLeft: 'Left Return',
+    camSide: 'Side',
     camTop: 'Top Plan',
+    camFocus: 'Focus',
     autoRotate: 'Auto-Rotate',
     statusOpen: 'OPEN',
     statusClosed: 'CLOSED',
@@ -236,13 +234,11 @@ export const I18N = {
     lightDistLbl: 'Дистанция света',
     showLightOrbBtn: 'Показать 3D-индикатор лампы в сцене',
     interactiveParts: 'Интерактивные элементы (🖌️ — применить материал)',
-    camOverview: 'Общий вид',
+    camOverview: '3D Изометрия',
     camFront: 'Спереди',
-    camCooking: 'Зона готовки',
-    camPeninsula: 'Полуостров',
-    camSideboard: 'Витрина',
-    camLeft: 'Левое крыло',
+    camSide: 'Сбоку',
     camTop: 'Вид сверху',
+    camFocus: 'В фокус',
     autoRotate: 'Авто-вращение',
     statusOpen: 'ОТКРЫТО',
     statusClosed: 'ЗАКРЫТО',
@@ -395,13 +391,11 @@ export const I18N = {
     lightDistLbl: 'Distanță Sursă Lumină',
     showLightOrbBtn: 'Afișează Punctul de Iluminare 3D în Scenă',
     interactiveParts: 'Elemente Interactive (Apasă 🖌️ pt. a aplica materialul)',
-    camOverview: 'Ansamblu',
+    camOverview: 'Isometrie 3D',
     camFront: 'Față',
-    camCooking: 'Zonă Gătit',
-    camPeninsula: 'Peninsulă',
-    camSideboard: 'Vitrină',
-    camLeft: 'Latura Stângă',
+    camSide: 'Lateral',
     camTop: 'Plan Sus',
+    camFocus: 'Focalizare',
     autoRotate: 'Rotire Auto',
     statusOpen: 'DESCHIS',
     statusClosed: 'ÎNCHIS',
@@ -477,31 +471,6 @@ export const I18N = {
     redoToast: 'Refăcut: '
   }
 };
-
-export const CATEGORIES_ORDER = [
-  'drawer',
-  'upper_door',
-  'base_door',
-  'tall_door',
-  'peninsula_door',
-  'sideboard_door',
-  'left_door'
-];
-
-export const ZONE_BUTTONS = [
-  { zone: 'all_facades', icon: '✨', i18nKey: 'zoneAllFacades' },
-  { zone: 'upper_doors', icon: '⬆️', i18nKey: 'zoneUpperDoors' },
-  { zone: 'lower_facades', icon: '⬇️', i18nKey: 'zoneLowerFacades' },
-  { zone: 'drawers_only', icon: '🗄️', i18nKey: 'zoneDrawersOnly' },
-  { zone: 'base_doors_only', icon: '🚪', i18nKey: 'zoneBaseDoorsOnly' },
-  { zone: 'tall_columns', icon: '🏢', i18nKey: 'zoneTallColumns' },
-  { zone: 'peninsula', icon: '🏝️', i18nKey: 'zonePeninsula' },
-  { zone: 'vitrine_glass', icon: '🪟', i18nKey: 'zoneVitrineGlass' },
-  { zone: 'vitrine_body', icon: '🥂', i18nKey: 'zoneVitrineBody' },
-  { zone: 'countertop', icon: '🪨', i18nKey: 'zoneCountertop' },
-  { zone: 'carcass', icon: '📦', i18nKey: 'zoneCarcass' },
-  { zone: 'plinth', icon: '➖', i18nKey: 'zonePlinth' }
-];
 
 export function fmtCm(val) {
   const r = Math.round(val * 10) / 10;

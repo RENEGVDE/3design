@@ -4,13 +4,11 @@ import React from 'react';
 import { I18N } from '../i18n/translations';
 
 const CAMERA_BUTTONS = [
-  { key: 'overview', icon: '🏠', i18nKey: 'camOverview' },
+  { key: 'overview', icon: '🌐', i18nKey: 'camOverview' },
   { key: 'front', icon: '🎯', i18nKey: 'camFront' },
-  { key: 'cooking', icon: '🍳', i18nKey: 'camCooking' },
-  { key: 'peninsula', icon: '🍷', i18nKey: 'camPeninsula' },
-  { key: 'sideboard', icon: '🥂', i18nKey: 'camSideboard' },
-  { key: 'left', icon: '📐', i18nKey: 'camLeft' },
-  { key: 'top', icon: '🗺️', i18nKey: 'camTop' }
+  { key: 'side', icon: '📐', i18nKey: 'camSide' },
+  { key: 'top', icon: '🗺️', i18nKey: 'camTop' },
+  { key: 'focus', icon: '🔍', i18nKey: 'camFocus' }
 ];
 
 export default function CameraPresetsBar({
