@@ -620,12 +620,9 @@ export function loadGlbModelFromBuffer(arrayBuffer, modelId, modelName) {
         // 2. Selective shadows: cull micro-hardware (< 8cm) from shadow map depth passes
         optimizeModelShadows(meshes, 0.08);
 
-        // 3. Batch static geometries to reduce draw calls from 100+ to 3-5
-        if (meshes.length > 5) {
-          const batchResult = convertAndBatchModelGeometries(wrapperGroup, meshes, subPartsMeta);
-          meshes = batchResult.newMeshes;
-          subPartsMeta = batchResult.newSubPartsMeta;
-        }
+        // 3. Keep all CAD furniture parts distinct on initial load so each panel
+        // remains individually selectable, clickable for click-to-paint, and listed in tree.
+        // Users can optimize draw calls anytime via the "⚡⚡ Convertește & Optimizează Three.js" button.
 
         // 4. Setup O(1) Hierarchical Bounding Box Raycast Acceleration
         updateModelBoundingStructure(wrapperGroup);

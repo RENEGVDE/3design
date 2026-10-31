@@ -2282,7 +2282,7 @@ export default function KitchenViewer() {
           'cad_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
 
         const count = stateRef.current.importedModels.length;
-        const initPos = [1.85 + count * 0.35, 0.0, 2.15];
+        const initPos = count === 0 ? [0.0, 0.0, 0.0] : [count * 1.5, 0.0, 0.0];
 
         let glbBuffer: ArrayBuffer | null = null;
         let formatLabel = 'GLB';

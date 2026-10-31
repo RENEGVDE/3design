@@ -231,40 +231,131 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
   const materialCache = new Map<string, THREE.MeshStandardMaterial>();
 
   function getStandardMaterial(matName?: string): THREE.MeshStandardMaterial {
-    const key = (matName || 'Alb_Default').trim();
-    if (materialCache.has(key)) return materialCache.get(key)!;
+    const cleanKey = (matName || 'Alb_Default').split(/[\r\n]/)[0].trim();
+    if (materialCache.has(cleanKey)) return materialCache.get(cleanKey)!;
 
     let hexColor = '#f4f4f2';
     let roughness = 0.45;
     let metalness = 0.05;
+    let transparent = false;
+    let opacity = 1.0;
 
-    const lower = key.toLowerCase();
-    if (lower.includes('stejar') || lower.includes('oak') || lower.includes('wood') || lower.includes('dub')) {
-      hexColor = '#ba9a76';
+    const lower = cleanKey.toLowerCase();
+    if (lower.includes('sahara') || lower.includes('cream') || lower.includes('crem')) {
+      hexColor = '#d8cbbe';
+      roughness = 0.4;
+      metalness = 0.02;
+    } else if (lower.includes('casella') || lower.includes('oak') || lower.includes('stejar') || lower.includes('wood') || lower.includes('dub')) {
+      hexColor = '#96714c';
       roughness = 0.55;
+      metalness = 0.02;
     } else if (lower.includes('nuc') || lower.includes('walnut') || lower.includes('oreh')) {
       hexColor = '#6e5038';
       roughness = 0.5;
-    } else if (lower.includes('antracit') || lower.includes('gri') || lower.includes('grey') || lower.includes('gray')) {
-      hexColor = '#4a4c50';
-      roughness = 0.4;
-    } else if (lower.includes('negru') || lower.includes('black') || lower.includes('cern')) {
-      hexColor = '#242426';
+    } else if (lower.includes('lentos') || lower.includes('negru') || lower.includes('black') || lower.includes('cern')) {
+      hexColor = '#232325';
       roughness = 0.35;
-    } else if (lower.includes('inox') || lower.includes('metal') || lower.includes('steel') || lower.includes('crom')) {
-      hexColor = '#d0d4d8';
-      roughness = 0.25;
-      metalness = 0.75;
+      metalness = 0.05;
+    } else if (lower.includes('antracit') || lower.includes('anthracite') || lower.includes('palmel')) {
+      hexColor = '#3c3e43';
+      roughness = 0.42;
+      metalness = 0.03;
+    } else if (lower.includes('gri') || lower.includes('grey') || lower.includes('gray') || lower.includes('серый')) {
+      hexColor = '#7e8288';
+      roughness = 0.45;
+      metalness = 0.05;
+    } else if (lower.includes('hrom') || lower.includes('хром') || lower.includes('chrome') || lower.includes('crom')) {
+      hexColor = '#e0e4e8';
+      roughness = 0.15;
+      metalness = 0.95;
+    } else if (lower.includes('nerjaveika') || lower.includes('нержавейка') || lower.includes('inox') || lower.includes('steel') || lower.includes('metal')) {
+      hexColor = '#cfd3d6';
+      roughness = 0.28;
+      metalness = 0.8;
+    } else if (lower.includes('steklo') || lower.includes('стекло') || lower.includes('glass')) {
+      hexColor = '#2b333a';
+      roughness = 0.1;
+      metalness = 0.1;
+      transparent = true;
+      opacity = 0.65;
     }
 
     const mat = new THREE.MeshStandardMaterial({
       color: new THREE.Color(hexColor),
       roughness,
       metalness,
-      name: key
+      transparent,
+      opacity,
+      name: cleanKey
     });
-    materialCache.set(key, mat);
+    materialCache.set(cleanKey, mat);
     return mat;
+  }
+
+  interface ContourSegment {
+    type: 'line' | 'arc';
+    p1: { x: number; y: number };
+    p2: { x: number; y: number };
+    cx?: number;
+    cy?: number;
+    dirFlag?: number;
+    reversed?: boolean;
+  }
+
+  interface ContourCircle {
+    cx: number;
+    cy: number;
+    r: number;
+  }
+
+  function computeLoopArea(loop: ContourSegment[]): number {
+    let area = 0;
+    for (let i = 0; i < loop.length; i++) {
+      const p1 = loop[i].p1;
+      const p2 = loop[i].p2;
+      area += p1.x * p2.y - p2.x * p1.y;
+    }
+    return Math.abs(area) * 0.5;
+  }
+
+  function buildLoopPath(pathObj: THREE.Path | THREE.Shape, loop: ContourSegment[]) {
+    if (loop.length === 0) return;
+    const startP = loop[0].p1;
+    pathObj.moveTo(startP.x * 0.001, startP.y * 0.001);
+
+    for (const seg of loop) {
+      const p1 = seg.p1;
+      const p2 = seg.p2;
+
+      if (seg.type === 'line' || seg.cx === undefined || seg.cy === undefined) {
+        pathObj.lineTo(p2.x * 0.001, p2.y * 0.001);
+      } else {
+        const cx = seg.cx;
+        const cy = seg.cy;
+        const r = Math.hypot(p1.x - cx, p1.y - cy);
+
+        // If radius is huge (>5000mm) or center is astronomical, treat as straight line to prevent spikes
+        if (r > 5000 || !isFinite(r)) {
+          pathObj.lineTo(p2.x * 0.001, p2.y * 0.001);
+        } else {
+          const a1 = Math.atan2(p1.y - cy, p1.x - cx);
+          const a2 = Math.atan2(p2.y - cy, p2.x - cx);
+          let delta = a2 - a1;
+          while (delta <= -Math.PI) delta += 2 * Math.PI;
+          while (delta > Math.PI) delta -= 2 * Math.PI;
+
+          const STEPS = 8;
+          for (let k = 1; k <= STEPS; k++) {
+            const t = k / STEPS;
+            const a = a1 + t * delta;
+            const px = (cx + r * Math.cos(a)) * 0.001;
+            const py = (cy + r * Math.sin(a)) * 0.001;
+            pathObj.lineTo(px, py);
+          }
+        }
+      }
+    }
+    pathObj.closePath();
   }
 
   const cuttingList: D3DPanelSpec[] = [];
@@ -279,10 +370,9 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
     const numSegs = cView.getInt32(0, true);
     if (numSegs < 1) continue;
 
-    const shape = new THREE.Shape();
     let cp = 4;
-    let firstPoint = true;
-    let validSegCount = 0;
+    const rawSegments: ContourSegment[] = [];
+    const standAloneCircles: ContourCircle[] = [];
 
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
@@ -299,79 +389,157 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
         const y2 = cView.getFloat64(cp + 25, true);
         cp += 33;
 
+        if (!isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2)) continue;
+        if (Math.abs(x1) > 10000 || Math.abs(y1) > 10000 || Math.abs(x2) > 10000 || Math.abs(y2) > 10000) continue;
+
         minX = Math.min(minX, x1, x2);
         maxX = Math.max(maxX, x1, x2);
         minY = Math.min(minY, y1, y2);
         maxY = Math.max(maxY, y1, y2);
 
-        const x1M = x1 * 0.001;
-        const y1M = y1 * 0.001;
-        const x2M = x2 * 0.001;
-        const y2M = y2 * 0.001;
-
-        if (firstPoint) {
-          shape.moveTo(x1M, y1M);
-          firstPoint = false;
-        }
-        shape.lineTo(x2M, y2M);
-        validSegCount++;
+        rawSegments.push({ type: 'line', p1: { x: x1, y: y1 }, p2: { x: x2, y: y2 } });
       } else if (segType === 0x12 && cp + 50 <= cBytes.length) {
-        // Fillet / Arc segment
-        const x1 = cView.getFloat64(cp + 1, true);
-        const y1 = cView.getFloat64(cp + 9, true);
-        const x2 = cView.getFloat64(cp + 17, true);
-        const y2 = cView.getFloat64(cp + 25, true);
+        // Arc / Fillet: cx, cy, x1, y1, x2, y2, dirFlag
+        const cx = cView.getFloat64(cp + 1, true);
+        const cy = cView.getFloat64(cp + 9, true);
+        const x1 = cView.getFloat64(cp + 17, true);
+        const y1 = cView.getFloat64(cp + 25, true);
+        const x2 = cView.getFloat64(cp + 33, true);
+        const y2 = cView.getFloat64(cp + 41, true);
+        const dirFlag = cView.getUint8(cp + 49);
         cp += 50;
 
+        if (!isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2)) continue;
+        if (Math.abs(x1) > 10000 || Math.abs(y1) > 10000 || Math.abs(x2) > 10000 || Math.abs(y2) > 10000) continue;
+
         minX = Math.min(minX, x1, x2);
         maxX = Math.max(maxX, x1, x2);
         minY = Math.min(minY, y1, y2);
         maxY = Math.max(maxY, y1, y2);
 
-        const x1M = x1 * 0.001;
-        const y1M = y1 * 0.001;
-        const x2M = x2 * 0.001;
-        const y2M = y2 * 0.001;
-
-        if (firstPoint) {
-          shape.moveTo(x1M, y1M);
-          firstPoint = false;
-        }
-        shape.lineTo(x2M, y2M);
-        validSegCount++;
+        rawSegments.push({ type: 'arc', cx, cy, p1: { x: x1, y: y1 }, p2: { x: x2, y: y2 }, dirFlag });
       } else if (segType === 0x11 && cp + 25 <= cBytes.length) {
-        // Circle / Arc: Center X, Center Y, Radius
+        // Standalone Circle / Grommet hole
         const cx = cView.getFloat64(cp + 1, true);
         const cy = cView.getFloat64(cp + 9, true);
         const r = cView.getFloat64(cp + 17, true);
         cp += 25;
+
+        if (!isFinite(cx) || !isFinite(cy) || !isFinite(r) || r <= 0 || r > 5000) continue;
 
         minX = Math.min(minX, cx - r);
         maxX = Math.max(maxX, cx + r);
         minY = Math.min(minY, cy - r);
         maxY = Math.max(maxY, cy + r);
 
-        const cxM = cx * 0.001;
-        const cyM = cy * 0.001;
-        const rM = r * 0.001;
-
-        if (firstPoint && numSegs === 1) {
-          shape.absarc(cxM, cyM, rM, 0, Math.PI * 2, false);
-          firstPoint = false;
-        } else if (firstPoint) {
-          shape.moveTo(cxM + rM, cyM);
-          firstPoint = false;
-        } else {
-          shape.lineTo(cxM, cyM);
-        }
-        validSegCount++;
+        standAloneCircles.push({ cx, cy, r });
       } else {
         break;
       }
     }
 
-    if (validSegCount < 1) continue;
-    shape.closePath();
+    // Chain segments into continuous closed loop(s)
+    const loops: ContourSegment[][] = [];
+    const used = new Array(rawSegments.length).fill(false);
+
+    while (true) {
+      const startIdx = used.indexOf(false);
+      if (startIdx === -1) break;
+
+      const currentLoop: ContourSegment[] = [];
+      used[startIdx] = true;
+      currentLoop.push(rawSegments[startIdx]);
+
+      let currEnd = rawSegments[startIdx].p2;
+
+      for (let step = 0; step < rawSegments.length; step++) {
+        const firstStart = currentLoop[0].p1;
+        if (Math.hypot(currEnd.x - firstStart.x, currEnd.y - firstStart.y) < 1.0 && currentLoop.length >= 2) {
+          break;
+        }
+
+        let bestIdx = -1;
+        let bestDist = Infinity;
+        let bestReversed = false;
+
+        for (let i = 0; i < rawSegments.length; i++) {
+          if (used[i]) continue;
+          const seg = rawSegments[i];
+          const dForward = Math.hypot(seg.p1.x - currEnd.x, seg.p1.y - currEnd.y);
+          const dBackward = Math.hypot(seg.p2.x - currEnd.x, seg.p2.y - currEnd.y);
+
+          if (dForward < bestDist) {
+            bestDist = dForward;
+            bestIdx = i;
+            bestReversed = false;
+          }
+          if (dBackward < bestDist) {
+            bestDist = dBackward;
+            bestIdx = i;
+            bestReversed = true;
+          }
+        }
+
+        if (bestIdx !== -1 && bestDist < 5.0) {
+          used[bestIdx] = true;
+          const nextSeg = rawSegments[bestIdx];
+          if (bestReversed) {
+            currentLoop.push({
+              ...nextSeg,
+              p1: nextSeg.p2,
+              p2: nextSeg.p1,
+              reversed: true
+            });
+            currEnd = nextSeg.p1;
+          } else {
+            currentLoop.push(nextSeg);
+            currEnd = nextSeg.p2;
+          }
+        } else {
+          break;
+        }
+      }
+
+      loops.push(currentLoop);
+    }
+
+    if (loops.length === 0 && standAloneCircles.length === 0) continue;
+
+    // Detect outer loop (largest bounding area)
+    let outerLoopIdx = 0;
+    let maxArea = -1;
+    const loopAreas = loops.map(computeLoopArea);
+    for (let i = 0; i < loops.length; i++) {
+      if (loopAreas[i] > maxArea) {
+        maxArea = loopAreas[i];
+        outerLoopIdx = i;
+      }
+    }
+
+    const shape = new THREE.Shape();
+    if (loops.length > 0) {
+      buildLoopPath(shape, loops[outerLoopIdx]);
+
+      // All other loops are cutouts / holes
+      for (let i = 0; i < loops.length; i++) {
+        if (i === outerLoopIdx) continue;
+        const holePath = new THREE.Path();
+        buildLoopPath(holePath, loops[i]);
+        shape.holes.push(holePath);
+      }
+    } else if (standAloneCircles.length > 0) {
+      const c0 = standAloneCircles[0];
+      shape.absarc(c0.cx * 0.001, c0.cy * 0.001, c0.r * 0.001, 0, Math.PI * 2, false);
+    }
+
+    // Additional standalone circles become holes
+    const startCircleIdx = loops.length === 0 ? 1 : 0;
+    for (let c = startCircleIdx; c < standAloneCircles.length; c++) {
+      const sc = standAloneCircles[c];
+      const holeCircle = new THREE.Path();
+      holeCircle.absarc(sc.cx * 0.001, sc.cy * 0.001, sc.r * 0.001, 0, Math.PI * 2, true);
+      shape.holes.push(holeCircle);
+    }
 
     const thickMm = Math.max(2, pNode.Thick?.val || 18);
     const thickM = thickMm * 0.001;
@@ -383,6 +551,16 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
         bevelEnabled: false
       });
       geo.computeVertexNormals();
+
+      // Guard: Ensure panel local dimensions are physically sane (< 3.5m)
+      geo.computeBoundingBox();
+      if (geo.boundingBox) {
+        const sz = new THREE.Vector3();
+        geo.boundingBox.getSize(sz);
+        if (sz.x > 3.5 || sz.y > 3.5 || sz.z > 3.5) {
+          continue;
+        }
+      }
 
       const matName = pNode.Mat?.val || 'PAL Alb 18mm';
       const mat = getStandardMaterial(matName);
@@ -420,12 +598,12 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
       cuttingList.push({
         id: `p_${idx + 1}`,
         name: panelName,
-        cabinetName: 'Ansamblu Mobilier',
+        cabinetName: 'Ansamblu Mobilier CAD',
         lengthMm: Math.max(lengthMm, widthMm),
         widthMm: Math.min(lengthMm, widthMm),
         thicknessMm: Math.round(thickMm),
         quantity: 1,
-        materialName: matName,
+        materialName: matName.split(/[\r\n]/)[0].trim(),
         colorHex: `#${mat.color.getHexString()}`,
         edgeBanding: { L1: 'ABS 1mm', L2: 'ABS 1mm', W1: 'ABS 0.4mm', W2: 'ABS 0.4mm' },
         positionMm: [Math.round(posX), Math.round(posY), Math.round(posZ)],
