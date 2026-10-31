@@ -87,8 +87,12 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
         try {
           const decompressedTest = fflate.unzlibSync(fileBytes.subarray(i));
           if (decompressedTest && decompressedTest.length > 100) {
-            zlibOffset = i;
-            break;
+            const testView = new DataView(decompressedTest.buffer, decompressedTest.byteOffset, decompressedTest.byteLength);
+            const testSyms = testView.getInt32(0, true);
+            if (testSyms > 0 && testSyms < 50000) {
+              zlibOffset = i;
+              break;
+            }
           }
         } catch {}
       }
@@ -552,12 +556,12 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
       });
       geo.computeVertexNormals();
 
-      // Guard: Ensure panel local dimensions are physically sane (< 3.5m)
+      // Guard: Ensure panel local dimensions are physically sane (< 6.0m)
       geo.computeBoundingBox();
       if (geo.boundingBox) {
         const sz = new THREE.Vector3();
         geo.boundingBox.getSize(sz);
-        if (sz.x > 3.5 || sz.y > 3.5 || sz.z > 3.5) {
+        if (sz.x > 6.0 || sz.y > 6.0 || sz.z > 6.0) {
           continue;
         }
       }

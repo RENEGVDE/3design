@@ -386,7 +386,9 @@ export function convertAndBatchModelGeometries(
 
     // Merge multiple geometries into 1 unified BufferGeometry
     const geometriesToMerge: THREE.BufferGeometry[] = [];
-    const parentContainer = meshes[indices[0]].parent || wrapperGroup;
+    const parentContainer = wrapperGroup.children[0] || wrapperGroup;
+    parentContainer.updateMatrixWorld(true);
+    const parentInv = parentContainer.matrixWorld.clone().invert();
 
     for (const idx of indices) {
       const mesh = meshes[idx];
@@ -394,17 +396,9 @@ export function convertAndBatchModelGeometries(
       const geom = mesh.geometry.clone();
 
       // Transform geometry vertices into common parent space
-      const toParent = new THREE.Matrix4().multiplyMatrices(
-        parentContainer.matrixWorld.clone().invert(),
-        mesh.matrixWorld
-      );
+      const toParent = new THREE.Matrix4().multiplyMatrices(parentInv, mesh.matrixWorld);
       geom.applyMatrix4(toParent);
       geometriesToMerge.push(geom);
-
-      // Remove the old unmerged mesh from its parent
-      if (mesh.parent) {
-        mesh.parent.remove(mesh);
-      }
     }
 
     // Harmonize attributes and indexing across all geometries so mergeGeometries never fails
@@ -446,6 +440,14 @@ export function convertAndBatchModelGeometries(
         newSubPartsMeta.push({ ...subPartsMeta[idx], subIdx: newSubIdx });
       }
       return;
+    }
+
+    // Safely remove the merged meshes from their original parents
+    for (const idx of indices) {
+      const mesh = meshes[idx];
+      if (mesh.parent) {
+        mesh.parent.remove(mesh);
+      }
     }
 
     mergedGeom.computeVertexNormals();

@@ -488,10 +488,15 @@ export function loadGlbModelFromBuffer(arrayBuffer, modelId, modelName) {
 
         const maxDim = Math.max(rawSize.x, rawSize.y, rawSize.z, 0.0001);
         let unitFactor = 1.0;
-        if (maxDim > 18 && maxDim <= 150) {
-          unitFactor = 0.01;
-        } else if (maxDim > 150) {
+        if (maxDim >= 500) {
+          // Model coordinates are in millimeters (e.g. 600mm to 4500mm) -> convert to meters
           unitFactor = 0.001;
+        } else if (maxDim >= 20 && maxDim < 500) {
+          // Model coordinates are in centimeters (e.g. 60cm to 450cm) -> convert to meters
+          unitFactor = 0.01;
+        } else {
+          // Model coordinates are already in meters (< 20m)
+          unitFactor = 1.0;
         }
 
         const innerGroup = new THREE.Group();

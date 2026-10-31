@@ -1484,7 +1484,9 @@ export default function KitchenViewer() {
             // Guard: Automatically purge legacy corrupt models created with broken parser
             const isCorruptedLegacy =
               sim.metrics?.polyCount === 42221 ||
-              (Math.abs((sim.baseDimsCm?.w || 0) - 99.6) < 1.0 && Math.abs((sim.baseDimsCm?.h || 0) - 99.1) < 1.0);
+              ((sim.metrics?.drawCalls || 0) === 10 && (sim.metrics?.polyCount || 0) > 40000) ||
+              (Math.abs((sim.baseDimsCm?.w || 0) - 99.6) < 2.0 && Math.abs((sim.baseDimsCm?.h || 0) - 99.1) < 2.0) ||
+              (Math.abs((sim.baseDimsCm?.w || 0) - 483.4) < 5.0 && ((sim.metrics?.polyCount || 0) > 40000 || (sim.metrics?.drawCalls || 0) <= 10));
             if (isCorruptedLegacy) {
               console.warn('Eliminat modelul vechi corupt din memoria IndexedDB:', sim.name);
               continue;
