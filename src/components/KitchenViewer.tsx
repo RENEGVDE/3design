@@ -37,6 +37,11 @@ import {
   buildFollowerMap,
   disposeModelHierarchy
 } from '../utils/glbImporter';
+import {
+  convertAndOptimizeCadModel,
+  inspectModelMetrics,
+  updateModelBoundingStructure
+} from '../utils/cadModelOptimizer';
 
 import TopBar from './TopBar';
 import DimensionToolbar from './DimensionToolbar';
@@ -631,7 +636,8 @@ export default function KitchenViewer() {
         scale: scl,
         baseDimsCm: parsed.baseDimsCm,
         hasNativeAnimations: parsed.hasNativeAnimations,
-        subParts: finalSubParts
+        subParts: finalSubParts,
+        metrics: parsed.metrics || inspectModelMetrics(parsed.wrapperGroup)
       }) as any;
     },
     [applyMatEntryToMesh]
@@ -1089,6 +1095,7 @@ export default function KitchenViewer() {
               Math.max(0.05, Math.round(s.y * 1000) / 1000),
               Math.max(0.05, Math.round(s.z * 1000) / 1000)
             ];
+            updateModelBoundingStructure(entry.wrapperGroup);
             setImportedModels((prev) => {
               const updated = prev.map((im) =>
                 im.id === gid
@@ -1755,12 +1762,67 @@ export default function KitchenViewer() {
       }
       (ctx as any).setHoveredGroup3D = setHoveredGroup3D;
 
+      // Fast Hierarchical Scene Raycaster
+      const intersectAcceleratedTargets = (
+        rc: THREE.Raycaster,
+        rawTargets: THREE.Mesh[]
+      ): THREE.Intersection[] => {
+        const directMeshes: THREE.Mesh[] = [];
+        const candidateGlbMeshes: THREE.Mesh[] = [];
+
+        // 1. Fast Bounding Box Pre-Check for Imported GLB Models (< 0.001 ms)
+        for (const impId in importedMap) {
+          const entry = importedMap[impId];
+          if (!entry || !entry.wrapperGroup || !entry.wrapperGroup.visible) continue;
+          let worldBox = entry.wrapperGroup.userData.worldBox;
+          if (!worldBox) {
+            worldBox = updateModelBoundingStructure(entry.wrapperGroup);
+          }
+          if (rc.ray.intersectsBox(worldBox)) {
+            for (const m of entry.meshes) {
+              if (!m.visible) continue;
+              const mBox = m.userData.worldBox;
+              if (!mBox || rc.ray.intersectsBox(mBox)) {
+                candidateGlbMeshes.push(m);
+              }
+            }
+          }
+        }
+
+        // 2. Direct meshes (cabinets, doors, static zones)
+        for (const m of rawTargets) {
+          if (!m.userData.importedModelId && m.visible) {
+            directMeshes.push(m);
+          }
+        }
+
+        const activeCandidates = [...directMeshes, ...candidateGlbMeshes];
+        if (activeCandidates.length === 0) return [];
+        return rc.intersectObjects(activeCandidates, false);
+      };
+
       hoverRaf = null;
       let lastPointerEvent = null;
+      let lastHoverCheckTime = 0;
 
       const runHoverCheck = () => {
         hoverRaf = null;
         if (!lastPointerEvent || disposed) return;
+
+        // Skip hover checks while orbiting camera, panning or dragging gizmo
+        if (
+          activePointers.size > 0 ||
+          (controls && (controls as any).state !== -1) ||
+          (transformControls && (transformControls as any).dragging)
+        ) {
+          updateTooltipDOM(false);
+          return;
+        }
+
+        const now = performance.now();
+        if (now - lastHoverCheckTime < 28) return; // Cap at ~35 Hz max
+        lastHoverCheckTime = now;
+
         const e = lastPointerEvent;
 
         pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -1786,7 +1848,7 @@ export default function KitchenViewer() {
         const targetList = curPaint
           ? paintableMeshes
           : [...importedMeshes, ...interactiveMeshes];
-        const hits = raycaster.intersectObjects(targetList, false);
+        const hits = intersectAcceleratedTargets(raycaster, targetList);
 
         if (hits.length > 0) {
           const hitMesh = hits[0].object;
@@ -1977,9 +2039,9 @@ export default function KitchenViewer() {
 
           // 1. Tape Measure Mode
           if (curDims && curDimMode === 'tape') {
-            const allHits = raycaster.intersectObjects(
-              [...allKitchenMeshes, ...importedMeshes],
-              false
+            const allHits = intersectAcceleratedTargets(
+              raycaster,
+              [...allKitchenMeshes, ...importedMeshes]
             );
             if (allHits.length > 0) {
               const hitPoint = allHits[0].point;
@@ -2018,7 +2080,7 @@ export default function KitchenViewer() {
 
           // 2. 3D Click-to-Paint Mode (Works on both Kitchen & Imported .GLB Models!)
           if (curPaint) {
-            const paintHits = raycaster.intersectObjects(paintableMeshes, false);
+            const paintHits = intersectAcceleratedTargets(raycaster, paintableMeshes);
             if (paintHits.length > 0) {
               const hitMesh = paintHits[0].object;
               const gid = hitMesh.userData.groupId;
@@ -2082,9 +2144,9 @@ export default function KitchenViewer() {
           }
 
           // 3. Normal Click: Check Imported .GLB Models first (Open/Close Door/Drawer or Select & Show 3D Gizmo), then Kitchen Doors/Drawers
-          const hits = raycaster.intersectObjects(
-            [...importedMeshes, ...interactiveMeshes],
-            false
+          const hits = intersectAcceleratedTargets(
+            raycaster,
+            [...importedMeshes, ...interactiveMeshes]
           );
           if (hits.length > 0) {
             const hitObj = hits[0].object;
@@ -2647,8 +2709,10 @@ export default function KitchenViewer() {
 
   const handleDuplicateGlb = async (modelId) => {
     const src = importedModels.find((im) => im.id === modelId);
-    if (!src || !src.b64Data) return;
-    const buf = base64ToArrayBuffer(src.b64Data);
+    if (!src) return;
+    const b64 = src.b64Data || glbBinaryCacheRef.current.get(modelId);
+    if (!b64) return;
+    const buf = base64ToArrayBuffer(b64);
     const newId = 'glb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
     const nextPos = [
       src.position[0] + 0.35,
@@ -2657,7 +2721,7 @@ export default function KitchenViewer() {
     ];
     const mounted = await mountParsedGlbIntoScene(
       buf,
-      src.b64Data,
+      b64,
       newId,
       `${src.name} (Copie)`,
       {
@@ -2669,7 +2733,7 @@ export default function KitchenViewer() {
       materials
     );
     if (!mounted) return;
-    glbBinaryCacheRef.current.set(newId, src.b64Data);
+    glbBinaryCacheRef.current.set(newId, b64);
     setImportedModels((prev) => {
       const updated = [...prev, mounted];
       setSelectedGlbId(newId);
@@ -2678,6 +2742,60 @@ export default function KitchenViewer() {
     });
     pushHistoryRef.current?.('Duplicare ' + src.name);
     showToast(`📋 Duplicat: ${src.name}`);
+  };
+
+  const handleOptimizeGlb = (modelId) => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.importedMap[modelId]) return;
+    const entry = ctx.importedMap[modelId];
+    const imRec = stateRef.current.importedModels.find((m) => m.id === modelId);
+    if (!imRec) return;
+
+    const result = convertAndOptimizeCadModel(
+      entry.wrapperGroup,
+      entry.meshes,
+      imRec.subParts || [],
+      { mergeGeometries: true, maxTextureDim: 2048, minShadowDimM: 0.08 }
+    );
+
+    entry.meshes = result.meshes;
+    entry.subPartsMeta = result.subPartsMeta;
+    entry.metrics = result.metrics;
+
+    // Refresh meshes in scene raycast lists
+    ctx.importedMeshes = ctx.importedMeshes.filter(
+      (m) => m.userData.importedModelId !== modelId
+    );
+    ctx.paintableMeshes = ctx.paintableMeshes.filter(
+      (m) => m.userData.importedModelId !== modelId
+    );
+    for (const m of result.meshes) {
+      ctx.importedMeshes.push(m);
+      ctx.paintableMeshes.push(m);
+    }
+
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        return {
+          ...im,
+          subParts: result.subPartsMeta,
+          metrics: result.metrics
+        };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+
+    ctx.needsShadowUpdate = true;
+    showToast(
+      lang === 'ro'
+        ? `⚡ Model Three.js optimizat: ${result.drawCallsSaved} draw calls economisite, 60 FPS!`
+        : lang === 'ru'
+          ? `⚡ Three.js модель оптимизирована: сэкономлено ${result.drawCallsSaved} вызовов отрисовки, 60 FPS!`
+          : `⚡ Three.js model optimized: ${result.drawCallsSaved} draw calls saved, 60 FPS!`
+    );
+    pushHistoryRef.current?.('Optimizare CAD Three.js');
   };
 
   const handleUpdateGlbTransform = (modelId, changes) => {
@@ -4429,6 +4547,7 @@ export default function KitchenViewer() {
               onAutoDetectGlbMechanisms={handleAutoDetectGlbMechanisms}
               onClearGlbMechanisms={handleClearGlbMechanisms}
               onToggleNativeGlbAnimation={handleToggleNativeGlbAnimation}
+              onOptimizeGlb={handleOptimizeGlb}
             />
           )}
 

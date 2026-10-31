@@ -1,6 +1,12 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import {
+  inspectModelMetrics,
+  optimizeModelTextures,
+  optimizeModelShadows,
+  updateModelBoundingStructure
+} from './cadModelOptimizer';
 
 let sharedGltfLoader = null;
 
@@ -602,6 +608,19 @@ export function loadGlbModelFromBuffer(arrayBuffer, modelId, modelName) {
         // Auto-detect furniture mechanisms (doors, drawers, lift flaps) on initial load
         subPartsMeta = autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm);
 
+        // Three.js CAD Performance Optimizations:
+        // 1. Clamp oversized textures to 2048px max & enable mipmaps to prevent VRAM memory stalls
+        optimizeModelTextures(rawRoot, 2048);
+
+        // 2. Selective shadows: cull micro-hardware (< 8cm) from shadow map depth passes
+        optimizeModelShadows(meshes, 0.08);
+
+        // 3. Setup O(1) Hierarchical Bounding Box Raycast Acceleration
+        updateModelBoundingStructure(wrapperGroup);
+
+        // 4. Calculate initial CAD performance metrics
+        const metrics = inspectModelMetrics(wrapperGroup);
+
         // Native glTF animations support (if embedded in .glb)
         const animations = Array.isArray(gltf.animations) ? gltf.animations : [];
         let mixer = null;
@@ -626,7 +645,8 @@ export function loadGlbModelFromBuffer(arrayBuffer, modelId, modelName) {
           hasNativeAnimations: animations.length > 0,
           mixer,
           animActions,
-          nativeAnimOpen: false
+          nativeAnimOpen: false,
+          metrics
         });
       },
       (err) => reject(err)

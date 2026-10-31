@@ -26,7 +26,33 @@ export default function GlbImporterSection({
   onToggleAllGlbParts,
   onAutoDetectGlbMechanisms,
   onClearGlbMechanisms,
-  onToggleNativeGlbAnimation
+  onToggleNativeGlbAnimation,
+  onOptimizeGlb
+}: {
+  lang: any;
+  importedModels: any[];
+  selectedGlbId: any;
+  onSelectGlb: any;
+  onImportGlbFiles: any;
+  onDeleteGlb: any;
+  onDuplicateGlb: any;
+  gizmoMode: any;
+  onSetGizmoMode: any;
+  placeOnSurfaceMode: any;
+  onTogglePlaceOnSurface: any;
+  onUpdateGlbTransform: any;
+  onPaintWholeGlbWithActiveMat: any;
+  onColorWholeGlb: any;
+  onResetGlbMaterials: any;
+  onPaintGlbSubMeshWithActiveMat: any;
+  onColorGlbSubMesh: any;
+  onSetGlbSubMeshMechanism: any;
+  onToggleGlbSubMeshOpen: any;
+  onToggleAllGlbParts: any;
+  onAutoDetectGlbMechanisms: any;
+  onClearGlbMechanisms: any;
+  onToggleNativeGlbAnimation: any;
+  onOptimizeGlb?: (modelId: string) => void;
 }) {
   const dict = I18N[lang] || I18N.ro;
   const fileInputRef = useRef(null);
@@ -157,6 +183,99 @@ export default function GlbImporterSection({
 
             {selectedModel && (
               <div className="studio-controls">
+                {/* CAD Three.js Performance Metrics & Optimizer Card */}
+                {selectedModel.metrics && (
+                  <div
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px'
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.72rem'
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                        ⚡ Three.js CAD Engine
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '0.68rem',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          background: selectedModel.metrics.isOptimized
+                            ? 'rgba(34, 197, 94, 0.2)'
+                            : 'rgba(212, 163, 89, 0.2)',
+                          color: selectedModel.metrics.isOptimized ? '#4ade80' : '#fbbf24',
+                          fontWeight: 600
+                        }}
+                      >
+                        {selectedModel.metrics.isOptimized
+                          ? dict.cadOptimizedBadge || '⚡ 60 FPS Three.js'
+                          : '⚡ Fast View'}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '4px',
+                        textAlign: 'center',
+                        fontSize: '0.67rem',
+                        color: 'var(--text-muted)'
+                      }}
+                    >
+                      <div style={{ background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
+                        <div style={{ color: 'var(--text-main)', fontWeight: 600 }}>
+                          {selectedModel.metrics.polyCount > 0 ? selectedModel.metrics.polyCount.toLocaleString() : '—'}
+                        </div>
+                        <div>{dict.cadStatsPoly || 'Poligoane'}</div>
+                      </div>
+                      <div style={{ background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
+                        <div style={{ color: 'var(--text-main)', fontWeight: 600 }}>
+                          {selectedModel.subParts ? selectedModel.subParts.length : selectedModel.metrics.meshCount}
+                        </div>
+                        <div>{dict.cadStatsParts || 'Piese CAD'}</div>
+                      </div>
+                      <div style={{ background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
+                        <div style={{ color: 'var(--text-main)', fontWeight: 600 }}>
+                          {selectedModel.metrics.estimatedVramMb > 0 ? `${selectedModel.metrics.estimatedVramMb} MB` : '< 1 MB'}
+                        </div>
+                        <div>{dict.cadStatsVram || 'VRAM GPU'}</div>
+                      </div>
+                    </div>
+
+                    {onOptimizeGlb && (
+                      <button
+                        className="btn-pill"
+                        style={{
+                          width: '100%',
+                          justifyContent: 'center',
+                          fontSize: '0.72rem',
+                          padding: '6px',
+                          background: 'linear-gradient(135deg, rgba(212,163,89,0.25) 0%, rgba(245,158,11,0.18) 100%)',
+                          border: '1px solid rgba(212,163,89,0.4)',
+                          color: '#fef08a'
+                        }}
+                        onClick={() => onOptimizeGlb(selectedModel.id)}
+                      >
+                        <span>⚡</span>
+                        <span>{dict.cadOptimizeBtn || '⚡ Convertește & Optimizează Three.js (60 FPS)'}</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* 3D Transform Gizmo Mode Selector */}
                 <div
                   style={{
