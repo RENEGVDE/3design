@@ -5,7 +5,8 @@ import {
   inspectModelMetrics,
   optimizeModelTextures,
   optimizeModelShadows,
-  updateModelBoundingStructure
+  updateModelBoundingStructure,
+  convertAndBatchModelGeometries
 } from './cadModelOptimizer';
 
 let sharedGltfLoader = null;
@@ -515,7 +516,7 @@ export function loadGlbModelFromBuffer(arrayBuffer, modelId, modelName) {
           d: Math.max(0.5, rawSize.z * unitFactor * 100)
         };
 
-        const meshes = [];
+        let meshes = [];
         let subPartsMeta = [];
         let subIdx = 0;
 
@@ -558,6 +559,11 @@ export function loadGlbModelFromBuffer(arrayBuffer, modelId, modelName) {
               ? child.material[0]
               : child.material;
 
+            const isOpaque =
+              !origMat ||
+              (!origMat.transparent &&
+                (typeof origMat.opacity !== 'number' || origMat.opacity >= 0.99));
+
             const stdMat = new THREE.MeshStandardMaterial({
               color:
                 origMat && origMat.color
@@ -566,17 +572,16 @@ export function loadGlbModelFromBuffer(arrayBuffer, modelId, modelName) {
               map: origMat && origMat.map ? origMat.map : null,
               roughness:
                 origMat && typeof origMat.roughness === 'number'
-                  ? origMat.roughness
-                  : 0.4,
+                  ? Math.max(0.1, origMat.roughness)
+                  : 0.45,
               metalness:
                 origMat && typeof origMat.metalness === 'number'
-                  ? origMat.metalness
+                  ? Math.min(0.9, origMat.metalness)
                   : 0.05,
-              transparent: Boolean(origMat && origMat.transparent),
-              opacity:
-                origMat && typeof origMat.opacity === 'number'
-                  ? origMat.opacity
-                  : 1.0
+              transparent: !isOpaque,
+              opacity: isOpaque ? 1.0 : (origMat.opacity ?? 1.0),
+              depthWrite: isOpaque,
+              side: THREE.FrontSide
             });
 
             const backupMat = stdMat.clone();
@@ -609,16 +614,23 @@ export function loadGlbModelFromBuffer(arrayBuffer, modelId, modelName) {
         subPartsMeta = autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm);
 
         // Three.js CAD Performance Optimizations:
-        // 1. Clamp oversized textures to 2048px max & enable mipmaps to prevent VRAM memory stalls
-        optimizeModelTextures(rawRoot, 2048);
+        // 1. Clamp oversized textures to 1536px max & enable mipmaps to prevent VRAM memory stalls
+        optimizeModelTextures(rawRoot, 1536);
 
         // 2. Selective shadows: cull micro-hardware (< 8cm) from shadow map depth passes
         optimizeModelShadows(meshes, 0.08);
 
-        // 3. Setup O(1) Hierarchical Bounding Box Raycast Acceleration
+        // 3. Batch static geometries to reduce draw calls from 100+ to 3-5
+        if (meshes.length > 5) {
+          const batchResult = convertAndBatchModelGeometries(wrapperGroup, meshes, subPartsMeta);
+          meshes = batchResult.newMeshes;
+          subPartsMeta = batchResult.newSubPartsMeta;
+        }
+
+        // 4. Setup O(1) Hierarchical Bounding Box Raycast Acceleration
         updateModelBoundingStructure(wrapperGroup);
 
-        // 4. Calculate initial CAD performance metrics
+        // 5. Calculate initial CAD performance metrics
         const metrics = inspectModelMetrics(wrapperGroup);
 
         // Native glTF animations support (if embedded in .glb)

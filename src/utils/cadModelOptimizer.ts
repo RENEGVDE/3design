@@ -329,15 +329,17 @@ export function convertAndBatchModelGeometries(
     return { newMeshes: meshes, newSubPartsMeta: subPartsMeta, drawCallsSaved: 0 };
   }
 
-  // Group static meshes by material fingerprint
+  // Group static meshes by visual material fingerprint (color, map, roughness, metalness)
   const groupsByMat = new Map<string, { material: THREE.Material; indices: number[] }>();
 
   for (const idx of staticIndices) {
     const mesh = meshes[idx];
     const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-    const matKey = mat
-      ? `${mat.type}_${mat.name || ''}_${(mat as any).color ? (mat as any).color.getHexString() : ''}_${(mat as any).map ? (mat as any).map.id : 'nomap'}`
-      : 'default';
+    const hex = (mat as any)?.color ? (mat as any).color.getHexString() : 'e5e7eb';
+    const mapId = (mat as any)?.map ? (mat as any).map.id : 'nomap';
+    const roughness = (mat as any)?.roughness !== undefined ? Math.round((mat as any).roughness * 10) : 4;
+    const metalness = (mat as any)?.metalness !== undefined ? Math.round((mat as any).metalness * 10) : 1;
+    const matKey = `${mat ? mat.type : 'std'}_${hex}_${mapId}_${roughness}_${metalness}`;
 
     if (!groupsByMat.has(matKey)) {
       groupsByMat.set(matKey, { material: mat, indices: [] });
@@ -365,7 +367,6 @@ export function convertAndBatchModelGeometries(
 
   // 2. For static groups: merge those with > 1 mesh
   wrapperGroup.updateMatrixWorld(true);
-  const invWrapperMatrix = wrapperGroup.matrixWorld.clone().invert();
 
   groupsByMat.forEach(({ material, indices }, groupKey) => {
     if (indices.length === 1) {
@@ -406,7 +407,35 @@ export function convertAndBatchModelGeometries(
       }
     }
 
-    const mergedGeom = mergeGeometries(geometriesToMerge, false);
+    // Harmonize attributes and indexing across all geometries so mergeGeometries never fails
+    const hasNonIndexed = geometriesToMerge.some((g) => !g.index);
+    const preparedGeometries = geometriesToMerge.map((baseGeom) => {
+      let g = baseGeom;
+      if (hasNonIndexed && g.index) {
+        g = g.toNonIndexed();
+      }
+      const clean = new THREE.BufferGeometry();
+      clean.setAttribute('position', g.attributes.position.clone());
+      if (g.attributes.normal) {
+        clean.setAttribute('normal', g.attributes.normal.clone());
+      } else {
+        clean.computeVertexNormals();
+      }
+      if (g.attributes.uv) {
+        clean.setAttribute('uv', g.attributes.uv.clone());
+      } else {
+        clean.setAttribute(
+          'uv',
+          new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2)
+        );
+      }
+      if (!hasNonIndexed && g.index) {
+        clean.setIndex(g.index.clone());
+      }
+      return clean;
+    });
+
+    const mergedGeom = mergeGeometries(preparedGeometries, false);
     if (!mergedGeom) {
       // Fallback: keep original meshes if merge fails
       for (const idx of indices) {

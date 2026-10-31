@@ -977,6 +977,8 @@ export default function KitchenViewer() {
       setPanelOpen(false);
     }
 
+    let onGlobalPointerUp: (() => void) | null = null;
+
     async function initScene() {
       const payload = { specs: [], batches: [] };
       const rawBuffer = null;
@@ -1007,10 +1009,10 @@ export default function KitchenViewer() {
       });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(
-        Math.min(window.devicePixelRatio, isMobile ? 1.25 : 1.5)
+        Math.min(window.devicePixelRatio, isMobile ? 1.0 : 1.25)
       );
       renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.type = THREE.PCFShadowMap;
       renderer.shadowMap.autoUpdate = false;
       renderer.shadowMap.needsUpdate = true;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1018,15 +1020,17 @@ export default function KitchenViewer() {
       container.appendChild(renderer.domElement);
 
       const pmremGenerator = new THREE.PMREMGenerator(renderer);
-      scene.environment = pmremGenerator.fromScene(
+      const roomEnvTexture = pmremGenerator.fromScene(
         new RoomEnvironment(),
         0.04
       ).texture;
+      scene.environment = roomEnvTexture;
       scene.environmentIntensity = 0.65;
+      pmremGenerator.dispose();
 
       const controls = new OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
-      controls.dampingFactor = 0.06;
+      controls.dampingFactor = 0.08;
       controls.maxPolarAngle = Math.PI / 2 + 0.03;
       controls.minDistance = 0.5;
       controls.maxDistance = 12;
@@ -1125,7 +1129,7 @@ export default function KitchenViewer() {
       mainLight.target.position.copy(LIGHT_CENTER);
       scene.add(mainLight.target);
       mainLight.castShadow = true;
-      const shadowRes = isMobile ? 1024 : 2048;
+      const shadowRes = 1024;
       mainLight.shadow.mapSize.width = shadowRes;
       mainLight.shadow.mapSize.height = shadowRes;
       mainLight.shadow.camera.near = 0.5;
@@ -1941,6 +1945,7 @@ export default function KitchenViewer() {
 
       const onPointerMove = (e) => {
         if (e.pointerType === 'touch') return;
+        if (activePointers.size > 0) return;
         lastPointerEvent = e;
         if (tooltipRef.current && tooltipRef.current.classList.contains('visible')) {
           tooltipRef.current.style.left = `${e.clientX}px`;
@@ -2211,6 +2216,8 @@ export default function KitchenViewer() {
       renderer.domElement.addEventListener('pointerdown', onPointerDown);
       renderer.domElement.addEventListener('pointercancel', onPointerCancel);
       renderer.domElement.addEventListener('pointerup', onPointerUp);
+      onGlobalPointerUp = () => activePointers.clear();
+      window.addEventListener('pointerup', onGlobalPointerUp);
 
       const onResize = () => {
         const portrait = window.innerHeight > window.innerWidth;
@@ -2283,9 +2290,18 @@ export default function KitchenViewer() {
         let anyGlbAnimating = false;
         for (const impId in importedMap) {
           const entry = importedMap[impId];
-          if (entry.mixer) {
-            entry.mixer.update(dt);
-            anyGlbAnimating = true;
+          if (entry.mixer && entry.animActions && entry.animActions.length > 0) {
+            let isActionRunning = false;
+            for (const act of entry.animActions) {
+              if (act.isRunning()) {
+                isActionRunning = true;
+                break;
+              }
+            }
+            if (isActionRunning) {
+              entry.mixer.update(dt);
+              anyGlbAnimating = true;
+            }
           }
           let glbMechChanged = false;
           for (const m of entry.meshes) {
@@ -2339,6 +2355,7 @@ export default function KitchenViewer() {
 
     return () => {
       disposed = true;
+      if (onGlobalPointerUp) window.removeEventListener('pointerup', onGlobalPointerUp);
       if (hoverRaf) cancelAnimationFrame(hoverRaf);
       if (animFrameId) cancelAnimationFrame(animFrameId);
     };
