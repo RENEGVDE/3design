@@ -581,11 +581,16 @@ export default function KitchenViewer() {
         let nextSp = { ...sp };
 
         if (savedSp) {
-          if (typeof savedSp.mechType === 'string' && savedSp.mechType !== 'none') {
-            nextSp.mechType = savedSp.mechType;
-          }
           if (typeof savedSp.isOpen === 'boolean') {
             nextSp.isOpen = savedSp.isOpen;
+          }
+          if (typeof savedSp.mechType === 'string') {
+            // If the model itself has CAD animation metadata, respect the CAD metadata
+            if (mesh && mesh.userData && mesh.userData.cadAnim) {
+              nextSp.mechType = sp.mechType;
+            } else {
+              nextSp.mechType = savedSp.mechType;
+            }
           }
         }
 

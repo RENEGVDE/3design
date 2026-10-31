@@ -203,11 +203,24 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
     throw new Error('Eroare la decodarea structurii CAD din fișierul B3D.');
   }
 
-  // 6. Collect all panels (Type 4002) with hierarchical world transforms
+  // 6. Collect all panels (Type 4002) with hierarchical world transforms and CAD anim blocks
+  interface RawAnimBlock {
+    id: string;
+    name: string;
+    animType: number; // 1 = rotation, 2 = slide
+    axisStartWorld: THREE.Vector3;
+    axisEndWorld: THREE.Vector3;
+    hasLeader?: boolean;
+    leaderMeshName?: string;
+  }
+
   interface RawPanelItem {
     node: ParsedNode;
     worldMatrix: THREE.Matrix4;
+    animBlock: RawAnimBlock | null;
   }
+
+  const animBlocks: RawAnimBlock[] = [];
   const rawPanels: RawPanelItem[] = [];
 
   function getLocalMatrix(node: any): THREE.Matrix4 | null {
@@ -229,7 +242,11 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
     return m;
   }
 
-  function traverseTreeHierarchical(node: any, currentMatrix: THREE.Matrix4) {
+  function traverseTreeHierarchical(
+    node: any,
+    currentMatrix: THREE.Matrix4,
+    currentBlock: RawAnimBlock | null
+  ) {
     if (!node || typeof node !== 'object') return;
     let nextMatrix = currentMatrix;
     const localMat = getLocalMatrix(node);
@@ -237,22 +254,49 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
       nextMatrix = currentMatrix.clone().multiply(localMat);
     }
 
+    let activeBlock = currentBlock;
+    if (node.Anim && node.Anim.AnimType && typeof node.Anim.AnimType.val === 'number') {
+      const aType = node.Anim.AnimType.val;
+      const asLocal = new THREE.Vector3(
+        (node.Anim.AxisStart?.x?.val || 0) * 0.001,
+        (node.Anim.AxisStart?.y?.val || 0) * 0.001,
+        (node.Anim.AxisStart?.z?.val || 0) * 0.001
+      );
+      const aeLocal = new THREE.Vector3(
+        (node.Anim.AxisEnd?.x?.val || 0) * 0.001,
+        (node.Anim.AxisEnd?.y?.val || 0) * 0.001,
+        (node.Anim.AxisEnd?.z?.val || 0) * 0.001
+      );
+      const asWorld = asLocal.applyMatrix4(nextMatrix);
+      const aeWorld = aeLocal.applyMatrix4(nextMatrix);
+
+      activeBlock = {
+        id: `cad_block_${animBlocks.length + 1}`,
+        name: node.Name?.val || `Bloc_${animBlocks.length + 1}`,
+        animType: aType,
+        axisStartWorld: asWorld,
+        axisEndWorld: aeWorld,
+        hasLeader: false
+      };
+      animBlocks.push(activeBlock);
+    }
+
     if (node.Type?.val === 4002 && node.Contour?.val) {
-      rawPanels.push({ node, worldMatrix: nextMatrix });
+      rawPanels.push({ node, worldMatrix: nextMatrix, animBlock: activeBlock });
     }
 
     for (const key in node) {
       if (key.startsWith('_') || key === 'Undo') continue;
       const child = node[key];
       if (Array.isArray(child)) {
-        for (const item of child) traverseTreeHierarchical(item, nextMatrix);
+        for (const item of child) traverseTreeHierarchical(item, nextMatrix, activeBlock);
       } else {
-        traverseTreeHierarchical(child, nextMatrix);
+        traverseTreeHierarchical(child, nextMatrix, activeBlock);
       }
     }
   }
 
-  traverseTreeHierarchical(rootDoc.Model || rootDoc, new THREE.Matrix4());
+  traverseTreeHierarchical(rootDoc.Model || rootDoc, new THREE.Matrix4(), null);
 
   // 7. Build Three.js 3D Scene Group
   const rootGroup = new THREE.Group();
@@ -605,6 +649,28 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
       pItem.worldMatrix.decompose(mesh.position, mesh.quaternion, mesh.scale);
       mesh.updateMatrixWorld(true);
 
+      // Attach CAD Animation data if this panel belongs to an animated CAD block
+      if (pItem.animBlock) {
+        const ab = pItem.animBlock;
+        const isFacadeName = /фронтал|фасад|front|двер|door|sertar|ящик|cargo|корзин/i.test(panelName);
+        const isLeader = isFacadeName || !ab.hasLeader;
+        if (isLeader && !ab.hasLeader) {
+          ab.hasLeader = true;
+          ab.leaderMeshName = panelName;
+          mesh.userData.cadLeader = true;
+        }
+        mesh.userData.cadAnimBlockId = ab.id;
+        mesh.userData.cadAnimType = ab.animType;
+        mesh.userData.cadAnim = {
+          blockId: ab.id,
+          blockName: ab.name,
+          animType: ab.animType,
+          axisStart: [ab.axisStartWorld.x, ab.axisStartWorld.y, ab.axisStartWorld.z],
+          axisEnd: [ab.axisEndWorld.x, ab.axisEndWorld.y, ab.axisEndWorld.z],
+          isLeader: !!mesh.userData.cadLeader
+        };
+      }
+
       rootGroup.add(mesh);
 
       // Add to Cutting List BOM
@@ -612,6 +678,38 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
       const widthMm = isFinite(maxY - minY) && maxY > minY ? Math.round(maxY - minY) : 400;
 
       const euler = new THREE.Euler().setFromQuaternion(mesh.quaternion, 'YXZ');
+
+      let mechanism: 'door_left' | 'door_right' | 'drawer' | 'flap_down' | 'flap_up' | 'none' = 'none';
+      if (pItem.animBlock) {
+        const ab = pItem.animBlock;
+        if (mesh.userData.cadLeader) {
+          if (ab.animType === 2) {
+            mechanism = 'drawer';
+          } else {
+            const dy = Math.abs(ab.axisEndWorld.y - ab.axisStartWorld.y);
+            const dx = Math.abs(ab.axisEndWorld.x - ab.axisStartWorld.x);
+            const dz = Math.abs(ab.axisEndWorld.z - ab.axisStartWorld.z);
+            if (dy < 0.25 && (dx > 0.3 || dz > 0.3)) {
+              mechanism = 'flap_up';
+            } else {
+              mechanism = mesh.position.x <= 0 ? 'door_left' : 'door_right';
+            }
+          }
+        }
+      } else if (
+        /фронтал|front|фасад|facade/i.test(panelName) &&
+        !/цокол|soclu|plinth|дно|бок|задн|полка|polita|blat/i.test(panelName)
+      ) {
+        const w = Math.max(lengthMm, widthMm);
+        const h = Math.min(lengthMm, widthMm);
+        if (h <= 380 && w >= 280 && Math.round(mesh.position.y * 1000) <= 1150) {
+          mechanism = 'drawer';
+        } else if (w >= h * 1.35 && h <= 550 && mesh.position.y >= 1.4) {
+          mechanism = 'flap_up';
+        } else {
+          mechanism = mesh.position.x <= 0 ? 'door_left' : 'door_right';
+        }
+      }
 
       cuttingList.push({
         id: `p_${idx + 1}`,
@@ -634,14 +732,7 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
           Math.round(THREE.MathUtils.radToDeg(euler.y)),
           Math.round(THREE.MathUtils.radToDeg(euler.z))
         ],
-        mechanism: (/sertar|drawer|ящик|tandem/i.test(panelName) ||
-          (/фронтал|front|фасад|facade/i.test(panelName) && Math.min(lengthMm, widthMm) <= 380 && Math.max(lengthMm, widthMm) >= 280 && Math.round(mesh.position.y * 1000) <= 1150))
-          ? 'drawer'
-          : /aventos|lift|flap/i.test(panelName)
-          ? 'flap_up'
-          : /фронтал|front|фасад|facade|usa|ușă|dver|двер/i.test(panelName) && !/цокол|soclu|plinth|дно|бок|задн/i.test(panelName)
-          ? (mesh.position.x <= 0 ? 'door_left' : 'door_right')
-          : 'none'
+        mechanism
       });
     } catch {}
   }
@@ -657,6 +748,35 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
       child.position.y -= minY;
       child.position.z -= center.z;
       child.updateMatrixWorld(true);
+    }
+
+    // Offset all CAD anim block axes so they match the centered mesh coordinates!
+    for (const ab of animBlocks) {
+      ab.axisStartWorld.x -= center.x;
+      ab.axisStartWorld.y -= minY;
+      ab.axisStartWorld.z -= center.z;
+
+      ab.axisEndWorld.x -= center.x;
+      ab.axisEndWorld.y -= minY;
+      ab.axisEndWorld.z -= center.z;
+    }
+
+    for (const child of rootGroup.children) {
+      if (child.userData?.cadAnim && child.userData?.cadAnimBlockId) {
+        const ab = animBlocks.find((b) => b.id === child.userData.cadAnimBlockId);
+        if (ab) {
+          child.userData.cadAnim.axisStart = [
+            ab.axisStartWorld.x,
+            ab.axisStartWorld.y,
+            ab.axisStartWorld.z
+          ];
+          child.userData.cadAnim.axisEnd = [
+            ab.axisEndWorld.x,
+            ab.axisEndWorld.y,
+            ab.axisEndWorld.z
+          ];
+        }
+      }
     }
   }
   rootGroup.updateMatrixWorld(true);

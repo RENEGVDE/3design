@@ -102,19 +102,49 @@ export function computeMechMatrixInModelSpace(mesh, mechType, rawProgress, baseD
   }
 
   const eased = easeInOutCubic(Math.max(0, Math.min(1, rawProgress)));
+
+  // 1. Exact CAD Animation Transformation (from native CAD Anim data)
+  if (mesh.userData && mesh.userData.cadAnim) {
+    const { animType, axisStart, axisEnd } = mesh.userData.cadAnim;
+    if (Array.isArray(axisStart) && Array.isArray(axisEnd)) {
+      const p0 = new THREE.Vector3(axisStart[0], axisStart[1], axisStart[2]);
+      const p1 = new THREE.Vector3(axisEnd[0], axisEnd[1], axisEnd[2]);
+
+      if (animType === 2) {
+        // Translation along slide vector (AxisEnd - AxisStart)
+        const delta = p1.clone().sub(p0).multiplyScalar(eased);
+        mat.makeTranslation(delta.x, delta.y, delta.z);
+        return mat;
+      } else if (animType === 1) {
+        // Rotation around 3D axis line through p0 towards p1
+        const axis = p1.clone().sub(p0);
+        const len = axis.length();
+        if (len > 0.0001) {
+          axis.normalize();
+          // In CAD models, the AxisStart -> AxisEnd vector is directed
+          // such that a right-hand rotation around it swings the door/flap OUTWARD into the room.
+          const isHorizontal = Math.abs(axis.y) < 0.3;
+          const maxDeg = isHorizontal ? 95 : 90;
+          const angleRad = THREE.MathUtils.degToRad(maxDeg * eased);
+
+          const tToOrigin = new THREE.Matrix4().makeTranslation(-p0.x, -p0.y, -p0.z);
+          const rotMat = new THREE.Matrix4().makeRotationAxis(axis, angleRad);
+          const tBack = new THREE.Matrix4().makeTranslation(p0.x, p0.y, p0.z);
+
+          mat.multiplyMatrices(tBack, rotMat).multiply(tToOrigin);
+          return mat;
+        }
+      }
+    }
+  }
+
+  // 2. Fallback for generic GLB models or standalone facades
   const boxM = mesh.userData.boxM;
   if (!boxM) return mat;
 
   const { min, max, size, center } = boxM;
   const orientZ = size.z > size.x * 1.55;
-  // Outwards opening direction:
-  // For front-facing panels (!orientZ): the front face of the kitchen is towards +Z, so opening is into the room (+Z, outSign = 1)
-  // For side-facing panels (orientZ): opens towards the side (+X if on right, -X if on left)
-  const outSign = orientZ
-    ? center.x >= 0
-      ? 1
-      : -1
-    : 1;
+  const outSign = orientZ ? (center.x >= 0 ? 1 : -1) : 1;
 
   if (mechType === 'drawer' || mechType === 'drawer_back') {
     const dirSign = mechType === 'drawer_back' ? -outSign : outSign;
@@ -132,41 +162,53 @@ export function computeMechMatrixInModelSpace(mesh, mechType, rawProgress, baseD
 
   if (mechType === 'door_left') {
     if (!orientZ) {
-      pivot.set(min.x, center.y, outSign > 0 ? max.z : min.z);
+      // Front-facing door hinged on back-left edge (min.x, center.y, min.z).
+      // Angle -90 deg rotates body (+X) towards +Z (into the room).
+      pivot.set(min.x, center.y, min.z);
       axis.set(0, 1, 0);
-      angleDeg = -90 * outSign * eased;
+      angleDeg = -90 * eased;
     } else {
-      pivot.set(outSign > 0 ? max.x : min.x, center.y, min.z);
+      // Side-facing door:
+      // If outSign > 0 (+X side): hinge at min.z, min.x. +90 deg swings out to +X.
+      // If outSign < 0 (-X side): hinge at min.z, max.x. -90 deg swings out to -X.
+      pivot.set(outSign > 0 ? min.x : max.x, center.y, min.z);
       axis.set(0, 1, 0);
       angleDeg = 90 * outSign * eased;
     }
   } else if (mechType === 'door_right') {
     if (!orientZ) {
-      pivot.set(max.x, center.y, outSign > 0 ? max.z : min.z);
+      // Front-facing door hinged on back-right edge (max.x, center.y, min.z).
+      // Angle +90 deg rotates body (-X) towards +Z (into the room).
+      pivot.set(max.x, center.y, min.z);
       axis.set(0, 1, 0);
-      angleDeg = 90 * outSign * eased;
+      angleDeg = 90 * eased;
     } else {
-      pivot.set(outSign > 0 ? max.x : min.x, center.y, max.z);
+      // Side-facing door:
+      // If outSign > 0 (+X side): hinge at max.z, min.x. -90 deg swings out to +X.
+      // If outSign < 0 (-X side): hinge at max.z, max.x. +90 deg swings out to -X.
+      pivot.set(outSign > 0 ? min.x : max.x, center.y, max.z);
       axis.set(0, 1, 0);
       angleDeg = -90 * outSign * eased;
     }
   } else if (mechType === 'flap_up') {
     if (!orientZ) {
-      pivot.set(center.x, max.y, outSign > 0 ? max.z : min.z);
+      // Hinge at top-back edge (center.x, max.y, min.z).
+      // Angle -95 deg lifts bottom edge UP and OUT towards +Z.
+      pivot.set(center.x, max.y, min.z);
       axis.set(1, 0, 0);
-      angleDeg = -95 * outSign * eased;
+      angleDeg = -95 * eased;
     } else {
-      pivot.set(outSign > 0 ? max.x : min.x, max.y, center.z);
+      pivot.set(outSign > 0 ? min.x : max.x, max.y, center.z);
       axis.set(0, 0, 1);
       angleDeg = 95 * outSign * eased;
     }
   } else if (mechType === 'flap_down') {
     if (!orientZ) {
-      pivot.set(center.x, min.y, outSign > 0 ? max.z : min.z);
+      pivot.set(center.x, min.y, min.z);
       axis.set(1, 0, 0);
-      angleDeg = 85 * outSign * eased;
+      angleDeg = 85 * eased;
     } else {
-      pivot.set(outSign > 0 ? max.x : min.x, min.y, center.z);
+      pivot.set(outSign > 0 ? min.x : max.x, min.y, center.z);
       axis.set(0, 0, 1);
       angleDeg = -85 * outSign * eased;
     }
@@ -198,12 +240,36 @@ export function buildFollowerMap(meshes, subParts) {
   }
   if (activeIndices.length === 0) return followerOf;
 
+  // 1. Direct CAD Anim Block ID matching (highest priority, 100% deterministic)
   for (let j = 0; j < meshes.length; j++) {
+    const meshJ = meshes[j];
+    const bIdJ = meshJ?.userData?.cadAnimBlockId || meshJ?.userData?.cadAnim?.blockId;
+    if (!bIdJ) continue;
+
+    for (const idx of activeIndices) {
+      const meshI = meshes[idx];
+      const bIdI = meshI?.userData?.cadAnimBlockId || meshI?.userData?.cadAnim?.blockId;
+      if (bIdI && bIdI === bIdJ && idx !== j) {
+        followerOf[j] = idx;
+        break;
+      }
+    }
+  }
+
+  // 2. Geometric follower matching for generic GLBs or handles
+  for (let j = 0; j < meshes.length; j++) {
+    if (followerOf[j] !== undefined) continue;
     const spJ = subParts[j];
     if (spJ && spJ.mechType && spJ.mechType !== 'none') continue;
     const meshJ = meshes[j];
     const bJ = meshJ?.userData?.boxM;
     if (!bJ) continue;
+
+    const fullNameJ = `${meshJ.name || ''} ${meshJ.parent?.name || ''} ${spJ?.name || ''}`.toLowerCase();
+    // Exclude corpus panels, shelves, plinths from following
+    if (/горизонтальн|вертикальн|полка|polita|blat|цокол|soclu|plinth|стенк/i.test(fullNameJ)) {
+      continue;
+    }
 
     const volJ = bJ.size.x * bJ.size.y * bJ.size.z;
 
@@ -225,7 +291,7 @@ export function buildFollowerMap(meshes, subParts) {
         break;
       }
 
-      // Geometric attachment: small handle or edge strip touching front/edges of facade `idx`
+      // Handle or small trim attached to facade
       const margin = 0.045; // 4.5 cm tolerance for handles
       const insideXY =
         bJ.min.x >= bI.min.x - 0.02 &&
@@ -240,16 +306,15 @@ export function buildFollowerMap(meshes, subParts) {
         break;
       }
 
-      // If `idx` is a drawer, also attach inner drawer box panels directly behind the drawer front
+      // If drawer front, attach drawer box internal panels (bottom, back, sides)
       if (
         (subParts[idx].mechType === 'drawer' ||
           subParts[idx].mechType === 'drawer_back') &&
-        bJ.min.x >= bI.min.x - 0.015 &&
-        bJ.max.x <= bI.max.x + 0.015 &&
+        /дно|бок|задн|box|runner|rail/i.test(fullNameJ) &&
+        bJ.min.x >= bI.min.x - 0.02 &&
+        bJ.max.x <= bI.max.x + 0.02 &&
         bJ.min.y >= bI.min.y - 0.02 &&
-        bJ.max.y <= bI.max.y + 0.02 &&
-        bJ.size.y <= bI.size.y * 1.15 &&
-        bJ.size.x <= bI.size.x * 1.05
+        bJ.max.y <= bI.max.y + 0.02
       ) {
         followerOf[j] = idx;
         break;
@@ -367,10 +432,52 @@ export function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
   const modelH = (baseDimsCm?.h || 80) * 0.01;
   const modelD = (baseDimsCm?.d || 55) * 0.01;
 
-  // Candidate front facade panels
+  const updated = subPartsMeta.map((sp) => ({
+    ...sp,
+    mechType: 'none',
+    isOpen: false
+  }));
+
+  // 1. Direct CAD Animation Metadata Detection (Highest Priority)
+  for (let i = 0; i < meshes.length; i++) {
+    const m = meshes[i];
+    if (m && m.userData && m.userData.cadAnim) {
+      const ca = m.userData.cadAnim;
+      if (ca.isLeader) {
+        if (ca.animType === 2) {
+          updated[i].mechType = 'drawer';
+        } else if (ca.animType === 1) {
+          const as = ca.axisStart;
+          const ae = ca.axisEnd;
+          if (Array.isArray(as) && Array.isArray(ae)) {
+            const dy = Math.abs(ae[1] - as[1]);
+            const dx = Math.abs(ae[0] - as[0]);
+            const dz = Math.abs(ae[2] - as[2]);
+            if (dy < 0.25 && (dx > 0.3 || dz > 0.3)) {
+              updated[i].mechType = 'flap_up';
+            } else {
+              const orientZ = m.userData.boxM && m.userData.boxM.size.z > m.userData.boxM.size.x * 1.55;
+              if (orientZ) {
+                updated[i].mechType = m.position.z <= 0 ? 'door_left' : 'door_right';
+              } else {
+                updated[i].mechType = m.position.x <= 0 ? 'door_left' : 'door_right';
+              }
+            }
+          }
+        }
+      } else {
+        updated[i].mechType = 'none'; // follower part inside the same CAD block
+      }
+    }
+  }
+
+  // 2. Candidate front facade panels for standalone facades (not in anim blocks)
   const candidates = [];
 
   for (let i = 0; i < meshes.length; i++) {
+    // If already handled by CAD metadata, skip
+    if (meshes[i]?.userData?.cadAnim) continue;
+
     const m = meshes[i];
     const sp = subPartsMeta[i];
     const b = m.userData.boxM;
@@ -378,8 +485,14 @@ export function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
 
     const fullName = `${m.name || ''} ${m.parent?.name || ''} ${sp.name || ''}`.toLowerCase();
 
-    // 0. Skip non-facades explicitly (internal drawer boxes, shelves, plinths, countertops)
-    if (/дно|бок|задн|цокол|soclu|plinth|стенк|polita|polite|blat/i.test(fullName)) continue;
+    // 0. Skip non-facades strictly: internal carcass panels, dividers, shelves, back walls, plinths, countertops, appliances
+    if (
+      /дно|бок|задн|цокол|soclu|plinth|стенк|polita|polite|blat|корпус|carcass|shelf|divider|back|oven|cuptor|microwave|bosch|siemens/i.test(
+        fullName
+      )
+    ) {
+      continue;
+    }
     if (b.max.y <= 0.14 && (b.size.x >= 0.8 || b.size.z >= 0.8)) continue; // plinth at floor
 
     // 1. Explicit Mechanism Keywords
@@ -398,6 +511,7 @@ export function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
 
     // 2. Facade name keyword: "Фронтальная", "Фасад", "Usa", "Door", "Front", etc.
     const isNamedFacade = /фронтал|front|фасад|facade|fasad|fațad|двер|door|u[sș]a/i.test(fullName);
+    if (!forced && !isNamedFacade) continue;
 
     // 3. Geometric slab checks:
     // Normal Z (facing front/back): thin in Z (11mm - 45mm), wide in X (>= 15cm), tall in Y (>= 9cm)
@@ -405,24 +519,16 @@ export function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
     // Normal X (facing sideways on peninsula or island): thin in X (11mm - 45mm), wide in Z (>= 15cm), tall in Y (>= 9cm)
     const isSlabX = b.size.x >= 0.011 && b.size.x <= 0.048 && b.size.z >= 0.15 && b.size.y >= 0.09;
 
-    if (!forced && !isNamedFacade) {
+    if (!forced) {
       if (!isSlabZ && !isSlabX) continue;
       // Exclude deep corpus walls (depth >= 30cm and height >= 60cm)
       if (isSlabZ && b.size.x < 0.20 && b.size.y >= 0.60) continue;
       if (isSlabX && b.size.z >= 0.30 && b.size.y >= 0.60) continue;
-    } else {
-      if (!isSlabZ && !isSlabX && !forced) continue;
     }
 
     const facingX = isSlabX && (!isSlabZ || b.size.z > b.size.x);
     candidates.push({ idx: i, forced, box: b, facingX });
   }
-
-  const updated = subPartsMeta.map((sp) => ({
-    ...sp,
-    mechType: 'none',
-    isOpen: false
-  }));
 
   for (const cand of candidates) {
     const { idx, forced, box, facingX } = cand;
@@ -464,7 +570,7 @@ export function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
         updated[idx].mechType =
           box.center.z <= sibling.box.center.z ? 'door_left' : 'door_right';
       } else {
-        updated[idx].mechType = 'door_right';
+        updated[idx].mechType = box.center.z <= 0 ? 'door_left' : 'door_right';
       }
     } else {
       if (sibling) {
