@@ -24,6 +24,8 @@ export interface TopBarProps {
   onToggleMagneticSnap?: () => void;
   onCaptureScreenshot?: () => void;
   onExportSceneGlb?: () => void;
+  onExportSceneD3D?: (ext: 'd3d' | 'b3d') => void;
+  onExportSceneObj?: () => void;
 }
 
 export default function TopBar({
@@ -46,7 +48,9 @@ export default function TopBar({
   magneticSnapEnabled = true,
   onToggleMagneticSnap,
   onCaptureScreenshot,
-  onExportSceneGlb
+  onExportSceneGlb,
+  onExportSceneD3D,
+  onExportSceneObj
 }: TopBarProps) {
   const dict = I18N[lang] || I18N.ro;
   const isRo = lang === 'ro';
@@ -141,8 +145,8 @@ export default function TopBar({
                 >
                   <span>📥</span>
                   <div>
-                    <strong>{isRo ? 'Încarcă Proiect sau Model (.json, .cadproj, .glb)' : isRu ? 'Открыть проект или 3D модель (.json, .cadproj, .glb)' : 'Open Project or 3D Model (.json, .cadproj, .glb)'}</strong>
-                    <small>{isRo ? 'Încarcă proiect complet sau importă model 3D .GLB' : isRu ? 'Открыть проект или загрузить 3D модель .GLB' : 'Restore project or import 3D model .GLB'}</small>
+                    <strong>{isRo ? 'Încarcă Proiect sau Model (.glb, .d3d, .b3d, .obj, .json)' : isRu ? 'Открыть проект или 3D модель (.glb, .d3d, .b3d, .obj, .json)' : 'Open Project or 3D Model (.glb, .d3d, .b3d, .obj, .json)'}</strong>
+                    <small>{isRo ? 'Recunoaște automat modele 3D, proiecte și fișiere de fabricație' : isRu ? 'Автоматическое распознавание 3D моделей и проектов' : 'Auto-detects 3D models, projects & CAD assemblies'}</small>
                   </div>
                 </button>
 
@@ -156,8 +160,38 @@ export default function TopBar({
                 >
                   <span>📦</span>
                   <div>
-                    <strong>{isRo ? 'Exportă / Salvează Scenă 3D (.glb)' : isRu ? 'Экспорт всей 3D сцены (.glb)' : 'Export / Save 3D Scene (.glb)'}</strong>
-                    <small>{isRo ? 'Model 3D binar complet pentru randare și atelier' : isRu ? 'Бинарная 3D модель для Blender / 3ds Max' : 'Binary 3D model for rendering & visualization'}</small>
+                    <strong>{isRo ? 'Exportă Scenă 3D (.glb)' : isRu ? 'Экспорт 3D сцены (.glb)' : 'Export 3D Scene (.glb)'}</strong>
+                    <small>{isRo ? 'Model 3D binar complet pentru randare, Blender și 3ds Max' : isRu ? 'Бинарная 3D модель для Blender / 3ds Max / AR' : 'Binary 3D model for rendering & visualization'}</small>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    setProjectMenuOpen(false);
+                    if (onExportSceneD3D) onExportSceneD3D('d3d');
+                  }}
+                >
+                  <span>🧱</span>
+                  <div>
+                    <strong>{isRo ? 'Exportă Model Producție (.d3d / .b3d)' : isRu ? 'Экспорт для производства (.d3d / .b3d)' : 'Export Production Model (.d3d / .b3d)'}</strong>
+                    <small>{isRo ? 'Tabel panouri (mm), canturi ABS, feronerie și cote atelier' : isRu ? 'Панели (мм), кромки ABS, фурнитура и спецификация' : 'Panels (mm), ABS edge bands & hardware'}</small>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    setProjectMenuOpen(false);
+                    if (onExportSceneObj) onExportSceneObj();
+                  }}
+                >
+                  <span>📐</span>
+                  <div>
+                    <strong>{isRo ? 'Exportă Geometrie CAD (.obj + .mtl)' : isRu ? 'Экспорт геометрии CAD (.obj + .mtl)' : 'Export CAD Geometry (.obj + .mtl)'}</strong>
+                    <small>{isRo ? 'Format geometric universal pentru softuri CAD și CNC' : isRu ? 'Универсальный формат геометрии для CAD и ЧПУ' : 'Universal geometric format for CAD & CNC'}</small>
                   </div>
                 </button>
 
@@ -185,7 +219,7 @@ export default function TopBar({
             type="file"
             ref={fileInputRef}
             style={{ display: 'none' }}
-            accept=".json,.cadproj,.glb,.gltf,.3design"
+            accept=".json,.cadproj,.glb,.gltf,.d3d,.b3d,.obj,.3design"
             onChange={handleFileChange}
           />
         </div>

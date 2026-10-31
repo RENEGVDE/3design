@@ -72,6 +72,14 @@ import {
 } from '../utils/applianceCatalog';
 import TechnicalReportModal from './TechnicalReportModal';
 import { calculateMagneticSnap, alignModelDirectly } from '../utils/magneticSnapping';
+import {
+  downloadGlbExport,
+  downloadD3DExport,
+  downloadObjExport,
+  exportToGlbBuffer,
+  parseObjModel,
+  parseD3DOrB3DContent
+} from '../utils/cadFormatHandler';
 
 const INITIAL_WHITE_MAT = {
   id: 'mat_default_white',
@@ -1257,6 +1265,7 @@ export default function KitchenViewer() {
 
       // 3D Parametric Architectural Room
       const roomRoot = buildArchitecturalRoom(stateRef.current.roomConfig || DEFAULT_ROOM_CONFIG);
+      roomRoot.visible = false; // Clean CAD scene by default; enabled via Architectural Room button
       scene.add(roomRoot);
 
       // Container for Built-in Appliances
@@ -2477,52 +2486,79 @@ export default function KitchenViewer() {
   }, [toggleInteractivePart, loading]);
 
   // ============================================================================
-  // IMPORTED .GLB MODELS HANDLERS (Import, Transform, Resize, Paint & Delete)
+  // MULTI-FORMAT CAD & 3D IMPORTER (.GLB, .GLTF, .D3D, .B3D, .OBJ)
   // ============================================================================
-  const handleImportGlbFiles = (files) => {
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = async (ev) => {
-        try {
-          const arrayBuffer = ev.target.result;
-          const b64Data = arrayBufferToBase64(arrayBuffer);
-          const cleanName =
-            file.name.replace(/\.[^/.]+$/, '').slice(0, 26) || 'Model 3D';
-          const newId =
-            'glb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+  const handleImportGlbFiles = async (files: File[]) => {
+    for (const file of Array.from(files)) {
+      try {
+        const lowerName = file.name.toLowerCase();
+        const cleanName =
+          file.name.replace(/\.[^/.]+$/, '').slice(0, 26) || 'Model CAD';
+        const newId =
+          'cad_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
 
-          // Offset position slightly if multiple models are imported
-          const count = stateRef.current.importedModels.length;
-          const initPos = [1.85 + count * 0.35, 0.0, 2.15];
+        const count = stateRef.current.importedModels.length;
+        const initPos = [1.85 + count * 0.35, 0.0, 2.15];
 
-          const mounted = await mountParsedGlbIntoScene(
-            arrayBuffer,
-            b64Data,
-            newId,
-            cleanName,
-            { position: initPos, rotationYDeg: 0, scale: [1.0, 1.0, 1.0] },
-            null,
-            stateRef.current.materials
-          );
-          if (!mounted) return;
+        let glbBuffer: ArrayBuffer | null = null;
+        let formatLabel = 'GLB';
 
-          glbBinaryCacheRef.current.set(newId, b64Data);
-          setImportedModels((prev) => {
-            const updated = [...prev, mounted];
-            setSelectedGlbId(newId);
-            setGizmoMode('translate');
-            persistWorkspace({ importedModels: updated });
-            return updated;
-          });
-          pushHistoryRef.current?.('Import ' + cleanName);
-          showToast(`📦 Model .GLB importat: ${cleanName}`);
-        } catch (err) {
-          console.error('Error importing GLB:', err);
-          showToast('❌ Eroare la citirea fișierului .GLB');
+        if (lowerName.endsWith('.obj')) {
+          formatLabel = 'OBJ';
+          const text = await file.text();
+          const objGroup = parseObjModel(text);
+          glbBuffer = await exportToGlbBuffer([objGroup]);
+        } else if (lowerName.endsWith('.d3d') || lowerName.endsWith('.b3d')) {
+          formatLabel = lowerName.endsWith('.b3d') ? 'B3D' : 'D3D';
+          const buf = await file.arrayBuffer();
+          const parsed = await parseD3DOrB3DContent(buf);
+          if (parsed.glbBuffer) {
+            glbBuffer = parsed.glbBuffer;
+          } else {
+            showToast(`⚠️ Fișierul ${file.name} nu conține date geometrice 3D`);
+            continue;
+          }
+        } else {
+          // Standard GLB / GLTF
+          formatLabel = 'GLB';
+          glbBuffer = await file.arrayBuffer();
         }
-      };
-      reader.readAsArrayBuffer(file);
-    });
+
+        if (!glbBuffer) continue;
+
+        const b64Data = arrayBufferToBase64(glbBuffer);
+        const mounted = await mountParsedGlbIntoScene(
+          glbBuffer,
+          b64Data,
+          newId,
+          cleanName,
+          { position: initPos, rotationYDeg: 0, scale: [1.0, 1.0, 1.0] },
+          null,
+          stateRef.current.materials
+        );
+        if (!mounted) continue;
+
+        glbBinaryCacheRef.current.set(newId, b64Data);
+        setImportedModels((prev) => {
+          const updated = [...prev, mounted];
+          setSelectedGlbId(newId);
+          setGizmoMode('translate');
+          persistWorkspace({ importedModels: updated });
+          return updated;
+        });
+        pushHistoryRef.current?.('Import ' + cleanName);
+        showToast(
+          lang === 'ro'
+            ? `📦 Model CAD .${formatLabel} importat: ${cleanName}`
+            : lang === 'ru'
+              ? `📦 CAD модель .${formatLabel} загружена: ${cleanName}`
+              : `📦 CAD model .${formatLabel} imported: ${cleanName}`
+        );
+      } catch (err) {
+        console.error('Error importing CAD file:', err);
+        showToast(`❌ Eroare la citirea fișierului ${file.name}`);
+      }
+    }
   };
 
   const handleMountGeneratedFurniture = async (
@@ -3654,19 +3690,37 @@ export default function KitchenViewer() {
   const handleLoadProject = useCallback(async (file: File) => {
     try {
       const lowerName = file.name.toLowerCase();
-      // If user selected a .glb / .gltf 3D model directly from Project menu
-      if (lowerName.endsWith('.glb') || lowerName.endsWith('.gltf')) {
+      // If user selected any CAD or 3D model directly from Project menu
+      if (
+        lowerName.endsWith('.glb') ||
+        lowerName.endsWith('.gltf') ||
+        lowerName.endsWith('.d3d') ||
+        lowerName.endsWith('.b3d') ||
+        lowerName.endsWith('.obj')
+      ) {
         await handleImportGlbFiles([file]);
-        showToast(
-          lang === 'ro'
-            ? `📦 Model 3D (${file.name}) importat cu succes!`
-            : `📦 3D Model (${file.name}) imported successfully!`
-        );
         return;
       }
 
       const text = await file.text();
-      const proj = JSON.parse(text);
+      let proj: any = null;
+      try {
+        proj = JSON.parse(text);
+      } catch {
+        // If not JSON, check if it's an OBJ file or raw CAD
+        if (lowerName.endsWith('.obj')) {
+          await handleImportGlbFiles([file]);
+          return;
+        }
+        alert('Fișier invalid. Alege un fișier de tip .json, .cadproj, .glb, .d3d sau .obj');
+        return;
+      }
+
+      if (proj && (proj.format === 'D3D_CAD_FURNITURE_V1' || proj.format === 'B3D_CAD_FURNITURE_V1')) {
+        await handleImportGlbFiles([file]);
+        return;
+      }
+
       if (!proj || (!proj.format && !proj.importedModels)) {
         alert('Fișier invalid. Alege un fișier de tip .json, .cadproj sau .glb');
         return;
@@ -3740,6 +3794,11 @@ export default function KitchenViewer() {
       const next = !prev;
       if (sceneRef.current?.roomWallsGroup) {
         sceneRef.current.roomWallsGroup.visible = next;
+      }
+      if (sceneRef.current?.roomRoot) {
+        sceneRef.current.roomRoot.visible = next;
+      }
+      if (sceneRef.current) {
         sceneRef.current.needsShadowUpdate = true;
       }
       showToast(
@@ -3764,8 +3823,8 @@ export default function KitchenViewer() {
             : '⏳ Exporting 3D scene to .GLB...'
       );
 
-      const toExport = [];
-      if (ctx.roomRoot) {
+      const toExport: THREE.Object3D[] = [];
+      if (ctx.roomRoot && ctx.roomRoot.visible) {
         toExport.push(ctx.roomRoot);
       }
       if (ctx.importedRootGroup && ctx.importedRootGroup.children.length > 0) {
@@ -3786,16 +3845,8 @@ export default function KitchenViewer() {
         return;
       }
 
-      const buffer = await exportToGlbArrayBuffer(toExport);
-      const blob = new Blob([buffer as BlobPart], { type: 'model/gltf-binary' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `3design_scena_${new Date().toISOString().slice(0, 10)}.glb`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const filename = `mobilier_scena_${new Date().toISOString().slice(0, 10)}.glb`;
+      await downloadGlbExport(toExport, filename);
 
       showToast(
         lang === 'ro'
@@ -3814,6 +3865,150 @@ export default function KitchenViewer() {
             : '❌ Error exporting scene to GLB'
       );
     }
+  }, [lang, showToast]);
+
+  const handleExportSceneD3D = useCallback(async (ext: 'd3d' | 'b3d' = 'd3d') => {
+    const ctx = sceneRef.current;
+    if (!ctx) return;
+
+    try {
+      showToast(
+        lang === 'ro'
+          ? `⏳ Se generează exportul tehnic de producție .${ext.toUpperCase()}...`
+          : lang === 'ru'
+            ? `⏳ Экспорт технической модели .${ext.toUpperCase()}...`
+            : `⏳ Exporting technical CAD production file .${ext.toUpperCase()}...`
+      );
+
+      const toExport: THREE.Object3D[] = [];
+      if (ctx.importedRootGroup && ctx.importedRootGroup.children.length > 0) {
+        toExport.push(ctx.importedRootGroup);
+      }
+      if (ctx.appliancesRootGroup && ctx.appliancesRootGroup.children.length > 0) {
+        toExport.push(ctx.appliancesRootGroup);
+      }
+
+      const projectName = `proiect_cad_${new Date().toISOString().slice(0, 10)}`;
+      await downloadD3DExport(
+        toExport,
+        stateRef.current.placedCabinets || [],
+        stateRef.current.importedModels || [],
+        stateRef.current.materials || [],
+        ext,
+        projectName
+      );
+
+      showToast(
+        lang === 'ro'
+          ? `🧱 Fișierul de producție .${ext.toUpperCase()} a fost descărcat cu succes!`
+          : lang === 'ru'
+            ? `🧱 Файл .${ext.toUpperCase()} успешно экспортирован!`
+            : `🧱 Production CAD file .${ext.toUpperCase()} exported successfully!`
+      );
+    } catch (err) {
+      console.error('Error exporting D3D/B3D:', err);
+      showToast(
+        lang === 'ro'
+          ? '❌ Eroare la exportarea fișierului de producție'
+          : '❌ Error exporting production file'
+      );
+    }
+  }, [lang, showToast]);
+
+  const handleExportSceneObj = useCallback(() => {
+    const ctx = sceneRef.current;
+    if (!ctx) return;
+
+    try {
+      const toExport: THREE.Object3D[] = [];
+      if (ctx.roomRoot && ctx.roomRoot.visible) {
+        toExport.push(ctx.roomRoot);
+      }
+      if (ctx.importedRootGroup && ctx.importedRootGroup.children.length > 0) {
+        toExport.push(ctx.importedRootGroup);
+      }
+      if (ctx.appliancesRootGroup && ctx.appliancesRootGroup.children.length > 0) {
+        toExport.push(ctx.appliancesRootGroup);
+      }
+
+      if (toExport.length === 0) {
+        showToast(lang === 'ro' ? '⚠️ Scena este goală' : '⚠️ Scene is empty');
+        return;
+      }
+
+      const projectName = `mobilier_cad_${new Date().toISOString().slice(0, 10)}`;
+      downloadObjExport(toExport, projectName);
+
+      showToast(
+        lang === 'ro'
+          ? '📐 Geometria CAD (.obj + .mtl) a fost descărcată!'
+          : '📐 CAD geometry (.obj + .mtl) exported!'
+      );
+    } catch (err) {
+      console.error('Error exporting OBJ:', err);
+      showToast('❌ Eroare la exportarea geometriei .OBJ');
+    }
+  }, [lang, showToast]);
+
+  const handleExportModelGlb = useCallback(async (modelId: string) => {
+    const ctx = sceneRef.current;
+    if (!ctx) return;
+    const parsed = ctx.importedMap[modelId];
+    if (!parsed || !parsed.wrapperGroup) {
+      showToast(lang === 'ro' ? '⚠️ Modelul nu a fost găsit' : '⚠️ Model not found');
+      return;
+    }
+    const model = stateRef.current.importedModels.find((m) => m.id === modelId);
+    const filename = `${model?.name || 'corp_3d'}.glb`;
+    await downloadGlbExport([parsed.wrapperGroup], filename);
+    showToast(
+      lang === 'ro'
+        ? `📦 Modelul "${model?.name || '3D'}" exportat în .GLB!`
+        : `📦 Model "${model?.name || '3D'}" exported to .GLB!`
+    );
+  }, [lang, showToast]);
+
+  const handleExportModelD3D = useCallback(async (modelId: string, ext: 'd3d' | 'b3d' = 'd3d') => {
+    const ctx = sceneRef.current;
+    if (!ctx) return;
+    const parsed = ctx.importedMap[modelId];
+    if (!parsed || !parsed.wrapperGroup) {
+      showToast(lang === 'ro' ? '⚠️ Modelul nu a fost găsit' : '⚠️ Model not found');
+      return;
+    }
+    const model = stateRef.current.importedModels.find((m) => m.id === modelId);
+    const filename = `${model?.name || 'corp_cad'}`;
+    await downloadD3DExport(
+      [parsed.wrapperGroup],
+      [],
+      model ? [model] : [],
+      stateRef.current.materials || [],
+      ext,
+      filename
+    );
+    showToast(
+      lang === 'ro'
+        ? `🧱 Modelul "${model?.name || 'CAD'}" exportat în format .${ext.toUpperCase()}!`
+        : `🧱 Model "${model?.name || 'CAD'}" exported to .${ext.toUpperCase()}!`
+    );
+  }, [lang, showToast]);
+
+  const handleExportModelObj = useCallback((modelId: string) => {
+    const ctx = sceneRef.current;
+    if (!ctx) return;
+    const parsed = ctx.importedMap[modelId];
+    if (!parsed || !parsed.wrapperGroup) {
+      showToast(lang === 'ro' ? '⚠️ Modelul nu a fost găsit' : '⚠️ Model not found');
+      return;
+    }
+    const model = stateRef.current.importedModels.find((m) => m.id === modelId);
+    const filename = `${model?.name || 'corp_cad'}`;
+    downloadObjExport([parsed.wrapperGroup], filename);
+    showToast(
+      lang === 'ro'
+        ? `📐 Modelul "${model?.name || 'CAD'}" exportat în .OBJ + .MTL!`
+        : `📐 Model "${model?.name || 'CAD'}" exported to .OBJ + .MTL!`
+    );
   }, [lang, showToast]);
 
   const handleChangeRoomConfig = useCallback((newConfig: RoomConfig) => {
@@ -4245,6 +4440,8 @@ export default function KitchenViewer() {
         onToggleMagneticSnap={() => setMagneticSnapEnabled((v) => !v)}
         onCaptureScreenshot={handleCaptureScreenshot}
         onExportSceneGlb={handleExportFullSceneGlb}
+        onExportSceneD3D={handleExportSceneD3D}
+        onExportSceneObj={handleExportSceneObj}
       />
 
       <DimensionToolbar
@@ -4565,6 +4762,9 @@ export default function KitchenViewer() {
               onClearGlbMechanisms={handleClearGlbMechanisms}
               onToggleNativeGlbAnimation={handleToggleNativeGlbAnimation}
               onOptimizeGlb={handleOptimizeGlb}
+              onExportModelGlb={handleExportModelGlb}
+              onExportModelD3D={handleExportModelD3D}
+              onExportModelObj={handleExportModelObj}
             />
           )}
 

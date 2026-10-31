@@ -27,7 +27,10 @@ export default function GlbImporterSection({
   onAutoDetectGlbMechanisms,
   onClearGlbMechanisms,
   onToggleNativeGlbAnimation,
-  onOptimizeGlb
+  onOptimizeGlb,
+  onExportModelGlb,
+  onExportModelD3D,
+  onExportModelObj
 }: {
   lang: any;
   importedModels: any[];
@@ -53,8 +56,13 @@ export default function GlbImporterSection({
   onClearGlbMechanisms: any;
   onToggleNativeGlbAnimation: any;
   onOptimizeGlb?: (modelId: string) => void;
+  onExportModelGlb?: (modelId: string) => void;
+  onExportModelD3D?: (modelId: string, ext: 'd3d' | 'b3d') => void;
+  onExportModelObj?: (modelId: string) => void;
 }) {
   const dict = I18N[lang] || I18N.ro;
+  const isRo = lang === 'ro';
+  const isRu = lang === 'ru';
   const fileInputRef = useRef(null);
 
   const selectedModel =
@@ -99,7 +107,7 @@ export default function GlbImporterSection({
         <input
           ref={fileInputRef}
           type="file"
-          accept=".glb,.gltf"
+          accept=".glb,.gltf,.d3d,.b3d,.obj"
           multiple
           style={{ display: 'none' }}
           onChange={handleFileChange}
@@ -275,6 +283,61 @@ export default function GlbImporterSection({
                     )}
                   </div>
                 )}
+
+                {/* Export Model CAD Formats */}
+                <div
+                  style={{
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.07)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '0.71rem',
+                      fontWeight: 600,
+                      color: 'var(--text-main)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <span>💾 {isRo ? 'Exportă acest corp / model' : isRu ? 'Экспорт этого изделия' : 'Export this Model'}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+                    <button
+                      type="button"
+                      className="light-chip"
+                      style={{ justifyContent: 'center', fontSize: '0.69rem', padding: '4px' }}
+                      title={isRo ? 'Descarcă modelul 3D binar (.glb)' : 'Download .GLB'}
+                      onClick={() => onExportModelGlb && onExportModelGlb(selectedModel.id)}
+                    >
+                      <span>📦 .glb</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="light-chip"
+                      style={{ justifyContent: 'center', fontSize: '0.69rem', padding: '4px' }}
+                      title={isRo ? 'Descarcă modelul tehnic de producție (.d3d)' : 'Download .D3D'}
+                      onClick={() => onExportModelD3D && onExportModelD3D(selectedModel.id, 'd3d')}
+                    >
+                      <span>🧱 .d3d</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="light-chip"
+                      style={{ justifyContent: 'center', fontSize: '0.69rem', padding: '4px' }}
+                      title={isRo ? 'Descarcă geometria CAD (.obj + .mtl)' : 'Download .OBJ'}
+                      onClick={() => onExportModelObj && onExportModelObj(selectedModel.id)}
+                    >
+                      <span>📐 .obj</span>
+                    </button>
+                  </div>
+                </div>
 
                 {/* 3D Transform Gizmo Mode Selector */}
                 <div
