@@ -3449,6 +3449,13 @@ export default function KitchenViewer() {
           sceneRef.current.appliancesRootGroup.remove(sceneRef.current.appliancesRootGroup.children[0]);
         }
       }
+      if (sceneRef.current.roomRoot) {
+        sceneRef.current.scene.remove(sceneRef.current.roomRoot);
+        const cleanRoom = buildArchitecturalRoom(DEFAULT_ROOM_CONFIG);
+        sceneRef.current.scene.add(cleanRoom);
+        sceneRef.current.roomRoot = cleanRoom;
+        sceneRef.current.needsShadowUpdate = true;
+      }
     }
 
     setImportedModels([]);
@@ -3496,25 +3503,37 @@ export default function KitchenViewer() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'proiect-cad-mobilier-' + new Date().toISOString().slice(0, 10) + '.3design';
+    a.download = 'proiect-cad-mobilier-' + new Date().toISOString().slice(0, 10) + '.json';
     a.click();
     URL.revokeObjectURL(url);
 
     showToast(
       lang === 'ro'
-        ? '💾 Proiectul CAD a fost salvat și descărcat (.3design)!'
+        ? '💾 Proiectul CAD a fost salvat și descărcat (.json)!'
         : lang === 'ru'
-          ? '💾 Проект CAD сохранен и скачан (.3design)!'
-          : '💾 CAD Project saved and downloaded (.3design)!'
+          ? '💾 Проект CAD сохранен и скачан (.json)!'
+          : '💾 CAD Project saved and downloaded (.json)!'
     );
   }, [lang, activeMatId, materials, lightState, showToast]);
 
-  const handleLoadProject = useCallback(async (file) => {
+  const handleLoadProject = useCallback(async (file: File) => {
     try {
+      const lowerName = file.name.toLowerCase();
+      // If user selected a .glb / .gltf 3D model directly from Project menu
+      if (lowerName.endsWith('.glb') || lowerName.endsWith('.gltf')) {
+        await handleImportGlbFiles([file]);
+        showToast(
+          lang === 'ro'
+            ? `📦 Model 3D (${file.name}) importat cu succes!`
+            : `📦 3D Model (${file.name}) imported successfully!`
+        );
+        return;
+      }
+
       const text = await file.text();
       const proj = JSON.parse(text);
       if (!proj || (!proj.format && !proj.importedModels)) {
-        alert('Fișier invalid. Alege un fișier de tip .3design sau .json');
+        alert('Fișier invalid. Alege un fișier de tip .json, .cadproj sau .glb');
         return;
       }
 

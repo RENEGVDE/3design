@@ -19,41 +19,24 @@ export interface RoomConfig {
   floorFinish: 'parquet_oak' | 'marble_white' | 'tile_grey' | 'concrete';
   wallColor: string; // e.g. '#252932' or '#f1f5f9'
   openings: ArchitecturalOpening[];
-  showCeiling: boolean;
-  showBaseboards: boolean;
+  showWalls?: boolean;
+  showFloor?: boolean;
+  showCeiling?: boolean;
+  showBaseboards?: boolean;
 }
 
 export const DEFAULT_ROOM_CONFIG: RoomConfig = {
-  widthCm: 550,
-  lengthCm: 450,
+  widthCm: 500,
+  lengthCm: 500,
   heightCm: 270,
   wallThicknessCm: 15,
   floorFinish: 'parquet_oak',
   wallColor: '#252932',
+  showWalls: false,
+  showFloor: false,
   showCeiling: false,
-  showBaseboards: true,
-  openings: [
-    {
-      id: 'door_main',
-      type: 'door',
-      wallSide: 'front',
-      distanceCm: 80,
-      widthCm: 90,
-      heightCm: 210,
-      elevationCm: 0,
-      name: 'Ușă Intrare (90×210)'
-    },
-    {
-      id: 'win_main',
-      type: 'window',
-      wallSide: 'back',
-      distanceCm: 180,
-      widthCm: 160,
-      heightCm: 140,
-      elevationCm: 85,
-      name: 'Fereastră Dublă (160×140)'
-    }
-  ]
+  showBaseboards: false,
+  openings: []
 };
 
 export const FLOOR_FINISHES = [
@@ -83,14 +66,17 @@ export function buildArchitecturalRoom(config: RoomConfig = DEFAULT_ROOM_CONFIG)
     metalness: finish.metalness || 0.02
   });
 
-  // Floor Mesh
-  const floorGeo = new THREE.PlaneGeometry(w, l);
-  const floorMesh = new THREE.Mesh(floorGeo, floorMat);
-  floorMesh.rotation.x = -Math.PI / 2;
-  floorMesh.position.set(w / 2, 0, l / 2);
-  floorMesh.receiveShadow = true;
-  floorMesh.name = 'Architectural_Floor';
-  roomGroup.add(floorMesh);
+  const roomPlaneGeo = new THREE.PlaneGeometry(w, l);
+
+  // Floor Mesh (if enabled)
+  if (config.showFloor) {
+    const floorMesh = new THREE.Mesh(roomPlaneGeo, floorMat);
+    floorMesh.rotation.x = -Math.PI / 2;
+    floorMesh.position.set(w / 2, 0, l / 2);
+    floorMesh.receiveShadow = true;
+    floorMesh.name = 'Architectural_Floor';
+    roomGroup.add(floorMesh);
+  }
 
   // Ceiling Mesh (if enabled)
   if (config.showCeiling) {
@@ -98,7 +84,7 @@ export function buildArchitecturalRoom(config: RoomConfig = DEFAULT_ROOM_CONFIG)
       color: 0x181a20,
       roughness: 0.9
     });
-    const ceilingMesh = new THREE.Mesh(floorGeo, ceilingMat);
+    const ceilingMesh = new THREE.Mesh(roomPlaneGeo, ceilingMat);
     ceilingMesh.rotation.x = Math.PI / 2;
     ceilingMesh.position.set(w / 2, h, l / 2);
     ceilingMesh.name = 'Architectural_Ceiling';
@@ -297,17 +283,19 @@ export function buildArchitecturalRoom(config: RoomConfig = DEFAULT_ROOM_CONFIG)
     roomGroup.add(wallParent);
   }
 
-  // 1. Back Wall (Z = 0, along X)
-  buildWall('Wall_Back', w, 0, 0, 0, 'back');
+  if (config.showWalls) {
+    // 1. Back Wall (Z = 0, along X)
+    buildWall('Wall_Back', w, 0, 0, 0, 'back');
 
-  // 2. Left Wall (X = 0, along Z)
-  buildWall('Wall_Left', l, 0, 0, Math.PI / 2, 'left');
+    // 2. Left Wall (X = 0, along Z)
+    buildWall('Wall_Left', l, 0, 0, Math.PI / 2, 'left');
 
-  // 3. Right Wall (X = w, along Z)
-  buildWall('Wall_Right', l, w, 0, Math.PI / 2, 'right');
+    // 3. Right Wall (X = w, along Z)
+    buildWall('Wall_Right', l, w, 0, Math.PI / 2, 'right');
 
-  // 4. Front Wall (Z = l, along X)
-  buildWall('Wall_Front', w, 0, l, 0, 'front');
+    // 4. Front Wall (Z = l, along X)
+    buildWall('Wall_Front', w, 0, l, 0, 'front');
+  }
 
   return roomGroup;
 }

@@ -110,8 +110,8 @@ export default function TopBar({
                 >
                   <span>🆕</span>
                   <div>
-                    <strong>{isRo ? 'Proiect Nou (Cameră Arhitecturală)' : isRu ? 'Новый проект (Пустая комната)' : 'New Project (Empty Room)'}</strong>
-                    <small>{isRo ? 'Inițializează încăperea pentru proiectare de la 0' : isRu ? 'Начать проект с чистого листа' : 'Start new space from scratch'}</small>
+                    <strong>{isRo ? 'Proiect Nou (Scenă Curată CAD)' : isRu ? 'Новый проект (Чистая сцена)' : 'New Project (Clean CAD Space)'}</strong>
+                    <small>{isRo ? 'Spațiu de lucru liber cu grilă milimetrică CAD' : isRu ? 'Чистое рабочее пространство с сеткой CAD' : 'Clean workspace with millimeter CAD grid'}</small>
                   </div>
                 </button>
 
@@ -127,8 +127,8 @@ export default function TopBar({
                 >
                   <span>💾</span>
                   <div>
-                    <strong>{isRo ? 'Salvează Proiect (.3design)' : isRu ? 'Сохранить проект (.3design)' : 'Save Project (.3design)'}</strong>
-                    <small>{isRo ? 'Descarcă fișierul cu corpurile, camera și materialele' : isRu ? 'Скачать файл проекта со всеми деталями' : 'Download file with parts & materials'}</small>
+                    <strong>{isRo ? 'Salvează Proiect (.json / .cadproj)' : isRu ? 'Сохранить проект (.json / .cadproj)' : 'Save Project (.json / .cadproj)'}</strong>
+                    <small>{isRo ? 'Fișier standard cu toate corpurile, cotele și finisajele' : isRu ? 'Файл проекта со всеми деталями и материалами' : 'Standard project file with models & materials'}</small>
                   </div>
                 </button>
 
@@ -141,8 +141,8 @@ export default function TopBar({
                 >
                   <span>📥</span>
                   <div>
-                    <strong>{isRo ? 'Încarcă Proiect (.3design)' : isRu ? 'Открыть проект (.3design)' : 'Open Project (.3design)'}</strong>
-                    <small>{isRo ? 'Restaurează un proiect salvat anterior' : isRu ? 'Загрузить ранее сохраненный проект' : 'Restore previously saved project'}</small>
+                    <strong>{isRo ? 'Încarcă Proiect sau Model (.json, .cadproj, .glb)' : isRu ? 'Открыть проект или 3D модель (.json, .cadproj, .glb)' : 'Open Project or 3D Model (.json, .cadproj, .glb)'}</strong>
+                    <small>{isRo ? 'Încarcă proiect complet sau importă model 3D .GLB' : isRu ? 'Открыть проект или загрузить 3D модель .GLB' : 'Restore project or import 3D model .GLB'}</small>
                   </div>
                 </button>
 
@@ -156,8 +156,8 @@ export default function TopBar({
                 >
                   <span>📦</span>
                   <div>
-                    <strong>{isRo ? 'Exportă Scena Completă (.glb)' : isRu ? 'Экспорт всей сцены (.glb)' : 'Export Full Scene (.glb)'}</strong>
-                    <small>{isRo ? 'Model 3D binar cu mobilierul din cameră' : isRu ? '3D модель комнаты для Blender / 3ds Max' : 'Binary 3D model for Blender / 3ds Max'}</small>
+                    <strong>{isRo ? 'Exportă / Salvează Scenă 3D (.glb)' : isRu ? 'Экспорт всей 3D сцены (.glb)' : 'Export / Save 3D Scene (.glb)'}</strong>
+                    <small>{isRo ? 'Model 3D binar complet pentru randare și atelier' : isRu ? 'Бинарная 3D модель для Blender / 3ds Max' : 'Binary 3D model for rendering & visualization'}</small>
                   </div>
                 </button>
 
@@ -185,7 +185,7 @@ export default function TopBar({
             type="file"
             ref={fileInputRef}
             style={{ display: 'none' }}
-            accept=".3design,.json"
+            accept=".json,.cadproj,.glb,.gltf,.3design"
             onChange={handleFileChange}
           />
         </div>

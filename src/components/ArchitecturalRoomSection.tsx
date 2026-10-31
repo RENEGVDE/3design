@@ -142,6 +142,33 @@ export default function ArchitecturalRoomSection({
         </button>
       )}
 
+      {/* 3D Space & Walls Visibility Toggles */}
+      <div style={{ marginBottom: '14px', background: 'rgba(30, 41, 59, 0.5)', padding: '10px', borderRadius: '8px', border: '1px solid #334155' }}>
+        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase' }}>
+          {isRo ? 'Vizibilitate Spațiu 3D:' : isRu ? 'Отображение в 3D:' : '3D Space Visibility:'}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <button
+            type="button"
+            className={`btn-pill ${roomConfig.showWalls ? 'active' : ''}`}
+            onClick={() => updateConfig({ showWalls: !roomConfig.showWalls })}
+            style={{ padding: '8px 10px', borderRadius: '6px', textAlign: 'center' }}
+          >
+            <span>🧱</span>
+            <span>{roomConfig.showWalls ? (isRo ? 'Pereți 3D: ON' : 'Walls 3D: ON') : (isRo ? 'Pereți 3D: OFF' : 'Walls 3D: OFF')}</span>
+          </button>
+          <button
+            type="button"
+            className={`btn-pill ${roomConfig.showFloor ? 'active' : ''}`}
+            onClick={() => updateConfig({ showFloor: !roomConfig.showFloor })}
+            style={{ padding: '8px 10px', borderRadius: '6px', textAlign: 'center' }}
+          >
+            <span>🪵</span>
+            <span>{roomConfig.showFloor ? (isRo ? 'Pardoseală: ON' : 'Floor: ON') : (isRo ? 'Pardoseală: OFF' : 'Floor: OFF')}</span>
+          </button>
+        </div>
+      </div>
+
       {/* Quick Presets */}
       <div style={{ marginBottom: '14px' }}>
         <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', marginBottom: '6px', textTransform: 'uppercase' }}>
