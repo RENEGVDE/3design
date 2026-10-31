@@ -634,10 +634,13 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
           Math.round(THREE.MathUtils.radToDeg(euler.y)),
           Math.round(THREE.MathUtils.radToDeg(euler.z))
         ],
-        mechanism: panelName.toLowerCase().includes('usa') || panelName.toLowerCase().includes('dver')
-          ? 'door_right'
-          : panelName.toLowerCase().includes('sertar') || panelName.toLowerCase().includes('yash')
+        mechanism: (/sertar|drawer|ящик|tandem/i.test(panelName) ||
+          (/фронтал|front|фасад|facade/i.test(panelName) && Math.min(lengthMm, widthMm) <= 380 && Math.max(lengthMm, widthMm) >= 280 && Math.round(mesh.position.y * 1000) <= 1150))
           ? 'drawer'
+          : /aventos|lift|flap/i.test(panelName)
+          ? 'flap_up'
+          : /фронтал|front|фасад|facade|usa|ușă|dver|двер/i.test(panelName) && !/цокол|soclu|plinth|дно|бок|задн/i.test(panelName)
+          ? (mesh.position.x <= 0 ? 'door_left' : 'door_right')
           : 'none'
       });
     } catch {}

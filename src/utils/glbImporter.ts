@@ -107,13 +107,14 @@ export function computeMechMatrixInModelSpace(mesh, mechType, rawProgress, baseD
 
   const { min, max, size, center } = boxM;
   const orientZ = size.z > size.x * 1.55;
+  // Outwards opening direction:
+  // For front-facing panels (!orientZ): the front face of the kitchen is towards +Z, so opening is into the room (+Z, outSign = 1)
+  // For side-facing panels (orientZ): opens towards the side (+X if on right, -X if on left)
   const outSign = orientZ
-    ? center.x >= -0.02
+    ? center.x >= 0
       ? 1
       : -1
-    : center.z >= -0.02
-    ? 1
-    : -1;
+    : 1;
 
   if (mechType === 'drawer' || mechType === 'drawer_back') {
     const dirSign = mechType === 'drawer_back' ? -outSign : outSign;
@@ -366,13 +367,6 @@ export function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
   const modelH = (baseDimsCm?.h || 80) * 0.01;
   const modelD = (baseDimsCm?.d || 55) * 0.01;
 
-  let maxFrontZ = -Infinity;
-  for (const m of meshes) {
-    if (m.userData.boxM) {
-      maxFrontZ = Math.max(maxFrontZ, m.userData.boxM.max.z);
-    }
-  }
-
   // Candidate front facade panels
   const candidates = [];
 
@@ -384,38 +378,44 @@ export function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
 
     const fullName = `${m.name || ''} ${m.parent?.name || ''} ${sp.name || ''}`.toLowerCase();
 
-    // 1. Explicit Name Keywords
+    // 0. Skip non-facades explicitly (internal drawer boxes, shelves, plinths, countertops)
+    if (/дно|бок|задн|цокол|soclu|plinth|стенк|polita|polite|blat/i.test(fullName)) continue;
+    if (b.max.y <= 0.14 && (b.size.x >= 0.8 || b.size.z >= 0.8)) continue; // plinth at floor
+
+    // 1. Explicit Mechanism Keywords
+    let forced = null;
     if (/drawer|sertar|ящик|tandem/i.test(fullName)) {
-      candidates.push({ idx: i, forced: 'drawer', box: b });
-      continue;
-    }
-    if (/aventos|lift|flap_up|ridicare/i.test(fullName)) {
-      candidates.push({ idx: i, forced: 'flap_up', box: b });
-      continue;
-    }
-    if (/oven|cuptor|dishwasher|flap_down|rabat/i.test(fullName)) {
-      candidates.push({ idx: i, forced: 'flap_down', box: b });
-      continue;
-    }
-    if (/door_l|usa_st|дверь_л/i.test(fullName)) {
-      candidates.push({ idx: i, forced: 'door_left', box: b });
-      continue;
-    }
-    if (/door_r|usa_dr|дверь_п/i.test(fullName)) {
-      candidates.push({ idx: i, forced: 'door_right', box: b });
-      continue;
+      forced = 'drawer';
+    } else if (/aventos|lift|flap_up|ridicare/i.test(fullName)) {
+      forced = 'flap_up';
+    } else if (/oven|cuptor|dishwasher|flap_down|rabat/i.test(fullName)) {
+      forced = 'flap_down';
+    } else if (/door_l|usa_st|дверь_л/i.test(fullName)) {
+      forced = 'door_left';
+    } else if (/door_r|usa_dr|дверь_п/i.test(fullName)) {
+      forced = 'door_right';
     }
 
-    // 2. Geometric CAD Facade Slab Detection (16-24mm front panels)
-    const isNearFront = b.max.z >= maxFrontZ - Math.max(0.06, modelD * 0.14);
-    const isThinSlabZ = b.size.z >= 0.011 && b.size.z <= 0.048;
-    const isValidWidth = b.size.x >= 0.18 && b.size.x <= Math.max(1.25, modelW * 0.98);
-    const isValidHeight = b.size.y >= 0.095 && b.size.y <= Math.max(2.45, modelH * 0.98);
-    const notPlinth = !(b.max.y <= 0.14 && b.size.x >= modelW * 0.7);
+    // 2. Facade name keyword: "Фронтальная", "Фасад", "Usa", "Door", "Front", etc.
+    const isNamedFacade = /фронтал|front|фасад|facade|fasad|fațad|двер|door|u[sș]a/i.test(fullName);
 
-    if (isNearFront && isThinSlabZ && isValidWidth && isValidHeight && notPlinth) {
-      candidates.push({ idx: i, forced: null, box: b });
+    // 3. Geometric slab checks:
+    // Normal Z (facing front/back): thin in Z (11mm - 45mm), wide in X (>= 15cm), tall in Y (>= 9cm)
+    const isSlabZ = b.size.z >= 0.011 && b.size.z <= 0.048 && b.size.x >= 0.15 && b.size.y >= 0.09;
+    // Normal X (facing sideways on peninsula or island): thin in X (11mm - 45mm), wide in Z (>= 15cm), tall in Y (>= 9cm)
+    const isSlabX = b.size.x >= 0.011 && b.size.x <= 0.048 && b.size.z >= 0.15 && b.size.y >= 0.09;
+
+    if (!forced && !isNamedFacade) {
+      if (!isSlabZ && !isSlabX) continue;
+      // Exclude deep corpus walls (depth >= 30cm and height >= 60cm)
+      if (isSlabZ && b.size.x < 0.20 && b.size.y >= 0.60) continue;
+      if (isSlabX && b.size.z >= 0.30 && b.size.y >= 0.60) continue;
+    } else {
+      if (!isSlabZ && !isSlabX && !forced) continue;
     }
+
+    const facingX = isSlabX && (!isSlabZ || b.size.z > b.size.x);
+    candidates.push({ idx: i, forced, box: b, facingX });
   }
 
   const updated = subPartsMeta.map((sp) => ({
@@ -425,17 +425,17 @@ export function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
   }));
 
   for (const cand of candidates) {
-    const { idx, forced, box } = cand;
+    const { idx, forced, box, facingX } = cand;
     if (forced) {
       updated[idx].mechType = forced;
       continue;
     }
 
-    const w = box.size.x;
+    const w = facingX ? box.size.z : box.size.x;
     const h = box.size.y;
 
-    // Drawer heuristic: height <= 36cm and width >= height * 1.15, positioned below 1.15m
-    if (h <= 0.36 && w >= h * 1.15 && box.center.y <= Math.min(1.15, modelH * 0.75)) {
+    // Drawer heuristic: height <= 38cm and width >= 28cm, in lower half of kitchen (Y <= 1.15m)
+    if (h <= 0.38 && w >= 0.28 && box.center.y <= Math.min(1.15, modelH * 0.75)) {
       updated[idx].mechType = 'drawer';
       continue;
     }
@@ -451,15 +451,28 @@ export function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
     const sibling = candidates.find(
       (other) =>
         other.idx !== idx &&
+        other.facingX === facingX &&
         Math.abs(other.box.center.y - box.center.y) < 0.08 &&
-        Math.abs(other.box.size.y - box.size.y) < 0.08
+        Math.abs(other.box.size.y - box.size.y) < 0.08 &&
+        (facingX
+          ? Math.abs(other.box.center.x - box.center.x) < 0.05
+          : Math.abs(other.box.center.z - box.center.z) < 0.05)
     );
 
-    if (sibling) {
-      updated[idx].mechType =
-        box.center.x <= sibling.box.center.x ? 'door_left' : 'door_right';
+    if (facingX) {
+      if (sibling) {
+        updated[idx].mechType =
+          box.center.z <= sibling.box.center.z ? 'door_left' : 'door_right';
+      } else {
+        updated[idx].mechType = 'door_right';
+      }
     } else {
-      updated[idx].mechType = box.center.x <= 0 ? 'door_left' : 'door_right';
+      if (sibling) {
+        updated[idx].mechType =
+          box.center.x <= sibling.box.center.x ? 'door_left' : 'door_right';
+      } else {
+        updated[idx].mechType = box.center.x <= 0 ? 'door_left' : 'door_right';
+      }
     }
   }
 

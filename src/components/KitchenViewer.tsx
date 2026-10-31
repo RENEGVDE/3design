@@ -581,7 +581,7 @@ export default function KitchenViewer() {
         let nextSp = { ...sp };
 
         if (savedSp) {
-          if (typeof savedSp.mechType === 'string') {
+          if (typeof savedSp.mechType === 'string' && savedSp.mechType !== 'none') {
             nextSp.mechType = savedSp.mechType;
           }
           if (typeof savedSp.isOpen === 'boolean') {
