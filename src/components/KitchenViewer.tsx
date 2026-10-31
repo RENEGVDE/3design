@@ -2330,6 +2330,29 @@ export default function KitchenViewer() {
           persistWorkspace({ importedModels: updated });
           return updated;
         });
+
+        // Smoothly frame camera on newly imported CAD furniture model
+        if (sceneRef.current && mounted.wrapperGroup) {
+          const ctx = sceneRef.current;
+          const box = new THREE.Box3().setFromObject(mounted.wrapperGroup);
+          if (!box.isEmpty()) {
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+            const maxDim = Math.max(size.x, size.y, size.z, 1.2);
+            const dist = maxDim * 1.6;
+            ctx.camAnim = {
+              startPos: ctx.camera.position.clone(),
+              endPos: new THREE.Vector3(center.x - dist * 0.7, center.y + dist * 0.55, center.z + dist * 0.9),
+              startTarget: ctx.controls.target.clone(),
+              endTarget: center,
+              startTime: performance.now(),
+              duration: 750
+            };
+          }
+        }
+
         pushHistoryRef.current?.('Import ' + cleanName);
         showToast(
           lang === 'ro'

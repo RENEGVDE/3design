@@ -439,104 +439,21 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
     } catch {}
   }
 
-  // Construct 3D Hardware / Appliances from TriData Meshes
-  for (let mIdx = 0; mIdx < rawTriMeshes.length; mIdx++) {
-    const tNode = rawTriMeshes[mIdx];
-    const rawTri: Uint8Array = tNode.TriData.val;
-    if (!rawTri || rawTri.length < 153 + 96) continue;
-
-    const tView = new DataView(rawTri.buffer, rawTri.byteOffset, rawTri.byteLength);
-    const positions: number[] = [];
-    const normals: number[] = [];
-
-    for (let off = 153; off + 96 <= rawTri.length; off += 96) {
-      const p1x = tView.getFloat32(off, true) * 0.001;
-      const p1y = tView.getFloat32(off + 4, true) * 0.001;
-      const p1z = tView.getFloat32(off + 8, true) * 0.001;
-
-      const p2x = tView.getFloat32(off + 12, true) * 0.001;
-      const p2y = tView.getFloat32(off + 16, true) * 0.001;
-      const p2z = tView.getFloat32(off + 20, true) * 0.001;
-
-      const p3x = tView.getFloat32(off + 24, true) * 0.001;
-      const p3y = tView.getFloat32(off + 28, true) * 0.001;
-      const p3z = tView.getFloat32(off + 32, true) * 0.001;
-
-      const coords = [p1x, p1y, p1z, p2x, p2y, p2z, p3x, p3y, p3z];
-      if (coords.some(c => !isFinite(c) || Math.abs(c) > 50)) continue;
-
-      const n1x = tView.getFloat32(off + 36, true);
-      const n1y = tView.getFloat32(off + 40, true);
-      const n1z = tView.getFloat32(off + 44, true);
-
-      const n2x = tView.getFloat32(off + 48, true);
-      const n2y = tView.getFloat32(off + 52, true);
-      const n2z = tView.getFloat32(off + 56, true);
-
-      const n3x = tView.getFloat32(off + 60, true);
-      const n3y = tView.getFloat32(off + 64, true);
-      const n3z = tView.getFloat32(off + 68, true);
-
-      const norms = [n1x, n1y, n1z, n2x, n2y, n2z, n3x, n3y, n3z];
-      const validNorm = norms.every(n => isFinite(n) && Math.abs(n) <= 2.0);
-
-      positions.push(p1x, p1y, p1z, p2x, p2y, p2z, p3x, p3y, p3z);
-      if (validNorm) {
-        normals.push(n1x, n1y, n1z, n2x, n2y, n2z, n3x, n3y, n3z);
-      } else {
-        normals.push(0, 1, 0, 0, 1, 0, 0, 1, 0);
-      }
-    }
-
-    if (positions.length >= 9) {
-      try {
-        const geo = new THREE.BufferGeometry();
-        geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-        if (normals.length === positions.length) {
-          geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
-        } else {
-          geo.computeVertexNormals();
-        }
-
-        const meshMat = getStandardMaterial(tNode.Mat?.val || 'Feronerie Metalica');
-        const mesh = new THREE.Mesh(geo, meshMat);
-        mesh.name = tNode.Name?.val || `Hardware_${mIdx + 1}`;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-
-        if (tNode.Trans) {
-          mesh.position.set(
-            (tNode.Trans.X?.val || 0) * 0.001,
-            (tNode.Trans.Y?.val || 0) * 0.001,
-            (tNode.Trans.Z?.val || 0) * 0.001
-          );
-          if (tNode.Trans.Rx && tNode.Trans.Ry && tNode.Trans.Rz && tNode.Trans.Rw) {
-            mesh.quaternion.set(
-              tNode.Trans.Rx.val,
-              tNode.Trans.Ry.val,
-              tNode.Trans.Rz.val,
-              tNode.Trans.Rw.val
-            );
-          }
-        }
-
-        rootGroup.add(mesh);
-      } catch {}
-    }
-  }
-
-  // 8. Re-center and ground rootGroup
+  // 8. Re-center horizontally (X, Z) and ground at floor (Y = 0)
   const bbox = new THREE.Box3().setFromObject(rootGroup);
-  if (!bbox.isEmpty()) {
+  if (!bbox.isEmpty() && isFinite(bbox.min.x) && isFinite(bbox.max.x)) {
     const center = new THREE.Vector3();
     bbox.getCenter(center);
-    // Center in X and Z, set bottom at Y = 0
+    const minY = bbox.min.y;
     for (const child of rootGroup.children) {
       child.position.x -= center.x;
-      child.position.y -= bbox.min.y;
+      child.position.y -= minY;
       child.position.z -= center.z;
     }
   }
+
+  // Compute final grounded bounds
+  const finalBbox = new THREE.Box3().setFromObject(rootGroup);
 
   // 9. Convert group to binary GLB buffer
   const glbBuffer = await exportToGlbBuffer([rootGroup]);
@@ -546,6 +463,10 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
   for (const p of cuttingList) {
     totalArea += (p.lengthMm * p.widthMm) / 1000000;
   }
+
+  const dimW = Math.round((finalBbox.max.x - finalBbox.min.x) * 1000);
+  const dimH = Math.round((finalBbox.max.y - finalBbox.min.y) * 1000);
+  const dimD = Math.round((finalBbox.max.z - finalBbox.min.z) * 1000);
 
   const projectData: D3DProjectFile = {
     format: 'B3D_CAD_FURNITURE_V1',
@@ -566,9 +487,9 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
         name: 'Ansamblu Mobilier CAD',
         type: 'CadAssembly',
         dimensionsMm: {
-          w: Math.round((bbox.max.x - bbox.min.x) * 1000),
-          h: Math.round((bbox.max.y - bbox.min.y) * 1000),
-          d: Math.round((bbox.max.z - bbox.min.z) * 1000)
+          w: dimW > 0 ? dimW : 4500,
+          h: dimH > 0 ? dimH : 2500,
+          d: dimD > 0 ? dimD : 3500
         },
         positionMm: [0, 0, 0],
         rotationYDeg: 0,
