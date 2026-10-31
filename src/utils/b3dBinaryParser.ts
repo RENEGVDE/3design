@@ -203,30 +203,56 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
     throw new Error('Eroare la decodarea structurii CAD din fișierul B3D.');
   }
 
-  // 6. Collect all panels (Type 4002) and 3D meshes (TriData)
-  const rawPanels: ParsedNode[] = [];
-  const rawTriMeshes: ParsedNode[] = [];
+  // 6. Collect all panels (Type 4002) with hierarchical world transforms
+  interface RawPanelItem {
+    node: ParsedNode;
+    worldMatrix: THREE.Matrix4;
+  }
+  const rawPanels: RawPanelItem[] = [];
 
-  function traverseNodes(node: any) {
+  function getLocalMatrix(node: any): THREE.Matrix4 | null {
+    if (!node || !node.Trans) return null;
+    const m = new THREE.Matrix4();
+    const posX = (node.Trans.X?.val || 0) * 0.001;
+    const posY = (node.Trans.Y?.val || 0) * 0.001;
+    const posZ = (node.Trans.Z?.val || 0) * 0.001;
+    const pos = new THREE.Vector3(posX, posY, posZ);
+
+    const qx = node.Trans.Rx?.val || 0;
+    const qy = node.Trans.Ry?.val || 0;
+    const qz = node.Trans.Rz?.val || 0;
+    const qw = node.Trans.Rw?.val !== undefined ? node.Trans.Rw.val : 1;
+    const quat = new THREE.Quaternion(qx, qy, qz, qw);
+
+    const scale = new THREE.Vector3(1, 1, 1);
+    m.compose(pos, quat, scale);
+    return m;
+  }
+
+  function traverseTreeHierarchical(node: any, currentMatrix: THREE.Matrix4) {
     if (!node || typeof node !== 'object') return;
+    let nextMatrix = currentMatrix;
+    const localMat = getLocalMatrix(node);
+    if (localMat) {
+      nextMatrix = currentMatrix.clone().multiply(localMat);
+    }
+
     if (node.Type?.val === 4002 && node.Contour?.val) {
-      rawPanels.push(node);
+      rawPanels.push({ node, worldMatrix: nextMatrix });
     }
-    if (node.TriData && node.TriData.val) {
-      rawTriMeshes.push(node);
-    }
+
     for (const key in node) {
-      if (key.startsWith('_')) continue;
+      if (key.startsWith('_') || key === 'Undo') continue;
       const child = node[key];
       if (Array.isArray(child)) {
-        for (const item of child) traverseNodes(item);
+        for (const item of child) traverseTreeHierarchical(item, nextMatrix);
       } else {
-        traverseNodes(child);
+        traverseTreeHierarchical(child, nextMatrix);
       }
     }
   }
 
-  traverseNodes(rootDoc);
+  traverseTreeHierarchical(rootDoc.Model || rootDoc, new THREE.Matrix4());
 
   // 7. Build Three.js 3D Scene Group
   const rootGroup = new THREE.Group();
@@ -366,7 +392,8 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
 
   // Construct 3D Panels from 2D Contours
   for (let idx = 0; idx < rawPanels.length; idx++) {
-    const pNode = rawPanels[idx];
+    const pItem = rawPanels[idx];
+    const pNode = pItem.node;
     const cBytes: Uint8Array = pNode.Contour.val;
     if (!cBytes || cBytes.length < 4) continue;
 
@@ -574,30 +601,17 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
       mesh.castShadow = true;
       mesh.receiveShadow = true;
 
-      // Apply Transformation
-      let posX = 0, posY = 0, posZ = 0;
-      if (pNode.Trans) {
-        posX = (pNode.Trans.X?.val || 0);
-        posY = (pNode.Trans.Y?.val || 0);
-        posZ = (pNode.Trans.Z?.val || 0);
-
-        mesh.position.set(posX * 0.001, posY * 0.001, posZ * 0.001);
-
-        if (pNode.Trans.Rx && pNode.Trans.Ry && pNode.Trans.Rz && pNode.Trans.Rw) {
-          mesh.quaternion.set(
-            pNode.Trans.Rx.val,
-            pNode.Trans.Ry.val,
-            pNode.Trans.Rz.val,
-            pNode.Trans.Rw.val
-          );
-        }
-      }
+      // Apply Transformation from accumulated hierarchical worldMatrix
+      pItem.worldMatrix.decompose(mesh.position, mesh.quaternion, mesh.scale);
+      mesh.updateMatrixWorld(true);
 
       rootGroup.add(mesh);
 
       // Add to Cutting List BOM
       const lengthMm = isFinite(maxX - minX) && maxX > minX ? Math.round(maxX - minX) : 600;
       const widthMm = isFinite(maxY - minY) && maxY > minY ? Math.round(maxY - minY) : 400;
+
+      const euler = new THREE.Euler().setFromQuaternion(mesh.quaternion, 'YXZ');
 
       cuttingList.push({
         id: `p_${idx + 1}`,
@@ -610,8 +624,16 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
         materialName: matName.split(/[\r\n]/)[0].trim(),
         colorHex: `#${mat.color.getHexString()}`,
         edgeBanding: { L1: 'ABS 1mm', L2: 'ABS 1mm', W1: 'ABS 0.4mm', W2: 'ABS 0.4mm' },
-        positionMm: [Math.round(posX), Math.round(posY), Math.round(posZ)],
-        rotationDeg: [0, 0, 0],
+        positionMm: [
+          Math.round(mesh.position.x * 1000),
+          Math.round(mesh.position.y * 1000),
+          Math.round(mesh.position.z * 1000)
+        ],
+        rotationDeg: [
+          Math.round(THREE.MathUtils.radToDeg(euler.x)),
+          Math.round(THREE.MathUtils.radToDeg(euler.y)),
+          Math.round(THREE.MathUtils.radToDeg(euler.z))
+        ],
         mechanism: panelName.toLowerCase().includes('usa') || panelName.toLowerCase().includes('dver')
           ? 'door_right'
           : panelName.toLowerCase().includes('sertar') || panelName.toLowerCase().includes('yash')
@@ -631,8 +653,10 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
       child.position.x -= center.x;
       child.position.y -= minY;
       child.position.z -= center.z;
+      child.updateMatrixWorld(true);
     }
   }
+  rootGroup.updateMatrixWorld(true);
 
   // Compute final grounded bounds
   const finalBbox = new THREE.Box3().setFromObject(rootGroup);
