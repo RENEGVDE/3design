@@ -11,7 +11,7 @@ import {
 import { autoDetectGlbMechanisms } from './glbImporter';
 import { isNativeB3DBinary, parseNativeB3DBinary } from './b3dBinaryParser';
 
-export interface D3DPanelSpec {
+export interface B3DPanelSpec {
   id: string;
   name: string;
   cabinetName?: string;
@@ -32,8 +32,10 @@ export interface D3DPanelSpec {
   mechanism: 'none' | 'door_left' | 'door_right' | 'drawer' | 'flap_up' | 'flap_down';
 }
 
-export interface D3DProjectFile {
-  format: 'D3D_CAD_FURNITURE_V1' | 'B3D_CAD_FURNITURE_V1';
+export type D3DPanelSpec = B3DPanelSpec;
+
+export interface B3DProjectFile {
+  format: 'B3D_CAD_FURNITURE_V1';
   software: string;
   version: string;
   units: 'mm';
@@ -44,7 +46,7 @@ export interface D3DProjectFile {
     totalBoardAreaM2: number;
     clientProjectName: string;
   };
-  cuttingList: D3DPanelSpec[];
+  cuttingList: B3DPanelSpec[];
   assemblies: Array<{
     id: string;
     name: string;
@@ -56,6 +58,8 @@ export interface D3DProjectFile {
   }>;
   embeddedGlbBase64?: string;
 }
+
+export type D3DProjectFile = B3DProjectFile;
 
 /**
  * Helper to download an in-memory Blob to the user's computer
@@ -200,8 +204,8 @@ export function extractScenePanels(
   placedCabinets: any[],
   importedModels: any[],
   availableMats: any[] = []
-): D3DPanelSpec[] {
-  const panels: D3DPanelSpec[] = [];
+): B3DPanelSpec[] {
+  const panels: B3DPanelSpec[] = [];
 
   // 1. Parametric Cabinets Panels
   for (const cab of placedCabinets || []) {
@@ -367,14 +371,14 @@ export function extractScenePanels(
 }
 
 /**
- * Builds and downloads a technical .D3D or .B3D CAD Project File
+ * Builds and downloads a technical .B3D CAD Project File
  */
-export async function downloadD3DExport(
+export async function downloadB3DExport(
   rootObjects: THREE.Object3D[],
   placedCabinets: any[],
   importedModels: any[],
   availableMats: any[],
-  extension: 'd3d' | 'b3d' = 'd3d',
+  extension: 'b3d' = 'b3d',
   projectName = 'proiect_mobilier'
 ): Promise<void> {
   const panels = extractScenePanels(placedCabinets, importedModels, availableMats);
@@ -414,11 +418,11 @@ export async function downloadD3DExport(
     }
     embeddedGlbBase64 = btoa(binary);
   } catch (err) {
-    console.warn('D3D Exporter: could not embed glb preview:', err);
+    console.warn('B3D Exporter: could not embed glb preview:', err);
   }
 
-  const projectData: D3DProjectFile = {
-    format: extension === 'b3d' ? 'B3D_CAD_FURNITURE_V1' : 'D3D_CAD_FURNITURE_V1',
+  const projectData: B3DProjectFile = {
+    format: 'B3D_CAD_FURNITURE_V1',
     software: 'CAD Studio 3D',
     version: '1.0.0',
     units: 'mm',
@@ -438,6 +442,8 @@ export async function downloadD3DExport(
   const finalFilename = `${projectName}.${extension}`;
   downloadFile(jsonString, finalFilename, 'application/json');
 }
+
+export const downloadD3DExport = downloadB3DExport;
 
 /**
  * Universal Importer: Parses .OBJ text into a native Three.js Group
@@ -470,9 +476,9 @@ export function parseObjModel(objText: string): THREE.Group {
 }
 
 /**
- * Universal Importer: Builds a 3D assembly Group from D3D/B3D panel specifications
+ * Universal Importer: Builds a 3D assembly Group from B3D panel specifications
  */
-export function buildAssemblyFromPanels(panels: D3DPanelSpec[]): THREE.Group {
+export function buildAssemblyFromPanels(panels: B3DPanelSpec[]): THREE.Group {
   const group = new THREE.Group();
   group.name = 'CAD_Panel_Assembly';
 
@@ -514,13 +520,13 @@ export function buildAssemblyFromPanels(panels: D3DPanelSpec[]): THREE.Group {
 }
 
 /**
- * Universal Importer: Parses .D3D / .B3D / .CADPROJ files
+ * Universal Importer: Parses .B3D / .CADPROJ files
  * Returns either embedded GLB buffer or structured panel assembly
  */
-export async function parseD3DOrB3DContent(content: string | ArrayBuffer): Promise<{
+export async function parseB3DContent(content: string | ArrayBuffer): Promise<{
   type: 'glb_buffer' | 'project_json' | 'raw_cad';
   glbBuffer?: ArrayBuffer;
-  projectData?: D3DProjectFile;
+  projectData?: B3DProjectFile;
 }> {
   // 1. Binary check: Native B3D CAD (BZ85) or glTF binary
   if (content instanceof ArrayBuffer) {
@@ -542,7 +548,7 @@ export async function parseD3DOrB3DContent(content: string | ArrayBuffer): Promi
       return { type: 'glb_buffer', glbBuffer: content };
     }
     const text = new TextDecoder('utf-8').decode(content);
-    return parseD3DOrB3DContent(text);
+    return parseB3DContent(text);
   }
 
   // 2. Text / JSON check
@@ -580,3 +586,5 @@ export async function parseD3DOrB3DContent(content: string | ArrayBuffer): Promi
     return { type: 'raw_cad' };
   }
 }
+
+export const parseD3DOrB3DContent = parseB3DContent;

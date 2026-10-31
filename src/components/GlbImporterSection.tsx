@@ -29,7 +29,7 @@ export default function GlbImporterSection({
   onToggleNativeGlbAnimation,
   onOptimizeGlb,
   onExportModelGlb,
-  onExportModelD3D,
+  onExportModelB3D,
   onExportModelObj
 }: {
   lang: any;
@@ -57,7 +57,7 @@ export default function GlbImporterSection({
   onToggleNativeGlbAnimation: any;
   onOptimizeGlb?: (modelId: string) => void;
   onExportModelGlb?: (modelId: string) => void;
-  onExportModelD3D?: (modelId: string, ext: 'd3d' | 'b3d') => void;
+  onExportModelB3D?: (modelId: string) => void;
   onExportModelObj?: (modelId: string) => void;
 }) {
   const dict = I18N[lang] || I18N.ro;
@@ -107,7 +107,7 @@ export default function GlbImporterSection({
         <input
           ref={fileInputRef}
           type="file"
-          accept=".glb,.gltf,.d3d,.b3d,.obj"
+          accept=".glb,.gltf,.b3d,.obj"
           multiple
           style={{ display: 'none' }}
           onChange={handleFileChange}
@@ -322,10 +322,10 @@ export default function GlbImporterSection({
                       type="button"
                       className="light-chip"
                       style={{ justifyContent: 'center', fontSize: '0.69rem', padding: '4px' }}
-                      title={isRo ? 'Descarcă modelul tehnic de producție (.d3d)' : 'Download .D3D'}
-                      onClick={() => onExportModelD3D && onExportModelD3D(selectedModel.id, 'd3d')}
+                      title={isRo ? 'Descarcă modelul tehnic CAD (.b3d)' : 'Download .B3D'}
+                      onClick={() => onExportModelB3D && onExportModelB3D(selectedModel.id)}
                     >
-                      <span>🧱 .d3d</span>
+                      <span>🧱 .b3d</span>
                     </button>
                     <button
                       type="button"

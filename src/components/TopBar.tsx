@@ -24,7 +24,7 @@ export interface TopBarProps {
   onToggleMagneticSnap?: () => void;
   onCaptureScreenshot?: () => void;
   onExportSceneGlb?: () => void;
-  onExportSceneD3D?: (ext: 'd3d' | 'b3d') => void;
+  onExportSceneB3D?: () => void;
   onExportSceneObj?: () => void;
 }
 
@@ -49,7 +49,7 @@ export default function TopBar({
   onToggleMagneticSnap,
   onCaptureScreenshot,
   onExportSceneGlb,
-  onExportSceneD3D,
+  onExportSceneB3D,
   onExportSceneObj
 }: TopBarProps) {
   const dict = I18N[lang] || I18N.ro;
@@ -145,7 +145,7 @@ export default function TopBar({
                 >
                   <span>📥</span>
                   <div>
-                    <strong>{isRo ? 'Încarcă Proiect sau Model (.glb, .d3d, .b3d, .obj, .json)' : isRu ? 'Открыть проект или 3D модель (.glb, .d3d, .b3d, .obj, .json)' : 'Open Project or 3D Model (.glb, .d3d, .b3d, .obj, .json)'}</strong>
+                    <strong>{isRo ? 'Încarcă Proiect sau Model (.glb, .b3d, .obj, .json)' : isRu ? 'Открыть проект или 3D модель (.glb, .b3d, .obj, .json)' : 'Open Project or 3D Model (.glb, .b3d, .obj, .json)'}</strong>
                     <small>{isRo ? 'Recunoaște automat modele 3D, proiecte și fișiere de fabricație' : isRu ? 'Автоматическое распознавание 3D моделей и проектов' : 'Auto-detects 3D models, projects & CAD assemblies'}</small>
                   </div>
                 </button>
@@ -170,12 +170,12 @@ export default function TopBar({
                   className="dropdown-item"
                   onClick={() => {
                     setProjectMenuOpen(false);
-                    if (onExportSceneD3D) onExportSceneD3D('d3d');
+                    if (onExportSceneB3D) onExportSceneB3D();
                   }}
                 >
                   <span>🧱</span>
                   <div>
-                    <strong>{isRo ? 'Exportă Model Producție (.d3d / .b3d)' : isRu ? 'Экспорт для производства (.d3d / .b3d)' : 'Export Production Model (.d3d / .b3d)'}</strong>
+                    <strong>{isRo ? 'Exportă Model Tehnic CAD (.b3d)' : isRu ? 'Экспорт модели CAD (.b3d)' : 'Export Technical CAD Model (.b3d)'}</strong>
                     <small>{isRo ? 'Tabel panouri (mm), canturi ABS, feronerie și cote atelier' : isRu ? 'Панели (мм), кромки ABS, фурнитура и спецификация' : 'Panels (mm), ABS edge bands & hardware'}</small>
                   </div>
                 </button>
@@ -219,7 +219,7 @@ export default function TopBar({
             type="file"
             ref={fileInputRef}
             style={{ display: 'none' }}
-            accept=".json,.cadproj,.glb,.gltf,.d3d,.b3d,.obj,.3design"
+            accept=".json,.cadproj,.glb,.gltf,.b3d,.obj,.3design"
             onChange={handleFileChange}
           />
         </div>

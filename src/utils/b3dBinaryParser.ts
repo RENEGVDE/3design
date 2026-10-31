@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as fflate from 'three/examples/jsm/libs/fflate.module.js';
-import { exportToGlbBuffer, D3DPanelSpec, D3DProjectFile } from './cadFormatHandler';
+import { exportToGlbBuffer, B3DPanelSpec, B3DProjectFile } from './cadFormatHandler';
 
 interface ParsedNode {
   _sym: string;
@@ -25,7 +25,7 @@ export function isNativeB3DBinary(buffer: ArrayBuffer): boolean {
  */
 export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
   glbBuffer: ArrayBuffer;
-  projectData: D3DProjectFile;
+  projectData: B3DProjectFile;
   thumbnailPngBase64?: string;
 }> {
   const fileBytes = new Uint8Array(buffer);
@@ -362,7 +362,7 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
     pathObj.closePath();
   }
 
-  const cuttingList: D3DPanelSpec[] = [];
+  const cuttingList: B3DPanelSpec[] = [];
 
   // Construct 3D Panels from 2D Contours
   for (let idx = 0; idx < rawPanels.length; idx++) {
@@ -650,7 +650,7 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
   const dimH = Math.round((finalBbox.max.y - finalBbox.min.y) * 1000);
   const dimD = Math.round((finalBbox.max.z - finalBbox.min.z) * 1000);
 
-  const projectData: D3DProjectFile = {
+  const projectData: B3DProjectFile = {
     format: 'B3D_CAD_FURNITURE_V1',
     software: 'CAD Studio 3D',
     version: '1.0.0',

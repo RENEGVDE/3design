@@ -71,11 +71,11 @@ import TechnicalReportModal from './TechnicalReportModal';
 import { calculateMagneticSnap, alignModelDirectly } from '../utils/magneticSnapping';
 import {
   downloadGlbExport,
-  downloadD3DExport,
+  downloadB3DExport,
   downloadObjExport,
   exportToGlbBuffer,
   parseObjModel,
-  parseD3DOrB3DContent
+  parseB3DContent
 } from '../utils/cadFormatHandler';
 
 const INITIAL_WHITE_MAT = {
@@ -2286,7 +2286,7 @@ export default function KitchenViewer() {
   }, [toggleInteractivePart, loading]);
 
   // ============================================================================
-  // MULTI-FORMAT CAD & 3D IMPORTER (.GLB, .GLTF, .D3D, .B3D, .OBJ)
+  // MULTI-FORMAT CAD & 3D IMPORTER (.GLB, .GLTF, .B3D, .OBJ)
   // ============================================================================
   const handleImportGlbFiles = async (files: File[]) => {
     for (const file of Array.from(files)) {
@@ -2308,10 +2308,10 @@ export default function KitchenViewer() {
           const text = await file.text();
           const objGroup = parseObjModel(text);
           glbBuffer = await exportToGlbBuffer([objGroup]);
-        } else if (lowerName.endsWith('.d3d') || lowerName.endsWith('.b3d')) {
-          formatLabel = lowerName.endsWith('.b3d') ? 'B3D' : 'D3D';
+        } else if (lowerName.endsWith('.b3d')) {
+          formatLabel = 'B3D';
           const buf = await file.arrayBuffer();
-          const parsed = await parseD3DOrB3DContent(buf);
+          const parsed = await parseB3DContent(buf);
           if (parsed.glbBuffer) {
             glbBuffer = parsed.glbBuffer;
           } else {
@@ -3453,7 +3453,6 @@ export default function KitchenViewer() {
       if (
         lowerName.endsWith('.glb') ||
         lowerName.endsWith('.gltf') ||
-        lowerName.endsWith('.d3d') ||
         lowerName.endsWith('.b3d') ||
         lowerName.endsWith('.obj')
       ) {
@@ -3471,11 +3470,11 @@ export default function KitchenViewer() {
           await handleImportGlbFiles([file]);
           return;
         }
-        alert('Fișier invalid. Alege un fișier de tip .json, .cadproj, .glb, .d3d sau .obj');
+        alert('Fișier invalid. Alege un fișier de tip .json, .cadproj, .glb, .b3d sau .obj');
         return;
       }
 
-      if (proj && (proj.format === 'D3D_CAD_FURNITURE_V1' || proj.format === 'B3D_CAD_FURNITURE_V1')) {
+      if (proj && (proj.format === 'B3D_CAD_FURNITURE_V1' || proj.format === 'D3D_CAD_FURNITURE_V1')) {
         await handleImportGlbFiles([file]);
         return;
       }
@@ -3626,17 +3625,17 @@ export default function KitchenViewer() {
     }
   }, [lang, showToast]);
 
-  const handleExportSceneD3D = useCallback(async (ext: 'd3d' | 'b3d' = 'd3d') => {
+  const handleExportSceneB3D = useCallback(async () => {
     const ctx = sceneRef.current;
     if (!ctx) return;
 
     try {
       showToast(
         lang === 'ro'
-          ? `⏳ Se generează exportul tehnic de producție .${ext.toUpperCase()}...`
+          ? '⏳ Se generează exportul tehnic CAD .B3D...'
           : lang === 'ru'
-            ? `⏳ Экспорт технической модели .${ext.toUpperCase()}...`
-            : `⏳ Exporting technical CAD production file .${ext.toUpperCase()}...`
+            ? '⏳ Экспорт технической модели .B3D...'
+            : '⏳ Exporting technical CAD production file .B3D...'
       );
 
       const toExport: THREE.Object3D[] = [];
@@ -3648,28 +3647,28 @@ export default function KitchenViewer() {
       }
 
       const projectName = `proiect_cad_${new Date().toISOString().slice(0, 10)}`;
-      await downloadD3DExport(
+      await downloadB3DExport(
         toExport,
         stateRef.current.placedCabinets || [],
         stateRef.current.importedModels || [],
         stateRef.current.materials || [],
-        ext,
+        'b3d',
         projectName
       );
 
       showToast(
         lang === 'ro'
-          ? `🧱 Fișierul de producție .${ext.toUpperCase()} a fost descărcat cu succes!`
+          ? '🧱 Fișierul tehnic CAD .B3D a fost descărcat cu succes!'
           : lang === 'ru'
-            ? `🧱 Файл .${ext.toUpperCase()} успешно экспортирован!`
-            : `🧱 Production CAD file .${ext.toUpperCase()} exported successfully!`
+            ? '🧱 CAD файл .B3D успешно экспортирован!'
+            : '🧱 Technical CAD .B3D file exported successfully!'
       );
     } catch (err) {
-      console.error('Error exporting D3D/B3D:', err);
+      console.error('Error exporting B3D:', err);
       showToast(
         lang === 'ro'
-          ? '❌ Eroare la exportarea fișierului de producție'
-          : '❌ Error exporting production file'
+          ? '❌ Eroare la exportarea fișierului B3D'
+          : '❌ Error exporting B3D file'
       );
     }
   }, [lang, showToast]);
@@ -3727,7 +3726,7 @@ export default function KitchenViewer() {
     );
   }, [lang, showToast]);
 
-  const handleExportModelD3D = useCallback(async (modelId: string, ext: 'd3d' | 'b3d' = 'd3d') => {
+  const handleExportModelB3D = useCallback(async (modelId: string) => {
     const ctx = sceneRef.current;
     if (!ctx) return;
     const parsed = ctx.importedMap[modelId];
@@ -3737,18 +3736,18 @@ export default function KitchenViewer() {
     }
     const model = stateRef.current.importedModels.find((m) => m.id === modelId);
     const filename = `${model?.name || 'corp_cad'}`;
-    await downloadD3DExport(
+    await downloadB3DExport(
       [parsed.wrapperGroup],
       [],
       model ? [model] : [],
       stateRef.current.materials || [],
-      ext,
+      'b3d',
       filename
     );
     showToast(
       lang === 'ro'
-        ? `🧱 Modelul "${model?.name || 'CAD'}" exportat în format .${ext.toUpperCase()}!`
-        : `🧱 Model "${model?.name || 'CAD'}" exported to .${ext.toUpperCase()}!`
+        ? `🧱 Modelul "${model?.name || 'CAD'}" exportat în format .B3D!`
+        : `🧱 Model "${model?.name || 'CAD'}" exported to .B3D!`
     );
   }, [lang, showToast]);
 
@@ -4170,7 +4169,7 @@ export default function KitchenViewer() {
         onToggleMagneticSnap={() => setMagneticSnapEnabled((v) => !v)}
         onCaptureScreenshot={handleCaptureScreenshot}
         onExportSceneGlb={handleExportFullSceneGlb}
-        onExportSceneD3D={handleExportSceneD3D}
+        onExportSceneB3D={handleExportSceneB3D}
         onExportSceneObj={handleExportSceneObj}
       />
 
@@ -4468,7 +4467,7 @@ export default function KitchenViewer() {
               onToggleNativeGlbAnimation={handleToggleNativeGlbAnimation}
               onOptimizeGlb={handleOptimizeGlb}
               onExportModelGlb={handleExportModelGlb}
-              onExportModelD3D={handleExportModelD3D}
+              onExportModelB3D={handleExportModelB3D}
               onExportModelObj={handleExportModelObj}
             />
           )}
