@@ -252,8 +252,20 @@ export function raycastModelHierarchical(
     worldBox = updateModelBoundingStructure(wrapperGroup);
   }
 
+  const hasAnyMoved = candidateMeshes.some(
+    (m) =>
+      (m.userData.mechProgress || 0) > 0.005 ||
+      (m.userData.restPos &&
+        m.position.distanceToSquared(m.userData.restPos) > 0.0001)
+  );
+  const testOuterBox = hasAnyMoved
+    ? (wrapperGroup.userData._expandedWorldBox ||= worldBox
+        .clone()
+        .expandByScalar(1.5))
+    : worldBox;
+
   // Fast box test using raycaster ray
-  if (!raycaster.ray.intersectsBox(worldBox)) {
+  if (!raycaster.ray.intersectsBox(testOuterBox)) {
     return []; // Pointer is nowhere near this model! Skip all child meshes & triangles!
   }
 
@@ -262,13 +274,22 @@ export function raycastModelHierarchical(
   for (let i = 0; i < candidateMeshes.length; i++) {
     const mesh = candidateMeshes[i];
     if (!mesh.visible) continue;
-    const mBox = mesh.userData.worldBox;
-    if (mBox) {
-      if (raycaster.ray.intersectsBox(mBox)) {
+    const isMeshMoved =
+      (mesh.userData.mechProgress || 0) > 0.005 ||
+      (mesh.userData.restPos &&
+        mesh.position.distanceToSquared(mesh.userData.restPos) > 0.0001);
+
+    if (isMeshMoved) {
+      closeMeshes.push(mesh);
+    } else {
+      const mBox = mesh.userData.worldBox;
+      if (mBox) {
+        if (raycaster.ray.intersectsBox(mBox)) {
+          closeMeshes.push(mesh);
+        }
+      } else {
         closeMeshes.push(mesh);
       }
-    } else {
-      closeMeshes.push(mesh);
     }
   }
 

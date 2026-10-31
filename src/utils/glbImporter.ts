@@ -145,13 +145,14 @@ export function computeMechMatrixInModelSpace(mesh, mechType, rawProgress, baseD
   const { min, max, size, center } = boxM;
   const orientZ = size.z > size.x * 1.55;
   const outSign = orientZ ? (center.x >= 0 ? 1 : -1) : 1;
+  const roomDirZ = !orientZ ? (center.z > 0.5 ? -1 : 1) : 1;
 
   if (mechType === 'drawer' || mechType === 'drawer_back') {
     const dirSign = mechType === 'drawer_back' ? -outSign : outSign;
     const depthM = (orientZ ? baseDimsCm.w : baseDimsCm.d) * 0.01;
     const slideDist = Math.max(0.24, Math.min(0.48, depthM * 0.72));
     const dx = orientZ ? slideDist * dirSign * eased : 0;
-    const dz = orientZ ? 0 : slideDist * dirSign * eased;
+    const dz = orientZ ? 0 : slideDist * roomDirZ * eased;
     mat.makeTranslation(dx, 0, dz);
     return mat;
   }
@@ -162,11 +163,12 @@ export function computeMechMatrixInModelSpace(mesh, mechType, rawProgress, baseD
 
   if (mechType === 'door_left') {
     if (!orientZ) {
-      // Front-facing door hinged on back-left edge (min.x, center.y, min.z).
-      // Angle -90 deg rotates body (+X) towards +Z (into the room).
-      pivot.set(min.x, center.y, min.z);
+      // Front-facing door:
+      // If roomDirZ > 0 (room towards +Z): hinged on min.x, angle -90 swings body (+X) towards +Z.
+      // If roomDirZ < 0 (room towards -Z): hinged on min.x, angle +90 swings body (+X) towards -Z.
+      pivot.set(min.x, center.y, center.z);
       axis.set(0, 1, 0);
-      angleDeg = -90 * eased;
+      angleDeg = -90 * roomDirZ * eased;
     } else {
       // Side-facing door:
       // If outSign > 0 (+X side): hinge at min.z, min.x. +90 deg swings out to +X.
@@ -177,26 +179,26 @@ export function computeMechMatrixInModelSpace(mesh, mechType, rawProgress, baseD
     }
   } else if (mechType === 'door_right') {
     if (!orientZ) {
-      // Front-facing door hinged on back-right edge (max.x, center.y, min.z).
-      // Angle +90 deg rotates body (-X) towards +Z (into the room).
-      pivot.set(max.x, center.y, min.z);
+      // Front-facing door:
+      // If roomDirZ > 0: hinged on max.x, angle +90 swings body (-X) towards +Z.
+      // If roomDirZ < 0: hinged on max.x, angle -90 swings body (-X) towards -Z.
+      pivot.set(max.x, center.y, center.z);
       axis.set(0, 1, 0);
-      angleDeg = 90 * eased;
+      angleDeg = 90 * roomDirZ * eased;
     } else {
       // Side-facing door:
       // If outSign > 0 (+X side): hinge at max.z, min.x. -90 deg swings out to +X.
-      // If outSign < 0 (-X side): hinge at max.z, max.x. +90 deg swings out to -X.
+      // If outSign < 0 (-X side): hinge at max.z, max.x. -90 deg swings out to -X.
       pivot.set(outSign > 0 ? min.x : max.x, center.y, max.z);
       axis.set(0, 1, 0);
       angleDeg = -90 * outSign * eased;
     }
   } else if (mechType === 'flap_up') {
     if (!orientZ) {
-      // Hinge at top-back edge (center.x, max.y, min.z).
-      // Angle -95 deg lifts bottom edge UP and OUT towards +Z.
-      pivot.set(center.x, max.y, min.z);
+      // Hinge at top-back edge (center.x, max.y, center.z).
+      pivot.set(center.x, max.y, center.z);
       axis.set(1, 0, 0);
-      angleDeg = -95 * eased;
+      angleDeg = -95 * roomDirZ * eased;
     } else {
       pivot.set(outSign > 0 ? min.x : max.x, max.y, center.z);
       axis.set(0, 0, 1);
@@ -204,9 +206,9 @@ export function computeMechMatrixInModelSpace(mesh, mechType, rawProgress, baseD
     }
   } else if (mechType === 'flap_down') {
     if (!orientZ) {
-      pivot.set(center.x, min.y, min.z);
+      pivot.set(center.x, min.y, center.z);
       axis.set(1, 0, 0);
-      angleDeg = 85 * eased;
+      angleDeg = 85 * roomDirZ * eased;
     } else {
       pivot.set(outSign > 0 ? min.x : max.x, min.y, center.z);
       axis.set(0, 0, 1);
@@ -493,7 +495,12 @@ export function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
     ) {
       continue;
     }
-    if (b.max.y <= 0.14 && (b.size.x >= 0.8 || b.size.z >= 0.8)) continue; // plinth at floor
+    // Plinth at floor
+    if (b.max.y <= 0.14 && b.size.y <= 0.12) continue;
+    // Exclude tall side cover panels (e.g. side cover of tall column, not a door)
+    if (b.size.y >= 1.70 && ((b.size.x <= 0.045 && b.size.z <= 0.35) || (b.size.z <= 0.045 && b.size.x <= 0.35))) continue;
+    // Exclude large back cover panels
+    if (/15|24|back|spate/i.test(fullName) && (b.size.x >= 0.85 || b.size.z >= 0.85)) continue;
 
     // 1. Explicit Mechanism Keywords
     let forced = null;
@@ -514,16 +521,13 @@ export function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
     if (!forced && !isNamedFacade) continue;
 
     // 3. Geometric slab checks:
-    // Normal Z (facing front/back): thin in Z (11mm - 45mm), wide in X (>= 15cm), tall in Y (>= 9cm)
-    const isSlabZ = b.size.z >= 0.011 && b.size.z <= 0.048 && b.size.x >= 0.15 && b.size.y >= 0.09;
-    // Normal X (facing sideways on peninsula or island): thin in X (11mm - 45mm), wide in Z (>= 15cm), tall in Y (>= 9cm)
-    const isSlabX = b.size.x >= 0.011 && b.size.x <= 0.048 && b.size.z >= 0.15 && b.size.y >= 0.09;
+    // Normal Z (facing front/back): thin in Z (3mm - 50mm), wide in X (>= 15cm), tall in Y (>= 9cm)
+    const isSlabZ = b.size.z >= 0.003 && b.size.z <= 0.050 && b.size.x >= 0.15 && b.size.y >= 0.09;
+    // Normal X (facing sideways on peninsula or island): thin in X (3mm - 50mm), wide in Z (>= 15cm), tall in Y (>= 9cm)
+    const isSlabX = b.size.x >= 0.003 && b.size.x <= 0.050 && b.size.z >= 0.15 && b.size.y >= 0.09;
 
     if (!forced) {
       if (!isSlabZ && !isSlabX) continue;
-      // Exclude deep corpus walls (depth >= 30cm and height >= 60cm)
-      if (isSlabZ && b.size.x < 0.20 && b.size.y >= 0.60) continue;
-      if (isSlabX && b.size.z >= 0.30 && b.size.y >= 0.60) continue;
     }
 
     const facingX = isSlabX && (!isSlabZ || b.size.z > b.size.x);

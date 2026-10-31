@@ -298,6 +298,34 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
 
   traverseTreeHierarchical(rootDoc.Model || rootDoc, new THREE.Matrix4(), null);
 
+  // 6b. Determine optimal leader facade panel for each CAD anim block
+  for (const ab of animBlocks) {
+    const panelsInBlock = rawPanels.filter((p) => p.animBlock === ab);
+    if (panelsInBlock.length === 0) continue;
+
+    // Prioritize true front facade panel (not bottom plate, not back, not side divider)
+    let bestPanel = panelsInBlock.find((p) => {
+      const n = (p.node.Name?.val || '').toLowerCase();
+      return (
+        /фронтал|фасад|front|двер|door|sertar|ящик|cargo|корзин/i.test(n) &&
+        !/дно|задн|бок|стена|стенк|polita|polite/i.test(n)
+      );
+    });
+
+    if (!bestPanel) {
+      bestPanel = panelsInBlock.find((p) => {
+        const n = (p.node.Name?.val || '').toLowerCase();
+        return /фронтал|фасад|front|двер|door|sertar|ящик/i.test(n);
+      });
+    }
+
+    if (!bestPanel) {
+      bestPanel = panelsInBlock[0];
+    }
+
+    (ab as any).leaderPanelNode = bestPanel.node;
+  }
+
   // 7. Build Three.js 3D Scene Group
   const rootGroup = new THREE.Group();
   rootGroup.name = 'CAD_B3D_Model';
@@ -652,9 +680,8 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
       // Attach CAD Animation data if this panel belongs to an animated CAD block
       if (pItem.animBlock) {
         const ab = pItem.animBlock;
-        const isFacadeName = /фронтал|фасад|front|двер|door|sertar|ящик|cargo|корзин/i.test(panelName);
-        const isLeader = isFacadeName || !ab.hasLeader;
-        if (isLeader && !ab.hasLeader) {
+        const isLeader = (ab as any).leaderPanelNode === pItem.node;
+        if (isLeader) {
           ab.hasLeader = true;
           ab.leaderMeshName = panelName;
           mesh.userData.cadLeader = true;
@@ -667,7 +694,7 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
           animType: ab.animType,
           axisStart: [ab.axisStartWorld.x, ab.axisStartWorld.y, ab.axisStartWorld.z],
           axisEnd: [ab.axisEndWorld.x, ab.axisEndWorld.y, ab.axisEndWorld.z],
-          isLeader: !!mesh.userData.cadLeader
+          isLeader: isLeader
         };
       }
 

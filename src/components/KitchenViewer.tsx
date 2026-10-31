@@ -1597,12 +1597,37 @@ export default function KitchenViewer() {
           if (!worldBox) {
             worldBox = updateModelBoundingStructure(entry.wrapperGroup);
           }
-          if (rc.ray.intersectsBox(worldBox)) {
+
+          // Check if ANY mesh in this model has opened / moved from rest position
+          const hasAnyMoved = entry.meshes.some(
+            (m) =>
+              (m.userData.mechProgress || 0) > 0.005 ||
+              (m.userData.restPos &&
+                m.position.distanceToSquared(m.userData.restPos) > 0.0001)
+          );
+          // If any mesh is open, expand model outer test box so open doors/drawers are never clipped
+          const testOuterBox = hasAnyMoved
+            ? (entry.wrapperGroup.userData._expandedWorldBox ||= worldBox
+                .clone()
+                .expandByScalar(1.5))
+            : worldBox;
+
+          if (rc.ray.intersectsBox(testOuterBox)) {
             for (const m of entry.meshes) {
               if (!m.visible) continue;
-              const mBox = m.userData.worldBox;
-              if (!mBox || rc.ray.intersectsBox(mBox)) {
+              const isMeshMoved =
+                (m.userData.mechProgress || 0) > 0.005 ||
+                (m.userData.restPos &&
+                  m.position.distanceToSquared(m.userData.restPos) > 0.0001);
+
+              if (isMeshMoved) {
+                // Open / moved mesh: ALWAYS test directly so user can click it to close it back!
                 candidateGlbMeshes.push(m);
+              } else {
+                const mBox = m.userData.worldBox;
+                if (!mBox || rc.ray.intersectsBox(mBox)) {
+                  candidateGlbMeshes.push(m);
+                }
               }
             }
           }
@@ -1987,13 +2012,28 @@ export default function KitchenViewer() {
                   parsedEntry.meshes,
                   impRecord.subParts
                 );
-                const targetSubIdx =
+                let targetSubIdx =
                   impRecord.subParts[clickedSubIdx]?.mechType &&
                     impRecord.subParts[clickedSubIdx].mechType !== 'none'
                     ? clickedSubIdx
                     : followers[clickedSubIdx] !== undefined
                       ? followers[clickedSubIdx]
                       : null;
+
+                // Fallback: If clicked submesh belongs to a CAD anim block, find its leader
+                if (targetSubIdx === null && hitObj.userData?.cadAnimBlockId) {
+                  const bId = hitObj.userData.cadAnimBlockId;
+                  const leaderIdx = parsedEntry.meshes.findIndex(
+                    (m, idx) =>
+                      (m.userData?.cadAnimBlockId === bId ||
+                        m.userData?.cadAnim?.blockId === bId) &&
+                      impRecord.subParts[idx]?.mechType &&
+                      impRecord.subParts[idx].mechType !== 'none'
+                  );
+                  if (leaderIdx !== -1) {
+                    targetSubIdx = leaderIdx;
+                  }
+                }
 
                 if (targetSubIdx !== null && parsedEntry.meshes[targetSubIdx]) {
                   const curSp = impRecord.subParts[targetSubIdx];
