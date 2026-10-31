@@ -9,6 +9,7 @@ import {
   updateModelBoundingStructure
 } from './cadModelOptimizer';
 import { autoDetectGlbMechanisms } from './glbImporter';
+import { isNativeB3DBinary, parseNativeB3DBinary } from './b3dBinaryParser';
 
 export interface D3DPanelSpec {
   id: string;
@@ -521,8 +522,21 @@ export async function parseD3DOrB3DContent(content: string | ArrayBuffer): Promi
   glbBuffer?: ArrayBuffer;
   projectData?: D3DProjectFile;
 }> {
-  // 1. Binary check: if ArrayBuffer starts with 'glTF'
+  // 1. Binary check: Native B3D CAD (BZ85) or glTF binary
   if (content instanceof ArrayBuffer) {
+    if (isNativeB3DBinary(content)) {
+      try {
+        const nativeResult = await parseNativeB3DBinary(content);
+        return {
+          type: 'glb_buffer',
+          glbBuffer: nativeResult.glbBuffer,
+          projectData: nativeResult.projectData
+        };
+      } catch (b3dErr) {
+        console.warn('Eroare la parsarea nativă B3D:', b3dErr);
+      }
+    }
+
     const view = new DataView(content);
     if (content.byteLength >= 4 && view.getUint32(0, false) === 0x676c5446) {
       return { type: 'glb_buffer', glbBuffer: content };
