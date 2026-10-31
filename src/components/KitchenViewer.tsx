@@ -1481,6 +1481,14 @@ export default function KitchenViewer() {
           const restoredGlbs = [];
           for (const sim of saved.importedModels) {
             if (!sim.b64Data) continue;
+            // Guard: Automatically purge legacy corrupt models created with broken parser
+            const isCorruptedLegacy =
+              sim.metrics?.polyCount === 42221 ||
+              (Math.abs((sim.baseDimsCm?.w || 0) - 99.6) < 1.0 && Math.abs((sim.baseDimsCm?.h || 0) - 99.1) < 1.0);
+            if (isCorruptedLegacy) {
+              console.warn('Eliminat modelul vechi corupt din memoria IndexedDB:', sim.name);
+              continue;
+            }
             glbBinaryCacheRef.current.set(sim.id, sim.b64Data);
             try {
               const buf = base64ToArrayBuffer(sim.b64Data);
@@ -1511,6 +1519,12 @@ export default function KitchenViewer() {
           if (restoredGlbs.length > 0) {
             setSelectedGlbId(restoredGlbs[0].id);
             stateRef.current.selectedGlbId = restoredGlbs[0].id;
+          } else {
+            setSelectedGlbId(null);
+            stateRef.current.selectedGlbId = null;
+          }
+          if (restoredGlbs.length !== saved.importedModels.length) {
+            persistWorkspace({ importedModels: restoredGlbs });
           }
         }
       }
