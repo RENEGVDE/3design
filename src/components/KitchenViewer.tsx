@@ -68,6 +68,15 @@ import {
   ApplianceInstance
 } from '../utils/applianceCatalog';
 import TechnicalReportModal from './TechnicalReportModal';
+import UserProfileModal from './UserProfileModal';
+import PhotorealRenderModal from './PhotorealRenderModal';
+import {
+  CloudUserProfile,
+  CloudProjectSummary,
+  subscribeToAuthChanges,
+  getActiveCloudProjectMeta,
+  setActiveCloudProjectMeta
+} from '../utils/firebaseCloud';
 import { calculateMagneticSnap, alignModelDirectly } from '../utils/magneticSnapping';
 import {
   downloadGlbExport,
@@ -170,6 +179,20 @@ export default function KitchenViewer() {
   // Project & CAD Studio States
   const [magneticSnapEnabled, setMagneticSnapEnabled] = useState(true);
   const [technicalReportOpen, setTechnicalReportOpen] = useState(false);
+  const [userProfileModalOpen, setUserProfileModalOpen] = useState(false);
+  const [photorealRenderOpen, setPhotorealRenderOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<CloudUserProfile | null>(null);
+  const [activeCloudProject, setActiveCloudProject] = useState<{ id: string; name: string } | null>(
+    null
+  );
+
+  useEffect(() => {
+    setActiveCloudProject(getActiveCloudProjectMeta());
+    const unsub = subscribeToAuthChanges((u) => {
+      setCurrentUser(u);
+    });
+    return () => unsub();
+  }, []);
 
   const [lightState, setLightState] = useState(INITIAL_LIGHT_STATE);
   const [showLightOrb, setShowLightOrb] = useState(false);
@@ -3870,6 +3893,8 @@ export default function KitchenViewer() {
     historyIndexRef.current = -1;
     setCanUndo(false);
     setCanRedo(false);
+    setActiveCloudProject(null);
+    setActiveCloudProjectMeta(null);
 
     persistWorkspace({
       importedModels: [],
@@ -3887,19 +3912,159 @@ export default function KitchenViewer() {
     );
   }, [lang, persistWorkspace, showToast]);
 
-  const handleSaveProject = useCallback(() => {
-    const projectData = {
+  const handleGetWorkspacePayloadForCloud = useCallback(() => {
+    const cleanMaterials = (stateRef.current.materials || materials || []).map((m: any) => ({
+      ...m,
+      texture: null
+    }));
+    const fullImportedModels = (stateRef.current.importedModels || []).map((im: any) => ({
+      ...im,
+      b64Data: im.b64Data || glbBinaryCacheRef.current.get(im.id) || null
+    }));
+    return {
       format: '3design_cad_project',
       version: '2.0',
       savedAt: new Date().toISOString(),
-      lang,
+      lang: stateRef.current.lang || lang,
       roomConfig: stateRef.current.roomConfig,
       appliances: stateRef.current.appliances,
-      activeMatId,
-      materials,
-      lightState,
-      importedModels: stateRef.current.importedModels
+      activeMatId: stateRef.current.activeMatId || activeMatId,
+      materials: cleanMaterials,
+      lightState: stateRef.current.lightState || lightState,
+      importedModels: fullImportedModels
     };
+  }, [lang, activeMatId, materials, lightState]);
+
+  const handleCaptureCloudThumbnail = useCallback((): string | null => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.renderer || !ctx.scene || !ctx.camera) return null;
+    try {
+      ctx.renderer.render(ctx.scene, ctx.camera);
+      const srcCanvas = ctx.renderer.domElement;
+      const thumbCanvas = document.createElement('canvas');
+      thumbCanvas.width = 360;
+      thumbCanvas.height = 220;
+      const c2d = thumbCanvas.getContext('2d');
+      if (!c2d) return null;
+      c2d.drawImage(srcCanvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
+      return thumbCanvas.toDataURL('image/jpeg', 0.65);
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const handleApplyCloudProject = useCallback(
+    async (proj: any, summary: CloudProjectSummary) => {
+      if (!proj) return;
+
+      if (sceneRef.current) {
+        for (const m of stateRef.current.importedModels) {
+          disposeModelHierarchy(m.id, sceneRef.current);
+        }
+      }
+
+      if (proj.roomConfig) {
+        setRoomConfig(proj.roomConfig);
+        stateRef.current.roomConfig = proj.roomConfig;
+        const ctx = sceneRef.current;
+        if (ctx && ctx.scene) {
+          if (ctx.roomRoot) ctx.scene.remove(ctx.roomRoot);
+          const newRoomRoot = buildArchitecturalRoom(proj.roomConfig);
+          ctx.scene.add(newRoomRoot);
+          ctx.roomRoot = newRoomRoot;
+          ctx.needsShadowUpdate = true;
+        }
+      }
+      if (Array.isArray(proj.appliances)) {
+        setAppliances(proj.appliances);
+        stateRef.current.appliances = proj.appliances;
+        if (sceneRef.current?.appliancesRootGroup) {
+          while (sceneRef.current.appliancesRootGroup.children.length > 0) {
+            sceneRef.current.appliancesRootGroup.remove(
+              sceneRef.current.appliancesRootGroup.children[0]
+            );
+          }
+          for (const app of proj.appliances) {
+            const mesh = buildAppliance3DModel(app);
+            sceneRef.current.appliancesRootGroup.add(mesh);
+          }
+        }
+      }
+
+      let hydratedMats = stateRef.current.materials;
+      if (Array.isArray(proj.materials) && proj.materials.length > 0) {
+        hydratedMats = await Promise.all(
+          proj.materials.map(async (m: any) => {
+            if (m.type === 'texture' && m.dataUrl) {
+              try {
+                const tex = await createTextureFromDataUrl(m.dataUrl);
+                return { ...m, texture: tex };
+              } catch {
+                return { ...m, texture: null };
+              }
+            }
+            return { ...m, texture: null };
+          })
+        );
+        setMaterials(hydratedMats);
+        stateRef.current.materials = hydratedMats;
+      }
+
+      if (proj.activeMatId) {
+        setActiveMatId(proj.activeMatId);
+        stateRef.current.activeMatId = proj.activeMatId;
+      }
+      if (proj.lightState) {
+        setLightState(proj.lightState);
+        stateRef.current.lightState = proj.lightState;
+      }
+
+      const restoredModels: any[] = [];
+      if (Array.isArray(proj.importedModels)) {
+        for (const m of proj.importedModels) {
+          const b64 = m.b64Data || glbBinaryCacheRef.current.get(m.id);
+          if (b64) {
+            glbBinaryCacheRef.current.set(m.id, b64);
+          }
+          if (b64 && sceneRef.current) {
+            const buf = base64ToArrayBuffer(b64);
+            const mounted = await mountParsedGlbIntoScene(
+              buf,
+              b64,
+              m.id,
+              m.name,
+              { position: m.position, rotationYDeg: m.rotationYDeg, scale: m.scale },
+              m.subParts,
+              hydratedMats
+            );
+            if (mounted) {
+              restoredModels.push({
+                ...m,
+                ...mounted,
+                b64Data: b64
+              });
+            }
+          }
+        }
+        setImportedModels(restoredModels);
+        stateRef.current.importedModels = restoredModels;
+      }
+
+      setActiveCloudProject({ id: summary.id, name: summary.name });
+      setActiveCloudProjectMeta({ id: summary.id, name: summary.name });
+
+      persistWorkspace({
+        importedModels: restoredModels,
+        roomConfig: proj.roomConfig || DEFAULT_ROOM_CONFIG,
+        appliances: proj.appliances || [],
+        materials: hydratedMats
+      });
+    },
+    [mountParsedGlbIntoScene, persistWorkspace]
+  );
+
+  const handleSaveProject = useCallback(() => {
+    const projectData = handleGetWorkspacePayloadForCloud();
 
     const jsonStr = JSON.stringify(projectData, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -4644,6 +4809,10 @@ export default function KitchenViewer() {
         onExportSceneGlb={handleExportFullSceneGlb}
         onExportSceneB3D={handleExportSceneB3D}
         onExportSceneObj={handleExportSceneObj}
+        currentUser={currentUser}
+        activeCloudProjectName={activeCloudProject?.name || null}
+        onOpenUserProfile={() => setUserProfileModalOpen(true)}
+        onOpenPhotorealRender={() => setPhotorealRenderOpen(true)}
       />
 
       <DimensionToolbar
@@ -4837,8 +5006,8 @@ export default function KitchenViewer() {
             </button>
             <button
               className="quick-icon-btn"
-              onClick={() => handleCaptureScreenshot()}
-              title={lang === 'ro' ? 'Captură Imagine 3D' : lang === 'ru' ? 'Снимок 3D' : 'Capture 3D View'}
+              onClick={() => setPhotorealRenderOpen(true)}
+              title={lang === 'ro' ? 'Studio Randare 3D Fotorealistă' : lang === 'ru' ? 'Фотореалистичный 3D Рендер' : 'Photorealistic 3D Render Studio'}
               style={{ marginLeft: 'auto' }}
             >
               📸
@@ -5956,6 +6125,26 @@ export default function KitchenViewer() {
         importedModels={importedModels}
         materials={materials}
         onCaptureScreenshot={handleCaptureScreenshot}
+      />
+
+      <UserProfileModal
+        isOpen={userProfileModalOpen}
+        onClose={() => setUserProfileModalOpen(false)}
+        lang={lang}
+        currentUser={currentUser}
+        activeCloudProject={activeCloudProject}
+        onGetWorkspacePayload={handleGetWorkspacePayloadForCloud}
+        onCaptureThumbnailDataUrl={handleCaptureCloudThumbnail}
+        onApplyCloudProject={handleApplyCloudProject}
+        onShowToast={showToast}
+      />
+
+      <PhotorealRenderModal
+        isOpen={photorealRenderOpen}
+        onClose={() => setPhotorealRenderOpen(false)}
+        lang={lang}
+        onGetSceneContext={() => sceneRef.current}
+        onShowToast={showToast}
       />
 
       <div id="help-pill">

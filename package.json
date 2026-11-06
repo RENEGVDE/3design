@@ -11,6 +11,7 @@
     "deploy": "vinext build && firebase deploy --only hosting"
   },
   "dependencies": {
+    "firebase": "^13.2.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "three": "^0.160.0"

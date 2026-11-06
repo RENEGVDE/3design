@@ -26,6 +26,10 @@ export interface TopBarProps {
   onExportSceneGlb?: () => void;
   onExportSceneB3D?: () => void;
   onExportSceneObj?: () => void;
+  currentUser?: { uid: string; email: string; displayName: string; photoURL?: string | null } | null;
+  activeCloudProjectName?: string | null;
+  onOpenUserProfile?: () => void;
+  onOpenPhotorealRender?: () => void;
 }
 
 export default function TopBar({
@@ -50,7 +54,11 @@ export default function TopBar({
   onCaptureScreenshot,
   onExportSceneGlb,
   onExportSceneB3D,
-  onExportSceneObj
+  onExportSceneObj,
+  currentUser,
+  activeCloudProjectName,
+  onOpenUserProfile,
+  onOpenPhotorealRender
 }: TopBarProps) {
   const dict = I18N[lang] || I18N.ro;
   const isRo = lang === 'ro';
@@ -104,6 +112,47 @@ export default function TopBar({
               />
 
               <div className="project-dropdown-menu" style={{ zIndex: 50 }}>
+                {onOpenUserProfile && (
+                  <>
+                    <button
+                      type="button"
+                      className="dropdown-item"
+                      onClick={() => {
+                        setProjectMenuOpen(false);
+                        onOpenUserProfile();
+                      }}
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(99, 102, 241, 0.14))',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        marginBottom: '4px'
+                      }}
+                    >
+                      <span>☁️</span>
+                      <div>
+                        <strong style={{ color: '#7dd3fc' }}>
+                          {currentUser
+                            ? isRo
+                              ? `Proiecte Cloud (${currentUser.displayName})`
+                              : `Cloud Projects (${currentUser.displayName})`
+                            : isRo
+                            ? 'Contul Meu & Proiecte Cloud (Multi-Device)'
+                            : isRu
+                            ? 'Мой профиль и облачные проекты'
+                            : 'My Account & Cloud Projects'}
+                        </strong>
+                        <small>
+                          {isRo
+                            ? 'Salvează și deschide proiectele tale de pe PC, tabletă sau telefon'
+                            : isRu
+                            ? 'Синхронизация проектов между ПК и смартфоном'
+                            : 'Sync and access your 3D projects on any device'}
+                        </small>
+                      </div>
+                    </button>
+                    <div className="dropdown-divider" />
+                  </>
+                )}
+
                 <button
                   type="button"
                   className="dropdown-item"
@@ -197,6 +246,33 @@ export default function TopBar({
 
                 <div className="dropdown-divider" />
 
+                {onOpenPhotorealRender && (
+                  <button
+                    type="button"
+                    className="dropdown-item"
+                    onClick={() => {
+                      setProjectMenuOpen(false);
+                      onOpenPhotorealRender();
+                    }}
+                  >
+                    <span>📸</span>
+                    <div>
+                      <strong style={{ color: '#fde68a' }}>
+                        {isRo
+                          ? 'Studio Randare 3D Fotorealistă (Poză Realistă)'
+                          : isRu
+                          ? 'Фотореалистичный 3D Рендер (Фото)'
+                          : 'Photorealistic 3D Render Studio'}
+                      </strong>
+                      <small>
+                        {isRo
+                          ? 'Umbre moi Ray-Shadow, parchet/marmură, iluminare 5500K/3700K și export 4K'
+                          : 'Soft shadows, realistic floor & walls, color grading & 4K export'}
+                      </small>
+                    </div>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   className="dropdown-item"
@@ -223,6 +299,64 @@ export default function TopBar({
             onChange={handleFileChange}
           />
         </div>
+
+        {/* User Profile & Multi-Device Cloud Projects Button */}
+        {onOpenUserProfile && (
+          <button
+            type="button"
+            className="action-btn"
+            onClick={onOpenUserProfile}
+            title={
+              currentUser
+                ? `${currentUser.displayName} (${currentUser.email})${activeCloudProjectName ? ` — Proiect: ${activeCloudProjectName}` : ''}`
+                : isRo
+                ? 'Autentificare & Proiecte Cloud (Email / Gmail)'
+                : isRu
+                ? 'Профиль и облачные проекты'
+                : 'Sign In & Cloud Projects'
+            }
+            style={
+              currentUser
+                ? {
+                    background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(99, 102, 241, 0.22))',
+                    borderColor: 'rgba(56, 189, 248, 0.55)'
+                  }
+                : {
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    borderColor: 'rgba(255, 255, 255, 0.2)'
+                  }
+            }
+          >
+            <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+              {currentUser ? '☁️' : '👤'}
+              {currentUser && (
+                <span
+                  style={{
+                    width: '7px',
+                    height: '7px',
+                    borderRadius: '50%',
+                    background: '#22c55e',
+                    position: 'absolute',
+                    bottom: '-1px',
+                    right: '-2px',
+                    boxShadow: '0 0 6px #22c55e'
+                  }}
+                />
+              )}
+            </span>
+            <span className="btn-label-desktop">
+              {currentUser
+                ? currentUser.displayName.length > 14
+                  ? currentUser.displayName.slice(0, 14) + '…'
+                  : currentUser.displayName
+                : isRo
+                ? 'Contul Meu'
+                : isRu
+                ? 'Профиль'
+                : 'Profile'}
+            </span>
+          </button>
+        )}
 
         {/* 2D Plan View / 3D CAD Perspective Switcher */}
         {onToggle2DPlanMode && (
@@ -265,15 +399,27 @@ export default function TopBar({
           <span className="btn-label-desktop">{isRo ? 'Fișă Tehnică' : isRu ? 'Спецификация' : 'Cutting List'}</span>
         </button>
 
-        {/* Screenshot HD Direct Button */}
+        {/* Photorealistic 3D Render Studio Button */}
         <button
           type="button"
-          className="action-btn hide-on-mobile"
-          onClick={onCaptureScreenshot}
-          title={isRo ? 'Captură Foto HD (Randare 3D)' : isRu ? 'Снимок HD (3D рендер)' : 'Download HD 3D Screenshot'}
+          className="action-btn"
+          onClick={onOpenPhotorealRender || onCaptureScreenshot}
+          title={
+            isRo
+              ? 'Studio Randare 3D Fotorealistă (Poză Realistă HD / 4K)'
+              : isRu
+              ? 'Фотореалистичный 3D Рендер (HD / 4K)'
+              : 'Photorealistic 3D Render Studio'
+          }
+          style={{
+            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(236, 72, 153, 0.18))',
+            borderColor: 'rgba(245, 158, 11, 0.5)'
+          }}
         >
           <span>📸</span>
-          <span className="btn-label-desktop">{isRo ? 'Foto HD' : isRu ? 'Фото HD' : 'HD Photo'}</span>
+          <span className="btn-label-desktop">
+            {isRo ? 'Render Foto 3D' : isRu ? '3D Рендер' : '3D Render'}
+          </span>
         </button>
 
         <button
