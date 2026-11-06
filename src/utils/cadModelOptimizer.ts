@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { buildFollowerMap } from './glbImporter';
 
 export interface ModelMetrics {
   polyCount: number;
@@ -230,6 +231,7 @@ export function updateModelBoundingStructure(wrapperGroup: THREE.Group): THREE.B
   });
 
   wrapperGroup.userData.worldBox = worldBox;
+  wrapperGroup.userData._expandedWorldBox = worldBox.clone().expandByScalar(2.0);
   return worldBox;
 }
 
@@ -237,7 +239,7 @@ export function updateModelBoundingStructure(wrapperGroup: THREE.Group): THREE.B
  * Fast Hierarchical Raycasting:
  * Pre-filters meshes by testing the model's outer bounding box first.
  * If the ray does NOT hit the model's outer box, returns [] in < 0.001 ms!
- * If it hits, only tests submeshes whose individual bounding boxes intersect the ray.
+ * If it hits, tests candidate meshes directly.
  */
 export function raycastModelHierarchical(
   raycaster: THREE.Raycaster,
@@ -252,44 +254,23 @@ export function raycastModelHierarchical(
     worldBox = updateModelBoundingStructure(wrapperGroup);
   }
 
-  const hasAnyMoved = candidateMeshes.some(
-    (m) =>
-      (m.userData.mechProgress || 0) > 0.005 ||
-      (m.userData.restPos &&
-        m.position.distanceToSquared(m.userData.restPos) > 0.0001)
-  );
-  const testOuterBox = hasAnyMoved
-    ? (wrapperGroup.userData._expandedWorldBox ||= worldBox
-        .clone()
-        .expandByScalar(1.5))
-    : worldBox;
+  const testOuterBox =
+    wrapperGroup.userData._expandedWorldBox ||
+    (wrapperGroup.userData._expandedWorldBox = worldBox
+      .clone()
+      .expandByScalar(2.0));
 
   // Fast box test using raycaster ray
   if (!raycaster.ray.intersectsBox(testOuterBox)) {
     return []; // Pointer is nowhere near this model! Skip all child meshes & triangles!
   }
 
-  // Level 2: Sub-mesh Bounding Box Pre-filter
+  // Level 2: Test all visible candidate meshes (Three.js tests boundingSphere internally in < 0.02ms)
   const closeMeshes: THREE.Mesh[] = [];
   for (let i = 0; i < candidateMeshes.length; i++) {
     const mesh = candidateMeshes[i];
-    if (!mesh.visible) continue;
-    const isMeshMoved =
-      (mesh.userData.mechProgress || 0) > 0.005 ||
-      (mesh.userData.restPos &&
-        mesh.position.distanceToSquared(mesh.userData.restPos) > 0.0001);
-
-    if (isMeshMoved) {
+    if (mesh.visible) {
       closeMeshes.push(mesh);
-    } else {
-      const mBox = mesh.userData.worldBox;
-      if (mBox) {
-        if (raycaster.ray.intersectsBox(mBox)) {
-          closeMeshes.push(mesh);
-        }
-      } else {
-        closeMeshes.push(mesh);
-      }
     }
   }
 
@@ -325,10 +306,16 @@ export function convertAndBatchModelGeometries(
   }
 
   // Identify which parts are interactive mechanisms or followers
+  const followerMap = buildFollowerMap(meshes, subPartsMeta);
   const isMechanism = new Array(meshes.length).fill(false);
   for (let i = 0; i < subPartsMeta.length; i++) {
     const sp = subPartsMeta[i];
-    if (sp && sp.mechType && sp.mechType !== 'none') {
+    const m = meshes[i];
+    if (
+      (sp && sp.mechType && sp.mechType !== 'none') ||
+      (m && (m.userData?.cadAnim || m.userData?.cadAnimBlockId)) ||
+      followerMap[i] !== undefined
+    ) {
       isMechanism[i] = true;
     }
   }

@@ -222,6 +222,20 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
 
   const animBlocks: RawAnimBlock[] = [];
   const rawPanels: RawPanelItem[] = [];
+  const hingeCups: { name: string; worldPos: THREE.Vector3; used?: boolean }[] = [];
+  const carcassFasteners: THREE.Vector3[] = [];
+  const drawerAssemblies: { id: string; name: string; panelNodes: Set<any> }[] = [];
+
+  function collectSubtreePanelNodes(node: any, set: Set<any>) {
+    if (!node || typeof node !== 'object') return;
+    if (node.Type?.val === 4002) set.add(node);
+    for (const k in node) {
+      if (k.startsWith('_') || k === 'Undo') continue;
+      const c = node[k];
+      if (Array.isArray(c)) c.forEach((x) => collectSubtreePanelNodes(x, set));
+      else collectSubtreePanelNodes(c, set);
+    }
+  }
 
   function getLocalMatrix(node: any): THREE.Matrix4 | null {
     if (!node || !node.Trans) return null;
@@ -245,7 +259,8 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
   function traverseTreeHierarchical(
     node: any,
     currentMatrix: THREE.Matrix4,
-    currentBlock: RawAnimBlock | null
+    currentBlock: RawAnimBlock | null,
+    inDrawerAsm = false
   ) {
     if (!node || typeof node !== 'object') return;
     let nextMatrix = currentMatrix;
@@ -281,7 +296,42 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
       animBlocks.push(activeBlock);
     }
 
-    if (node.Type?.val === 4002 && node.Contour?.val) {
+    const nType = node.Type?.val;
+    const nName = (node.Name?.val || '').trim();
+    const nFurnType = (node.FurnType?.val || '').trim();
+
+    let nextInDrawer = inDrawerAsm;
+    if (
+      nType === 1005 &&
+      !activeBlock &&
+      (/quadro|arcitech|tandem|направляющ|ящик/i.test(nName) ||
+        /направляющ|короб/i.test(nFurnType))
+    ) {
+      nextInDrawer = true;
+      const pSet = new Set<any>();
+      collectSubtreePanelNodes(node, pSet);
+      if (pSet.size > 0) {
+        drawerAssemblies.push({
+          id: `cad_drw_asm_${drawerAssemblies.length + 1}`,
+          name: nName || `Sertar_${drawerAssemblies.length + 1}`,
+          panelNodes: pSet
+        });
+      }
+    }
+
+    if (nType === 3001) {
+      const wp = new THREE.Vector3().setFromMatrixPosition(nextMatrix);
+      if (/петл|hinge|blum|hettich/i.test(nName)) {
+        hingeCups.push({ name: nName, worldPos: wp });
+      } else if (
+        !nextInDrawer &&
+        /евровинт|конфирмат|шкант|стяжка|rastex|vb\s*35|rafix/i.test(nName)
+      ) {
+        carcassFasteners.push(wp);
+      }
+    }
+
+    if (nType === 4002 && node.Contour?.val) {
       rawPanels.push({ node, worldMatrix: nextMatrix, animBlock: activeBlock });
     }
 
@@ -289,14 +339,15 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
       if (key.startsWith('_') || key === 'Undo') continue;
       const child = node[key];
       if (Array.isArray(child)) {
-        for (const item of child) traverseTreeHierarchical(item, nextMatrix, activeBlock);
+        for (const item of child)
+          traverseTreeHierarchical(item, nextMatrix, activeBlock, nextInDrawer);
       } else {
-        traverseTreeHierarchical(child, nextMatrix, activeBlock);
+        traverseTreeHierarchical(child, nextMatrix, activeBlock, nextInDrawer);
       }
     }
   }
 
-  traverseTreeHierarchical(rootDoc.Model || rootDoc, new THREE.Matrix4(), null);
+  traverseTreeHierarchical(rootDoc.Model || rootDoc, new THREE.Matrix4(), null, false);
 
   // 6b. Determine optimal leader facade panel for each CAD anim block
   for (const ab of animBlocks) {
@@ -717,26 +768,20 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
             const dx = Math.abs(ab.axisEndWorld.x - ab.axisStartWorld.x);
             const dz = Math.abs(ab.axisEndWorld.z - ab.axisStartWorld.z);
             if (dy < 0.25 && (dx > 0.3 || dz > 0.3)) {
-              mechanism = 'flap_up';
+              const wBox = new THREE.Box3().setFromObject(mesh);
+              const wCenter = new THREE.Vector3();
+              wBox.getCenter(wCenter);
+              mechanism = ab.axisStartWorld.y < wCenter.y ? 'flap_down' : 'flap_up';
             } else {
-              mechanism = mesh.position.x <= 0 ? 'door_left' : 'door_right';
+              mechanism =
+                ab.axisEndWorld.y - ab.axisStartWorld.y < 0 ? 'door_left' : 'door_right';
             }
           }
         }
-      } else if (
-        /фронтал|front|фасад|facade/i.test(panelName) &&
-        !/цокол|soclu|plinth|дно|бок|задн|полка|polita|blat/i.test(panelName)
-      ) {
-        const w = Math.max(lengthMm, widthMm);
-        const h = Math.min(lengthMm, widthMm);
-        if (h <= 380 && w >= 280 && Math.round(mesh.position.y * 1000) <= 1150) {
-          mechanism = 'drawer';
-        } else if (w >= h * 1.35 && h <= 550 && mesh.position.y >= 1.4) {
-          mechanism = 'flap_up';
-        } else {
-          mechanism = mesh.position.x <= 0 ? 'door_left' : 'door_right';
-        }
       }
+
+      mesh.userData._rawNode = pNode;
+      mesh.userData._cutIdx = cuttingList.length;
 
       cuttingList.push({
         id: `p_${idx + 1}`,
@@ -762,6 +807,225 @@ export async function parseNativeB3DBinary(buffer: ArrayBuffer): Promise<{
         mechanism
       });
     } catch {}
+  }
+
+  // 7b. Extract Mechanisms from Physical Hardware (Drawer Runners & Hinges) in the B3D File
+  const meshItems = (rootGroup.children as THREE.Mesh[]).map((mesh) => {
+    const worldBox = new THREE.Box3().setFromObject(mesh);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    worldBox.getSize(size);
+    worldBox.getCenter(center);
+    return { mesh, worldBox, size, center, rawNode: mesh.userData._rawNode };
+  });
+
+  // Mark hinges that already touch an explicit AnimBlock panel as used
+  for (const item of meshItems) {
+    if (!item.mesh.userData.cadAnim) continue;
+    const hBox = item.worldBox.clone().expandByScalar(0.025);
+    for (const hc of hingeCups) {
+      if (hBox.containsPoint(hc.worldPos)) hc.used = true;
+    }
+  }
+
+  // (A) Standalone Drawer Runner Assemblies (e.g. Quadro / ArciTech / Направляющая without an outer Anim block)
+  for (const da of drawerAssemblies) {
+    const box = new THREE.Box3();
+    const boxMeshes: typeof meshItems = [];
+    for (const item of meshItems) {
+      if (da.panelNodes.has(item.rawNode)) {
+        box.union(item.worldBox);
+        boxMeshes.push(item);
+      }
+    }
+    if (boxMeshes.length === 0 || box.isEmpty()) continue;
+
+    // Find the front facade panel touching the front of the drawer box
+    const frontItem = meshItems.find((item) => {
+      if (da.panelNodes.has(item.rawNode) || item.mesh.userData.cadAnim) return false;
+      if (item.size.z > 0.035 && item.size.x > 0.035) return false;
+      const overlapX =
+        Math.min(item.worldBox.max.x, box.max.x) - Math.max(item.worldBox.min.x, box.min.x);
+      const overlapY =
+        Math.min(item.worldBox.max.y, box.max.y) - Math.max(item.worldBox.min.y, box.min.y);
+      const distZ = Math.min(
+        Math.abs(item.worldBox.min.z - box.max.z),
+        Math.abs(item.worldBox.max.z - box.min.z)
+      );
+      return overlapX > 0.2 && overlapY > 0.05 && distZ < 0.035;
+    });
+
+    if (frontItem) {
+      const boxCenter = new THREE.Vector3();
+      box.getCenter(boxCenter);
+      const slideSignZ = frontItem.center.z >= boxCenter.z ? 1 : -1;
+      const depthZ = Math.max(0.28, Math.min(0.48, (box.max.z - box.min.z) * 0.88));
+      const asWorld = frontItem.center.clone();
+      const aeWorld = frontItem.center
+        .clone()
+        .add(new THREE.Vector3(0, 0, slideSignZ * depthZ));
+
+      const ab: RawAnimBlock = {
+        id: da.id,
+        name: da.name,
+        animType: 2,
+        axisStartWorld: asWorld,
+        axisEndWorld: aeWorld,
+        hasLeader: true,
+        leaderMeshName: frontItem.mesh.name
+      };
+      animBlocks.push(ab);
+
+      const allDrawerItems = [frontItem, ...boxMeshes];
+      for (const dItem of allDrawerItems) {
+        const isLeader = dItem === frontItem;
+        if (isLeader) dItem.mesh.userData.cadLeader = true;
+        dItem.mesh.userData.cadAnimBlockId = ab.id;
+        dItem.mesh.userData.cadAnimType = 2;
+        dItem.mesh.userData.cadAnim = {
+          blockId: ab.id,
+          blockName: ab.name,
+          animType: 2,
+          axisStart: [asWorld.x, asWorld.y, asWorld.z],
+          axisEnd: [aeWorld.x, aeWorld.y, aeWorld.z],
+          isLeader
+        };
+      }
+      const cutIdx = frontItem.mesh.userData._cutIdx;
+      if (typeof cutIdx === 'number' && cuttingList[cutIdx]) {
+        cuttingList[cutIdx].mechanism = 'drawer';
+      }
+    }
+  }
+
+  // (B) Physical Hinge Hardware (Петля Hettich / Blum / 180..270*) attached to Door Panels
+  for (const item of meshItems) {
+    if (item.mesh.userData.cadAnim) continue;
+    const { worldBox, size, center, mesh } = item;
+
+    const isSlabZ = size.z <= 0.035 && size.x >= 0.15 && size.y >= 0.15;
+    const isSlabX = size.x <= 0.035 && size.z >= 0.15 && size.y >= 0.15;
+    if (!isSlabZ && !isSlabX) continue;
+
+    // Exclude structural carcass panels fastened with confirmats/dowels/minifix/rafix
+    const fastBox = worldBox.clone().expandByScalar(0.002);
+    const hasCarcassFasteners = carcassFasteners.some((fp) => fastBox.containsPoint(fp));
+    if (hasCarcassFasteners) continue;
+
+    const hingeBox = worldBox.clone().expandByScalar(0.032);
+    const nearHinges = hingeCups.filter(
+      (hc) => !hc.used && hingeBox.containsPoint(hc.worldPos)
+    );
+    if (nearHinges.length < 2) continue;
+
+    // Group nearHinges into candidate collinear hinge lines on the panel's edges:
+    // Priority 1: Top horizontal hinge line (near max.y, within 35mm)
+    // Priority 2: Bottom horizontal hinge line (near min.y, within 35mm)
+    // Priority 3: Vertical hinge line along X/Z edge (near min.x, max.x, min.z, or max.z)
+    const topHinges = nearHinges.filter(
+      (hc) => Math.abs(hc.worldPos.y - worldBox.max.y) <= 0.035
+    );
+    const botHinges = nearHinges.filter(
+      (hc) => Math.abs(hc.worldPos.y - worldBox.min.y) <= 0.035
+    );
+
+    let chosenHinges: typeof nearHinges = [];
+    let isHorizontalHinge = false;
+
+    if (topHinges.length >= 2) {
+      chosenHinges = topHinges;
+      isHorizontalHinge = true;
+    } else if (botHinges.length >= 2 && nearHinges.length === botHinges.length) {
+      chosenHinges = botHinges;
+      isHorizontalHinge = true;
+    } else {
+      // Group vertical hinges that share (X, Z) within 10mm
+      for (const h0 of nearHinges) {
+        const col = nearHinges.filter(
+          (h1) =>
+            Math.abs(h1.worldPos.x - h0.worldPos.x) <= 0.01 &&
+            Math.abs(h1.worldPos.z - h0.worldPos.z) <= 0.01
+        );
+        if (col.length > chosenHinges.length) {
+          chosenHinges = col;
+        }
+      }
+    }
+
+    if (chosenHinges.length < 2) continue;
+    for (const ch of chosenHinges) ch.used = true;
+
+    const hCenter = new THREE.Vector3();
+    for (const ch of chosenHinges) hCenter.add(ch.worldPos);
+    hCenter.divideScalar(chosenHinges.length);
+
+    // Outward normal: points from the inner hinge plane through the door slab into the room
+    const outNormal = new THREE.Vector3();
+    const rVec = new THREE.Vector3();
+
+    if (isSlabZ && (!isSlabX || size.x >= size.z)) {
+      const signZ = center.z >= hCenter.z ? 1 : -1;
+      outNormal.set(0, 0, signZ);
+      if (isHorizontalHinge) {
+        rVec.set(0, center.y - hCenter.y, 0);
+      } else {
+        rVec.set(center.x - hCenter.x, 0, 0);
+      }
+    } else {
+      const signX = center.x >= hCenter.x ? 1 : -1;
+      outNormal.set(signX, 0, 0);
+      if (isHorizontalHinge) {
+        rVec.set(0, center.y - hCenter.y, 0);
+      } else {
+        rVec.set(0, 0, center.z - hCenter.z);
+      }
+    }
+
+    if (rVec.lengthSq() < 1e-6) continue;
+    rVec.normalize();
+
+    // Right-hand rotation axis so initial velocity (axis x rVec) points strictly along +outNormal:
+    // axis = normalize(rVec x outNormal)
+    const axisDir = new THREE.Vector3().crossVectors(rVec, outNormal).normalize();
+    const asWorld = hCenter.clone();
+    const aeWorld = hCenter.clone().add(axisDir);
+
+    const ab: RawAnimBlock = {
+      id: `cad_hinge_door_${animBlocks.length + 1}`,
+      name: mesh.name || `Usa_${animBlocks.length + 1}`,
+      animType: 1,
+      axisStartWorld: asWorld,
+      axisEndWorld: aeWorld,
+      hasLeader: true,
+      leaderMeshName: mesh.name
+    };
+    animBlocks.push(ab);
+
+    mesh.userData.cadLeader = true;
+    mesh.userData.cadAnimBlockId = ab.id;
+    mesh.userData.cadAnimType = 1;
+    mesh.userData.cadAnim = {
+      blockId: ab.id,
+      blockName: ab.name,
+      animType: 1,
+      axisStart: [asWorld.x, asWorld.y, asWorld.z],
+      axisEnd: [aeWorld.x, aeWorld.y, aeWorld.z],
+      isLeader: true
+    };
+
+    const cutIdx = mesh.userData._cutIdx;
+    if (typeof cutIdx === 'number' && cuttingList[cutIdx]) {
+      if (isHorizontalHinge) {
+        cuttingList[cutIdx].mechanism = hCenter.y >= center.y ? 'flap_up' : 'flap_down';
+      } else {
+        cuttingList[cutIdx].mechanism = axisDir.y < 0 ? 'door_left' : 'door_right';
+      }
+    }
+  }
+
+  for (const child of rootGroup.children) {
+    delete child.userData._rawNode;
+    delete child.userData._cutIdx;
   }
 
   // 8. Re-center horizontally (X, Z) and ground at floor (Y = 0)

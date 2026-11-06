@@ -228,7 +228,7 @@ export default function TopBar({
         {onToggle2DPlanMode && (
           <button
             type="button"
-            className={`action-btn ${is2DPlanMode ? 'active' : ''}`}
+            className={`action-btn hide-on-mobile ${is2DPlanMode ? 'active' : ''}`}
             onClick={onToggle2DPlanMode}
             title={is2DPlanMode ? 'Comută la Perspectivă 3D CAD' : 'Comută la Schiță 2D Plan Arhitectural'}
             style={is2DPlanMode ? { background: 'rgba(56, 189, 248, 0.25)', borderColor: '#38bdf8' } : {}}
@@ -245,7 +245,7 @@ export default function TopBar({
         {/* Magnetic Snapping Toggle */}
         <button
           type="button"
-          className={`action-btn ${magneticSnapEnabled ? 'active' : ''}`}
+          className={`action-btn hide-on-mobile ${magneticSnapEnabled ? 'active' : ''}`}
           onClick={onToggleMagneticSnap}
           title={isRo ? 'Lipire Magnetică Automată (Snapping 3D)' : isRu ? 'Магнитное прилипание деталей' : 'Magnetic 3D Snapping'}
         >
@@ -268,7 +268,7 @@ export default function TopBar({
         {/* Screenshot HD Direct Button */}
         <button
           type="button"
-          className="action-btn"
+          className="action-btn hide-on-mobile"
           onClick={onCaptureScreenshot}
           title={isRo ? 'Captură Foto HD (Randare 3D)' : isRu ? 'Снимок HD (3D рендер)' : 'Download HD 3D Screenshot'}
         >
@@ -279,7 +279,7 @@ export default function TopBar({
         <button
           type="button"
           id="btn-top-undo"
-          className="action-btn"
+          className="action-btn hide-on-mobile"
           disabled={!canUndo}
           onClick={onUndo}
           title={dict.undo}
@@ -291,7 +291,7 @@ export default function TopBar({
         <button
           type="button"
           id="btn-top-redo"
-          className="action-btn"
+          className="action-btn hide-on-mobile"
           disabled={!canRedo}
           onClick={onRedo}
           title={dict.redo}
@@ -308,7 +308,7 @@ export default function TopBar({
           title="Toggle Dimensions in cm"
         >
           <span>📏</span>
-          <span>{dict.showDims}</span>
+          <span className="btn-label-desktop">{dict.showDims}</span>
         </button>
 
         <div className="lang-switch">
@@ -331,7 +331,7 @@ export default function TopBar({
           onClick={onTogglePanel}
         >
           <span>⚙️</span>
-          <span>{dict.controlsToggle}</span>
+          <span className="btn-label-panel">{dict.controlsToggle}</span>
         </button>
       </div>
     </div>

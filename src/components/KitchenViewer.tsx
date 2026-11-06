@@ -136,6 +136,8 @@ export default function KitchenViewer() {
   const [loading, setLoading] = useState(true);
   const [lang, setLang] = useState('ro');
   const [panelOpen, setPanelOpen] = useState(true);
+  const [mobileSheetFull, setMobileSheetFull] = useState(false);
+  const sheetTouchStartYRef = useRef<number | null>(null);
   const [partsMeta, setPartsMeta] = useState({});
 
   const [materials, setMaterials] = useState([INITIAL_WHITE_MAT]);
@@ -145,7 +147,7 @@ export default function KitchenViewer() {
   // Imported .GLB Models State
   const [importedModels, setImportedModels] = useState([]);
   const [selectedGlbId, setSelectedGlbId] = useState(null);
-  const [gizmoMode, setGizmoMode] = useState('translate');
+  const [gizmoMode, setGizmoMode] = useState<string | null>(null);
   const [placeOnSurfaceMode, setPlaceOnSurfaceMode] = useState(false);
 
   const [xrayActive, setXrayActive] = useState(false);
@@ -181,6 +183,16 @@ export default function KitchenViewer() {
   const [showFasteners3d, setShowFasteners3d] = useState(false);
   const [wireframeActive, setWireframeActive] = useState(false);
   const [hiddenPartIds, setHiddenPartIds] = useState<Set<string>>(new Set());
+  const [selectedSubPart, setSelectedSubPart] = useState<{
+    modelId: string;
+    subIdx: number;
+  } | null>(null);
+  const [partContextMenu, setPartContextMenu] = useState<{
+    x: number;
+    y: number;
+    modelId: string;
+    subIdx: number;
+  } | null>(null);
 
   // Undo & Redo History State
   const [canUndo, setCanUndo] = useState(false);
@@ -573,6 +585,7 @@ export default function KitchenViewer() {
 
       ctx.importedRootGroup.add(parsed.wrapperGroup);
       ctx.importedMap[modelId] = parsed;
+      updateModelBoundingStructure(parsed.wrapperGroup);
 
       const finalSubParts = parsed.subPartsMeta.map((sp, idx) => {
         const savedSp =
@@ -581,17 +594,24 @@ export default function KitchenViewer() {
         let nextSp = { ...sp };
 
         if (savedSp) {
+          if (typeof savedSp.name === 'string' && savedSp.name.trim()) {
+            nextSp.name = savedSp.name;
+          }
           if (typeof savedSp.isOpen === 'boolean') {
             nextSp.isOpen = savedSp.isOpen;
           }
-          if (typeof savedSp.mechType === 'string') {
-            // If the model itself has CAD animation metadata, respect the CAD metadata
-            if (mesh && mesh.userData && mesh.userData.cadAnim) {
-              nextSp.mechType = sp.mechType;
-            } else {
-              nextSp.mechType = savedSp.mechType;
-            }
+          if (savedSp.userOverriddenMech && typeof savedSp.mechType === 'string') {
+            nextSp.mechType = savedSp.mechType;
+            nextSp.userOverriddenMech = true;
+          } else if (typeof savedSp.mechType === 'string' && savedSp.mechType !== 'none') {
+            nextSp.mechType = savedSp.mechType;
+          } else {
+            nextSp.mechType = sp.mechType;
           }
+          if (savedSp.deleted) nextSp.deleted = true;
+          if (Array.isArray(savedSp.customScale)) nextSp.customScale = [...savedSp.customScale];
+          if (Array.isArray(savedSp.customOffset)) nextSp.customOffset = [...savedSp.customOffset];
+          if (Array.isArray(savedSp.customRotDeg)) nextSp.customRotDeg = [...savedSp.customRotDeg];
         }
 
         if (mesh) {
@@ -624,11 +644,43 @@ export default function KitchenViewer() {
         return nextSp;
       });
 
-      updateGlbMechanismsIn3D(parsed, finalSubParts);
+      // Append any user-duplicated or custom-added sub-parts beyond original GLB mesh count
+      if (Array.isArray(savedSubParts) && savedSubParts.length > parsed.subPartsMeta.length) {
+        for (let i = parsed.subPartsMeta.length; i < savedSubParts.length; i++) {
+          const extraSp = savedSubParts[i];
+          if (extraSp && extraSp.isCustomAdded) {
+            finalSubParts.push({
+              ...extraSp,
+              subIdx: finalSubParts.length
+            });
+          }
+        }
+      }
 
       for (const m of parsed.meshes) {
-        ctx.importedMeshes.push(m);
-        ctx.paintableMeshes.push(m);
+        if (!ctx.importedMeshes.includes(m)) ctx.importedMeshes.push(m);
+        if (!ctx.paintableMeshes.includes(m)) ctx.paintableMeshes.push(m);
+      }
+
+      updateGlbMechanismsIn3D(parsed, finalSubParts, ctx);
+
+      // Apply saved materials to any newly materialized custom sub-parts
+      for (let i = parsed.subPartsMeta.length; i < finalSubParts.length; i++) {
+        const sp = finalSubParts[i];
+        const mesh = parsed.meshes[i];
+        if (!sp || !mesh) continue;
+        mesh.userData.mechProgress = sp.isOpen ? 1 : 0;
+        mesh.userData.mechTarget = sp.isOpen ? 1 : 0;
+        if (sp.assignedMatId) {
+          const matEntry = availableMats.find((m) => m.id === sp.assignedMatId);
+          if (matEntry) {
+            applyMatEntryToMesh(mesh, matEntry, stateRef.current.xrayActive);
+          }
+        } else if (sp.colorHex && mesh.material?.color) {
+          mesh.material.map = null;
+          mesh.material.color.set(sp.colorHex);
+          mesh.material.needsUpdate = true;
+        }
       }
 
       if (b64Data) {
@@ -811,12 +863,18 @@ export default function KitchenViewer() {
             0
           );
           entry.wrapperGroup.scale.set(im.scale[0], im.scale[1], im.scale[2]);
+          updateModelBoundingStructure(entry.wrapperGroup);
 
           if (im.subParts && entry.meshes) {
+            updateGlbMechanismsIn3D(entry, im.subParts, ctx);
             for (let i = 0; i < entry.meshes.length; i++) {
               const sp = im.subParts[i];
               const mesh = entry.meshes[i];
-              if (!sp || !mesh) continue;
+              if (!mesh) continue;
+              if (!sp) {
+                mesh.visible = false;
+                continue;
+              }
 
               mesh.userData.mechTarget = sp.isOpen ? 1 : 0;
               if (sp.assignedMatId) {
@@ -836,7 +894,7 @@ export default function KitchenViewer() {
                 mesh.material.needsUpdate = true;
               }
             }
-            updateGlbMechanismsIn3D(entry, im.subParts);
+            updateGlbMechanismsIn3D(entry, im.subParts, ctx);
           }
           restoredGlbList.push(im);
         }
@@ -1598,36 +1656,19 @@ export default function KitchenViewer() {
             worldBox = updateModelBoundingStructure(entry.wrapperGroup);
           }
 
-          // Check if ANY mesh in this model has opened / moved from rest position
-          const hasAnyMoved = entry.meshes.some(
-            (m) =>
-              (m.userData.mechProgress || 0) > 0.005 ||
-              (m.userData.restPos &&
-                m.position.distanceToSquared(m.userData.restPos) > 0.0001)
-          );
-          // If any mesh is open, expand model outer test box so open doors/drawers are never clipped
-          const testOuterBox = hasAnyMoved
-            ? (entry.wrapperGroup.userData._expandedWorldBox ||= worldBox
-                .clone()
-                .expandByScalar(1.5))
-            : worldBox;
+          // Expand model outer box by 2.0m so open doors, drawers, flaps, and all margins are captured
+          const testOuterBox =
+            entry.wrapperGroup.userData._expandedWorldBox ||
+            (entry.wrapperGroup.userData._expandedWorldBox = worldBox
+              .clone()
+              .expandByScalar(2.0));
 
           if (rc.ray.intersectsBox(testOuterBox)) {
-            for (const m of entry.meshes) {
-              if (!m.visible) continue;
-              const isMeshMoved =
-                (m.userData.mechProgress || 0) > 0.005 ||
-                (m.userData.restPos &&
-                  m.position.distanceToSquared(m.userData.restPos) > 0.0001);
-
-              if (isMeshMoved) {
-                // Open / moved mesh: ALWAYS test directly so user can click it to close it back!
+            // Include all visible meshes of this model for accurate Three.js raycasting
+            for (let i = 0; i < entry.meshes.length; i++) {
+              const m = entry.meshes[i];
+              if (m.visible) {
                 candidateGlbMeshes.push(m);
-              } else {
-                const mBox = m.userData.worldBox;
-                if (!mBox || rc.ray.intersectsBox(mBox)) {
-                  candidateGlbMeshes.push(m);
-                }
               }
             }
           }
@@ -1718,28 +1759,31 @@ export default function KitchenViewer() {
             const hasMech = sp && sp.mechType && sp.mechType !== 'none';
             const mechLabel = hasMech ? dict[`mech_${sp.mechType}`] || '' : '';
 
-            const dimsText = impEntry
-              ? `📏 ${fmtCm(
-                impEntry.baseDimsCm.w * impEntry.scale[0]
-              )} × ${fmtCm(
-                impEntry.baseDimsCm.h * impEntry.scale[1]
-              )} × ${fmtCm(impEntry.baseDimsCm.d * impEntry.scale[2])} cm${mechLabel ? ` • ${mechLabel}` : ''
-              }`
-              : '';
+            const boxSizeM = hitMesh.userData.boxM?.size;
+            const customScl = Array.isArray(sp?.customScale) ? sp.customScale : [1, 1, 1];
+            const partDimsStr = boxSizeM
+              ? `${Math.round(boxSizeM.x * customScl[0] * 1000)} × ${Math.round(
+                  boxSizeM.y * customScl[1] * 1000
+                )} × ${Math.round(boxSizeM.z * customScl[2] * 1000)} mm`
+              : impEntry
+                ? `${fmtCm(impEntry.baseDimsCm.w * impEntry.scale[0])} × ${fmtCm(
+                    impEntry.baseDimsCm.h * impEntry.scale[1]
+                  )} × ${fmtCm(impEntry.baseDimsCm.d * impEntry.scale[2])} cm`
+                : '';
+
+            const dimsText = `📏 ${partDimsStr}${mechLabel ? ` • ${mechLabel}` : ''}`;
 
             const subText = curPaint
               ? `${dict.clickToPaint}${activeMatLabel}`
               : hasMech
-                ? sp.isOpen
-                  ? dict.clickToClose
-                  : dict.clickToOpen
-                : 'Click pt. Selectare & Mutare 3D';
+                ? `${sp.isOpen ? dict.clickToClose : dict.clickToOpen} • Click Dreapta: Editează Piesa`
+                : 'Click Dreapta: Setează Ușă/Sertar / Editează Piesa';
 
             updateTooltipDOM(
               true,
               e.clientX,
               e.clientY,
-              hasMech ? `📦 ${impName} — ${sp.name}` : `📦 ${impName}`,
+              sp ? `📦 ${impName} — #${subIdx + 1} ${sp.name}` : `📦 ${impName}`,
               dimsText,
               subText
             );
@@ -1783,8 +1827,26 @@ export default function KitchenViewer() {
         updateTooltipDOM(false);
       };
 
+      let longPressTimer: any = null;
+      let longPressTriggered = false;
+      const clearLongPress = () => {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+      };
+
       const onPointerMove = (e) => {
-        if (e.pointerType === 'touch') return;
+        if (e.pointerType === 'touch') {
+          if (longPressTimer) {
+            const dx = e.clientX - pointerDownPos.x;
+            const dy = e.clientY - pointerDownPos.y;
+            if (Math.hypot(dx, dy) > 12) {
+              clearLongPress();
+            }
+          }
+          return;
+        }
         if (activePointers.size > 0) return;
         lastPointerEvent = e;
         if (tooltipRef.current && tooltipRef.current.classList.contains('visible')) {
@@ -1802,23 +1864,75 @@ export default function KitchenViewer() {
           hoverRaf = null;
         }
         updateTooltipDOM(false);
+        if (e.button === 0) {
+          setPartContextMenu(null);
+        }
         activePointers.add(e.pointerId);
         if (activePointers.size > 1) {
           hadMultiTouch = true;
+          clearLongPress();
           return;
         }
         hadMultiTouch = false;
+        longPressTriggered = false;
         pointerDownPos = { x: e.clientX, y: e.clientY };
         pointerDownTime = performance.now();
+
+        // Smartphone / Tablet Touch Long-Press (480ms hold) -> Opens 3D CAD Part Editor
+        if (e.pointerType === 'touch') {
+          clearLongPress();
+          const downX = e.clientX;
+          const downY = e.clientY;
+          longPressTimer = setTimeout(() => {
+            longPressTimer = null;
+            if (hadMultiTouch || transformControls.dragging) return;
+            pointer.x = (downX / window.innerWidth) * 2 - 1;
+            pointer.y = -(downY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(pointer, camera);
+
+            const lpHits = intersectAcceleratedTargets(
+              raycaster,
+              [...importedMeshes, ...interactiveMeshes]
+            );
+            if (lpHits.length > 0) {
+              const hitObj = lpHits[0].object;
+              if (
+                hitObj.userData.importedModelId &&
+                typeof hitObj.userData.subMeshIdx === 'number'
+              ) {
+                longPressTriggered = true;
+                if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                  navigator.vibrate(25);
+                }
+                const impId = hitObj.userData.importedModelId;
+                const clickedSubIdx = hitObj.userData.subMeshIdx;
+                setSelectedGlbId(impId);
+                setSelectedSubPart({ modelId: impId, subIdx: clickedSubIdx });
+                setPartContextMenu({
+                  x: downX,
+                  y: downY,
+                  modelId: impId,
+                  subIdx: clickedSubIdx
+                });
+              }
+            }
+          }, 480);
+        }
       };
 
       const onPointerCancel = (e) => {
+        clearLongPress();
         activePointers.delete(e.pointerId);
       };
 
+      const onContextMenu = (e) => {
+        e.preventDefault();
+      };
+
       const onPointerUp = (e) => {
+        clearLongPress();
         activePointers.delete(e.pointerId);
-        if (hadMultiTouch) return;
+        if (hadMultiTouch || longPressTriggered) return;
         if (transformControls.dragging) return;
 
         const dx = e.clientX - pointerDownPos.x;
@@ -1826,6 +1940,41 @@ export default function KitchenViewer() {
         const dist = Math.hypot(dx, dy);
         const dt = performance.now() - pointerDownTime;
         const maxDist = e.pointerType === 'touch' ? 14 : 6;
+
+        // Right-Click (Button 2): Open 3D CAD Part Context Menu on any clicked sub-mesh
+        if (e.button === 2) {
+          if (dist < maxDist && dt < 650) {
+            pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+            pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(pointer, camera);
+
+            const rcHits = intersectAcceleratedTargets(
+              raycaster,
+              [...importedMeshes, ...interactiveMeshes]
+            );
+            if (rcHits.length > 0) {
+              const hitObj = rcHits[0].object;
+              if (
+                hitObj.userData.importedModelId &&
+                typeof hitObj.userData.subMeshIdx === 'number'
+              ) {
+                const impId = hitObj.userData.importedModelId;
+                const clickedSubIdx = hitObj.userData.subMeshIdx;
+                setSelectedGlbId(impId);
+                setSelectedSubPart({ modelId: impId, subIdx: clickedSubIdx });
+                setPartContextMenu({
+                  x: e.clientX,
+                  y: e.clientY,
+                  modelId: impId,
+                  subIdx: clickedSubIdx
+                });
+                return;
+              }
+            }
+            setPartContextMenu(null);
+          }
+          return;
+        }
 
         if (dist < maxDist && dt < 500) {
           pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -1862,6 +2011,7 @@ export default function KitchenViewer() {
                 nextPos[1],
                 nextPos[2]
               );
+              updateModelBoundingStructure(importedMap[curSelGlbId].wrapperGroup);
               setImportedModels((prev) => {
                 const updated = prev.map((im) =>
                   im.id === curSelGlbId ? { ...im, position: nextPos } : im
@@ -1999,8 +2149,8 @@ export default function KitchenViewer() {
               const impId = hitObj.userData.importedModelId;
               const clickedSubIdx = hitObj.userData.subMeshIdx;
               setSelectedGlbId(impId);
-              if (!stateRef.current.gizmoMode) {
-                setGizmoMode('translate');
+              if (typeof clickedSubIdx === 'number') {
+                setSelectedSubPart({ modelId: impId, subIdx: clickedSubIdx });
               }
 
               const parsedEntry = importedMap[impId];
@@ -2063,6 +2213,8 @@ export default function KitchenViewer() {
             if ((ctx as any).toggleInteractivePart) {
               (ctx as any).toggleInteractivePart(gid, null, true);
             }
+          } else {
+            setSelectedSubPart(null);
           }
         }
       };
@@ -2071,6 +2223,7 @@ export default function KitchenViewer() {
       renderer.domElement.addEventListener('pointerdown', onPointerDown);
       renderer.domElement.addEventListener('pointercancel', onPointerCancel);
       renderer.domElement.addEventListener('pointerup', onPointerUp);
+      renderer.domElement.addEventListener('contextmenu', onContextMenu);
       onGlobalPointerUp = () => activePointers.clear();
       window.addEventListener('pointerup', onGlobalPointerUp);
 
@@ -2900,7 +3053,7 @@ export default function KitchenViewer() {
     pushHistoryRef.current?.('Culoare Sub-piesă GLB');
   };
 
-  // Furniture Mechanism Handlers for Imported .GLB Models
+  // Furniture Mechanism & CAD Sub-Part Editing Handlers for Imported .GLB / .B3D Models
   const handleSetGlbSubMeshMechanism = (modelId, subIdx, mechType) => {
     const ctx = sceneRef.current;
     if (!ctx || !ctx.importedMap[modelId]) return;
@@ -2917,15 +3070,284 @@ export default function KitchenViewer() {
             mesh.userData.mechTarget = nextOpen ? 1 : 0;
             if (mechType === 'none') mesh.userData.mechProgress = 0;
           }
-          return { ...sp, mechType, isOpen: nextOpen };
+          return {
+            ...sp,
+            mechType,
+            userOverriddenMech: true,
+            isOpen: nextOpen
+          };
         });
-        updateGlbMechanismsIn3D(entry, nextSubs);
+        updateGlbMechanismsIn3D(entry, nextSubs, ctx);
+        ctx.needsShadowUpdate = true;
         return { ...im, subParts: nextSubs };
       });
       persistWorkspace({ importedModels: updated });
       return updated;
     });
-    pushHistoryRef.current?.('Mecanism GLB ' + mechType);
+    pushHistoryRef.current?.('Mecanism Piesă ' + mechType);
+  };
+
+  const handleUpdateGlbSubPartTransform = (
+    modelId,
+    subIdx,
+    changes: {
+      name?: string;
+      customScale?: [number, number, number];
+      customOffset?: [number, number, number];
+      customRotDeg?: [number, number, number];
+    },
+    isContinuous = true
+  ) => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.importedMap[modelId]) return;
+    const entry = ctx.importedMap[modelId];
+
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const nextSubs = (im.subParts || []).map((sp) => {
+          if (sp.subIdx !== subIdx) return sp;
+          return {
+            ...sp,
+            ...(changes.name !== undefined ? { name: changes.name } : {}),
+            ...(changes.customScale !== undefined
+              ? { customScale: changes.customScale }
+              : {}),
+            ...(changes.customOffset !== undefined
+              ? { customOffset: changes.customOffset }
+              : {}),
+            ...(changes.customRotDeg !== undefined
+              ? { customRotDeg: changes.customRotDeg }
+              : {})
+          };
+        });
+        updateGlbMechanismsIn3D(entry, nextSubs, ctx);
+        ctx.needsShadowUpdate = true;
+        return { ...im, subParts: nextSubs };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+    pushHistoryRef.current?.('Editare Piesă CAD', isContinuous);
+  };
+
+  const handleDeleteGlbSubPart = (modelId, subIdx) => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.importedMap[modelId]) return;
+    const entry = ctx.importedMap[modelId];
+
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const nextSubs = (im.subParts || []).map((sp) => {
+          if (sp.subIdx !== subIdx) return sp;
+          if (entry.meshes[subIdx]) {
+            entry.meshes[subIdx].userData.mechTarget = 0;
+            entry.meshes[subIdx].userData.mechProgress = 0;
+          }
+          return { ...sp, deleted: true, isOpen: false };
+        });
+        updateGlbMechanismsIn3D(entry, nextSubs, ctx);
+        ctx.needsShadowUpdate = true;
+        return { ...im, subParts: nextSubs };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+    setPartContextMenu((cur) =>
+      cur && cur.modelId === modelId && cur.subIdx === subIdx ? null : cur
+    );
+    showToast('🗑️ Piesa a fost ștearsă din model (Ctrl+Z pentru anulare)');
+    pushHistoryRef.current?.('Ștergere Piesă CAD');
+  };
+
+  const handleRestoreGlbSubPart = (modelId, subIdx) => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.importedMap[modelId]) return;
+    const entry = ctx.importedMap[modelId];
+
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const nextSubs = (im.subParts || []).map((sp) => {
+          if (sp.subIdx !== subIdx) return sp;
+          return { ...sp, deleted: false };
+        });
+        updateGlbMechanismsIn3D(entry, nextSubs, ctx);
+        ctx.needsShadowUpdate = true;
+        return { ...im, subParts: nextSubs };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+    showToast('♻️ Piesa a fost restaurată în model');
+    pushHistoryRef.current?.('Restaurare Piesă CAD');
+  };
+
+  const handleDuplicateGlbSubPart = (modelId, subIdx) => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.importedMap[modelId]) return;
+    const entry = ctx.importedMap[modelId];
+
+    let createdSubIdx = -1;
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const curSubs = im.subParts || [];
+        const srcSp = curSubs[subIdx];
+        if (!srcSp) return im;
+
+        const newSubIdx = curSubs.length;
+        createdSubIdx = newSubIdx;
+        const baseSourceIdx =
+          srcSp.isCustomAdded && typeof srcSp.sourceSubIdx === 'number'
+            ? srcSp.sourceSubIdx
+            : !srcSp.isCustomAdded
+              ? subIdx
+              : undefined;
+
+        const prevOff = Array.isArray(srcSp.customOffset)
+          ? srcSp.customOffset
+          : [0, 0, 0];
+        const newSp: any = {
+          ...srcSp,
+          subIdx: newSubIdx,
+          name: `${srcSp.name} (Copie)`,
+          isOpen: false,
+          deleted: false,
+          isCustomAdded: true,
+          sourceSubIdx: baseSourceIdx,
+          customDimsM: srcSp.customDimsM ? [...srcSp.customDimsM] : undefined,
+          initialCenterM: srcSp.initialCenterM
+            ? [...srcSp.initialCenterM]
+            : undefined,
+          customScale: Array.isArray(srcSp.customScale)
+            ? [...srcSp.customScale]
+            : [1, 1, 1],
+          customOffset: [prevOff[0] + 0.06, prevOff[1], prevOff[2] + 0.04],
+          customRotDeg: Array.isArray(srcSp.customRotDeg)
+            ? [...srcSp.customRotDeg]
+            : [0, 0, 0]
+        };
+
+        const nextSubs = [...curSubs, newSp];
+        updateGlbMechanismsIn3D(entry, nextSubs, ctx);
+        const newMesh = entry.meshes[newSubIdx];
+        if (newMesh && newSp.assignedMatId) {
+          const matEntry = stateRef.current.materials.find(
+            (m) => m.id === newSp.assignedMatId
+          );
+          if (matEntry) {
+            applyMatEntryToMesh(newMesh, matEntry, stateRef.current.xrayActive);
+          }
+        }
+        ctx.needsShadowUpdate = true;
+        return { ...im, subParts: nextSubs };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+
+    if (createdSubIdx !== -1) {
+      setPartContextMenu((cur) =>
+        cur && cur.modelId === modelId
+          ? { ...cur, subIdx: createdSubIdx }
+          : cur
+      );
+      showToast('📋 Piesa a fost duplicată (+6 cm X, +4 cm Z)');
+      pushHistoryRef.current?.('Duplicare Piesă CAD');
+    }
+  };
+
+  const handleAddPartToGlbModel = (
+    modelId,
+    partConfig: {
+      name?: string;
+      wMm?: number;
+      hMm?: number;
+      dMm?: number;
+      mechType?: string;
+      colorHex?: string;
+    } = {},
+    nearSubIdx: number | null = null
+  ) => {
+    const ctx = sceneRef.current;
+    if (!ctx || !ctx.importedMap[modelId]) return;
+    const entry = ctx.importedMap[modelId];
+
+    const wM = Math.max(0.004, (partConfig.wMm || 600) / 1000);
+    const hM = Math.max(0.004, (partConfig.hMm || 720) / 1000);
+    const dM = Math.max(0.004, (partConfig.dMm || 18) / 1000);
+    const partName = partConfig.name || 'Panou Nou CAD';
+    const mechType = partConfig.mechType || 'none';
+
+    let initCenter: [number, number, number] = [0, hM / 2, 0];
+    if (
+      nearSubIdx !== null &&
+      entry.meshes[nearSubIdx] &&
+      entry.meshes[nearSubIdx].userData.boxM?.center
+    ) {
+      const refMesh = entry.meshes[nearSubIdx];
+      const c = refMesh.userData.boxM.center;
+      const refSp = stateRef.current.importedModels
+        .find((m) => m.id === modelId)
+        ?.subParts?.[nearSubIdx];
+      const off = Array.isArray(refSp?.customOffset)
+        ? refSp.customOffset
+        : [0, 0, 0];
+      initCenter = [c.x + off[0] + 0.08, c.y + off[1], c.z + off[2] + 0.05];
+    } else if (entry.meshes.length > 0 && entry.meshes[0]?.userData?.boxM?.center) {
+      const c = entry.meshes[0].userData.boxM.center;
+      initCenter = [c.x, Math.max(hM / 2, c.y), c.z + 0.1];
+    }
+
+    let createdSubIdx = -1;
+    setImportedModels((prev) => {
+      const updated = prev.map((im) => {
+        if (im.id !== modelId) return im;
+        const curSubs = im.subParts || [];
+        const newSubIdx = curSubs.length;
+        createdSubIdx = newSubIdx;
+
+        const newSp: any = {
+          subIdx: newSubIdx,
+          name: partName,
+          mechType,
+          userOverriddenMech: true,
+          isOpen: false,
+          deleted: false,
+          isCustomAdded: true,
+          customDimsM: [wM, hM, dM],
+          initialCenterM: initCenter,
+          customScale: [1, 1, 1],
+          customOffset: [0, 0, 0],
+          customRotDeg: [0, 0, 0],
+          colorHex: partConfig.colorHex || '#f4f4f2',
+          assignedMatId: null
+        };
+
+        const nextSubs = [...curSubs, newSp];
+        updateGlbMechanismsIn3D(entry, nextSubs, ctx);
+        ctx.needsShadowUpdate = true;
+        return { ...im, subParts: nextSubs };
+      });
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+
+    if (createdSubIdx !== -1) {
+      setPartContextMenu((cur) =>
+        cur && cur.modelId === modelId
+          ? { ...cur, subIdx: createdSubIdx }
+          : cur
+      );
+      showToast(
+        `➕ Piesă adăugată: ${partName} (${Math.round(wM * 1000)}×${Math.round(
+          hM * 1000
+        )}×${Math.round(dM * 1000)} mm)`
+      );
+      pushHistoryRef.current?.('Adăugare Piesă CAD: ' + partName);
+    }
   };
 
   const handleToggleGlbSubMeshOpen = (modelId, subIdx, forceState = null) => {
@@ -2997,7 +3419,7 @@ export default function KitchenViewer() {
             entry.meshes[idx].userData.mechProgress = 0;
           }
         });
-        updateGlbMechanismsIn3D(entry, autoSubs);
+        updateGlbMechanismsIn3D(entry, autoSubs, ctx);
         return { ...im, subParts: autoSubs };
       });
       persistWorkspace({ importedModels: updated });
@@ -3020,9 +3442,14 @@ export default function KitchenViewer() {
             entry.meshes[idx].userData.mechTarget = 0;
             entry.meshes[idx].userData.mechProgress = 0;
           }
-          return { ...sp, mechType: 'none', isOpen: false };
+          return {
+            ...sp,
+            mechType: 'none',
+            userOverriddenMech: true,
+            isOpen: false
+          };
         });
-        updateGlbMechanismsIn3D(entry, clearedSubs);
+        updateGlbMechanismsIn3D(entry, clearedSubs, ctx);
         return { ...im, subParts: clearedSubs };
       });
       persistWorkspace({ importedModels: updated });
@@ -4230,20 +4657,66 @@ export default function KitchenViewer() {
         onClearTape={handleClearTape}
       />
 
-      <aside id="side-panel" className={panelOpen ? '' : 'collapsed'}>
-        <div className="sheet-handle-bar" onClick={() => setPanelOpen(false)}>
+      <aside
+        id="side-panel"
+        className={`${panelOpen ? '' : 'collapsed'} ${
+          mobileSheetFull ? 'sheet-full' : 'sheet-half'
+        }`}
+      >
+        <div
+          className="sheet-handle-bar"
+          onClick={() => setMobileSheetFull((v) => !v)}
+          onTouchStart={(e) => {
+            if (e.touches && e.touches.length === 1) {
+              sheetTouchStartYRef.current = e.touches[0].clientY;
+            }
+          }}
+          onTouchEnd={(e) => {
+            if (
+              sheetTouchStartYRef.current !== null &&
+              e.changedTouches &&
+              e.changedTouches.length > 0
+            ) {
+              const dy = e.changedTouches[0].clientY - sheetTouchStartYRef.current;
+              sheetTouchStartYRef.current = null;
+              if (dy < -30) {
+                setMobileSheetFull(true);
+              } else if (dy > 30) {
+                if (mobileSheetFull) {
+                  setMobileSheetFull(false);
+                } else {
+                  setPanelOpen(false);
+                }
+              }
+            }
+          }}
+        >
           <div className="sheet-pill" />
           <div className="sheet-header-row">
             <span>{dict.controlsToggle}</span>
-            <button
-              className="sheet-close-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                setPanelOpen(false);
-              }}
-            >
-              ✕
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                className="sheet-close-btn"
+                style={{ width: 'auto', borderRadius: '10px', padding: '0 8px', fontSize: '0.7rem' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMobileSheetFull((v) => !v);
+                }}
+              >
+                {mobileSheetFull ? '⬇️ 50%' : '⬆️ 85%'}
+              </button>
+              <button
+                type="button"
+                className="sheet-close-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPanelOpen(false);
+                }}
+              >
+                ✕
+              </button>
+            </div>
           </div>
         </div>
 
@@ -4515,6 +4988,19 @@ export default function KitchenViewer() {
               onExportModelGlb={handleExportModelGlb}
               onExportModelB3D={handleExportModelB3D}
               onExportModelObj={handleExportModelObj}
+              onUpdateGlbSubPartTransform={handleUpdateGlbSubPartTransform}
+              onDeleteGlbSubPart={handleDeleteGlbSubPart}
+              onRestoreGlbSubPart={handleRestoreGlbSubPart}
+              onDuplicateGlbSubPart={handleDuplicateGlbSubPart}
+              onAddPartToGlbModel={handleAddPartToGlbModel}
+              onOpenPartContextMenu={(modelId, subIdx) =>
+                setPartContextMenu({
+                  x: Math.max(20, window.innerWidth / 2 - 190),
+                  y: Math.max(60, window.innerHeight / 2 - 240),
+                  modelId,
+                  subIdx
+                })
+              }
             />
           )}
 
@@ -4614,6 +5100,854 @@ export default function KitchenViewer() {
           </div>
         </div>
       )}
+
+      {/* Floating Quick-Bar for Selected 3D Sub-Part (Smartphone & Desktop 1-Tap Access) */}
+      {selectedSubPart && !partContextMenu && (() => {
+        const qModel = importedModels.find((m) => m.id === selectedSubPart.modelId);
+        const qSp = qModel?.subParts?.[selectedSubPart.subIdx];
+        if (!qModel || !qSp || qSp.deleted) return null;
+        const hasMech = qSp.mechType && qSp.mechType !== 'none';
+
+        return (
+          <div className="mobile-part-quickbar">
+            <span
+              style={{
+                background: 'rgba(212, 163, 89, 0.25)',
+                color: '#fbbf24',
+                padding: '2px 6px',
+                borderRadius: '5px',
+                fontWeight: 700,
+                fontSize: '0.68rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              #{selectedSubPart.subIdx + 1}
+            </span>
+            <span
+              style={{
+                fontSize: '0.73rem',
+                fontWeight: 600,
+                color: '#f8fafc',
+                maxWidth: '120px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {qSp.name}
+            </span>
+            {hasMech && (
+              <button
+                type="button"
+                className="light-chip"
+                style={{
+                  borderColor: qSp.isOpen ? '#34d399' : 'rgba(56,189,248,0.5)',
+                  color: qSp.isOpen ? '#34d399' : '#7dd3fc',
+                  whiteSpace: 'nowrap',
+                  padding: '4px 8px'
+                }}
+                onClick={() =>
+                  handleToggleGlbSubMeshOpen(
+                    selectedSubPart.modelId,
+                    selectedSubPart.subIdx
+                  )
+                }
+              >
+                {qSp.isOpen ? '🔓 Închide' : '🔓 Deschide'}
+              </button>
+            )}
+            <button
+              type="button"
+              className="light-chip"
+              style={{
+                background: 'rgba(212, 163, 89, 0.2)',
+                borderColor: 'rgba(212, 163, 89, 0.5)',
+                color: '#fef08a',
+                whiteSpace: 'nowrap',
+                padding: '4px 8px'
+              }}
+              onClick={() =>
+                setPartContextMenu({
+                  x: Math.max(16, window.innerWidth / 2 - 175),
+                  y: Math.max(60, window.innerHeight / 2 - 240),
+                  modelId: selectedSubPart.modelId,
+                  subIdx: selectedSubPart.subIdx
+                })
+              }
+            >
+              ✏️ Editează Piesa
+            </button>
+            <button
+              type="button"
+              className="light-chip"
+              style={{ whiteSpace: 'nowrap', padding: '4px 7px' }}
+              onClick={() =>
+                handlePaintGlbSubMeshWithActiveMat(
+                  selectedSubPart.modelId,
+                  selectedSubPart.subIdx
+                )
+              }
+              title="Aplică materialul activ"
+            >
+              🖌️
+            </button>
+            <button
+              type="button"
+              className="light-chip"
+              style={{ padding: '4px 7px', color: '#94a3b8' }}
+              onClick={() => setSelectedSubPart(null)}
+            >
+              ✕
+            </button>
+          </div>
+        );
+      })()}
+
+      {/* Floating 3D Right-Click / Long-Press CAD Part Context Menu & Editor */}
+      {partContextMenu && (() => {
+        const ctxModel = importedModels.find(
+          (m) => m.id === partContextMenu.modelId
+        );
+        const ctxSp = ctxModel?.subParts?.[partContextMenu.subIdx];
+        const ctxEntry = sceneRef.current?.importedMap?.[partContextMenu.modelId];
+        const ctxMesh = ctxEntry?.meshes?.[partContextMenu.subIdx];
+        if (!ctxModel || !ctxSp) return null;
+
+        const baseBoxSize = ctxMesh?.userData?.boxM?.size || {
+          x: 0.6,
+          y: 0.72,
+          z: 0.018
+        };
+        const baseXMm = Math.max(1, baseBoxSize.x * 1000);
+        const baseYMm = Math.max(1, baseBoxSize.y * 1000);
+        const baseZMm = Math.max(1, baseBoxSize.z * 1000);
+
+        const curScale: [number, number, number] = Array.isArray(
+          ctxSp.customScale
+        )
+          ? [
+              ctxSp.customScale[0] || 1,
+              ctxSp.customScale[1] || 1,
+              ctxSp.customScale[2] || 1
+            ]
+          : [1, 1, 1];
+        const curOff: [number, number, number] = Array.isArray(
+          ctxSp.customOffset
+        )
+          ? [
+              ctxSp.customOffset[0] || 0,
+              ctxSp.customOffset[1] || 0,
+              ctxSp.customOffset[2] || 0
+            ]
+          : [0, 0, 0];
+        const curRot: [number, number, number] = Array.isArray(
+          ctxSp.customRotDeg
+        )
+          ? [
+              ctxSp.customRotDeg[0] || 0,
+              ctxSp.customRotDeg[1] || 0,
+              ctxSp.customRotDeg[2] || 0
+            ]
+          : [0, 0, 0];
+
+        const curXMm = Math.round(baseXMm * curScale[0]);
+        const curYMm = Math.round(baseYMm * curScale[1]);
+        const curZMm = Math.round(baseZMm * curScale[2]);
+
+        const dxMm = Math.round(curOff[0] * 1000);
+        const dyMm = Math.round(curOff[1] * 1000);
+        const dzMm = Math.round(curOff[2] * 1000);
+
+        const hasMech = ctxSp.mechType && ctxSp.mechType !== 'none';
+        const leftPx =
+          typeof window !== 'undefined'
+            ? Math.max(12, Math.min(partContextMenu.x, window.innerWidth - 365))
+            : partContextMenu.x;
+        const topPx =
+          typeof window !== 'undefined'
+            ? Math.max(58, Math.min(partContextMenu.y, window.innerHeight - 540))
+            : partContextMenu.y;
+
+        return (
+          <div
+            className="part-context-menu-card"
+            onContextMenu={(e) => e.preventDefault()}
+            style={{
+              left: `${leftPx}px`,
+              top: `${topPx}px`
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '6px',
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
+                paddingBottom: '7px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+                <span
+                  style={{
+                    background: 'rgba(212, 163, 89, 0.25)',
+                    color: '#fbbf24',
+                    padding: '2px 6px',
+                    borderRadius: '5px',
+                    fontWeight: 700,
+                    fontSize: '0.68rem'
+                  }}
+                >
+                  #{partContextMenu.subIdx + 1}
+                </span>
+                <input
+                  type="text"
+                  value={ctxSp.name || ''}
+                  onChange={(e) =>
+                    handleUpdateGlbSubPartTransform(
+                      partContextMenu.modelId,
+                      partContextMenu.subIdx,
+                      { name: e.target.value }
+                    )
+                  }
+                  style={{
+                    background: 'rgba(0,0,0,0.35)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    color: '#fff',
+                    borderRadius: '5px',
+                    padding: '3px 6px',
+                    fontSize: '0.74rem',
+                    fontWeight: 600,
+                    width: '100%'
+                  }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setPartContextMenu(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: '#cbd5e1',
+                  borderRadius: '6px',
+                  width: '24px',
+                  height: '24px',
+                  cursor: 'pointer',
+                  fontWeight: 700
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* 1. Mechanism Type Selector */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.68rem',
+                  color: '#94a3b8',
+                  fontWeight: 600
+                }}
+              >
+                <span>⚙️ TIP PIESĂ & MECANISM DESCHIDERE</span>
+                {hasMech && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleToggleGlbSubMeshOpen(
+                        partContextMenu.modelId,
+                        partContextMenu.subIdx
+                      )
+                    }
+                    style={{
+                      background: ctxSp.isOpen
+                        ? 'rgba(52, 211, 153, 0.22)'
+                        : 'rgba(56, 189, 248, 0.22)',
+                      border: '1px solid rgba(56, 189, 248, 0.5)',
+                      color: ctxSp.isOpen ? '#34d399' : '#bae6fd',
+                      borderRadius: '5px',
+                      padding: '2px 7px',
+                      fontSize: '0.67rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {ctxSp.isOpen ? '🔓 Închide Acum' : '🔓 Testează Deschiderea'}
+                  </button>
+                )}
+              </div>
+
+              <select
+                value={ctxSp.mechType || 'none'}
+                onChange={(e) =>
+                  handleSetGlbSubMeshMechanism(
+                    partContextMenu.modelId,
+                    partContextMenu.subIdx,
+                    e.target.value
+                  )
+                }
+                style={{
+                  width: '100%',
+                  background: 'rgba(0,0,0,0.55)',
+                  border: hasMech
+                    ? '1px solid rgba(56, 189, 248, 0.6)'
+                    : '1px solid rgba(255,255,255,0.18)',
+                  color: hasMech ? '#7dd3fc' : '#e2e8f0',
+                  borderRadius: '6px',
+                  padding: '5px 8px',
+                  fontSize: '0.73rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="none">{dict.mech_none}</option>
+                <option value="door_left">{dict.mech_door_left}</option>
+                <option value="door_right">{dict.mech_door_right}</option>
+                <option value="drawer">{dict.mech_drawer}</option>
+                <option value="flap_up">{dict.mech_flap_up}</option>
+                <option value="flap_down">{dict.mech_flap_down}</option>
+                <option value="drawer_back">{dict.mech_drawer_back}</option>
+              </select>
+            </div>
+
+            {/* 2. Dimensions X, Y, Z in mm */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.68rem',
+                  color: '#94a3b8',
+                  fontWeight: 600
+                }}
+              >
+                <span>📐 DIMENSIUNI PIESĂ (MM)</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleUpdateGlbSubPartTransform(
+                      partContextMenu.modelId,
+                      partContextMenu.subIdx,
+                      { customScale: [1, 1, 1] },
+                      false
+                    )
+                  }
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#fbbf24',
+                    fontSize: '0.65rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ↺ Reset ({Math.round(baseXMm)}×{Math.round(baseYMm)}×{Math.round(baseZMm)})
+                </button>
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '5px'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>Lățime X (mm)</div>
+                  <input
+                    type="number"
+                    min="2"
+                    max="5000"
+                    step="1"
+                    value={curXMm}
+                    onChange={(e) => {
+                      const val = Math.max(2, parseFloat(e.target.value) || curXMm);
+                      handleUpdateGlbSubPartTransform(
+                        partContextMenu.modelId,
+                        partContextMenu.subIdx,
+                        {
+                          customScale: [val / baseXMm, curScale[1], curScale[2]]
+                        }
+                      );
+                    }}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(0,0,0,0.45)',
+                      border: '1px solid rgba(251,191,36,0.4)',
+                      color: '#fbbf24',
+                      borderRadius: '5px',
+                      padding: '4px 6px',
+                      fontWeight: 700,
+                      fontSize: '0.73rem'
+                    }}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>Înălțime Y (mm)</div>
+                  <input
+                    type="number"
+                    min="2"
+                    max="5000"
+                    step="1"
+                    value={curYMm}
+                    onChange={(e) => {
+                      const val = Math.max(2, parseFloat(e.target.value) || curYMm);
+                      handleUpdateGlbSubPartTransform(
+                        partContextMenu.modelId,
+                        partContextMenu.subIdx,
+                        {
+                          customScale: [curScale[0], val / baseYMm, curScale[2]]
+                        }
+                      );
+                    }}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(0,0,0,0.45)',
+                      border: '1px solid rgba(52,211,153,0.4)',
+                      color: '#34d399',
+                      borderRadius: '5px',
+                      padding: '4px 6px',
+                      fontWeight: 700,
+                      fontSize: '0.73rem'
+                    }}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>Adâncime Z (mm)</div>
+                  <input
+                    type="number"
+                    min="2"
+                    max="5000"
+                    step="1"
+                    value={curZMm}
+                    onChange={(e) => {
+                      const val = Math.max(2, parseFloat(e.target.value) || curZMm);
+                      handleUpdateGlbSubPartTransform(
+                        partContextMenu.modelId,
+                        partContextMenu.subIdx,
+                        {
+                          customScale: [curScale[0], curScale[1], val / baseZMm]
+                        }
+                      );
+                    }}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(0,0,0,0.45)',
+                      border: '1px solid rgba(56,189,248,0.4)',
+                      color: '#38bdf8',
+                      borderRadius: '5px',
+                      padding: '4px 6px',
+                      fontWeight: 700,
+                      fontSize: '0.73rem'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Position Offset (ΔX, ΔY, ΔZ in mm) & Rotation */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.68rem',
+                  color: '#94a3b8',
+                  fontWeight: 600
+                }}
+              >
+                <span>✥ POZIȚIE (ΔMM) & ROTIRE (°)</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleUpdateGlbSubPartTransform(
+                      partContextMenu.modelId,
+                      partContextMenu.subIdx,
+                      { customOffset: [0, 0, 0], customRotDeg: [0, 0, 0] },
+                      false
+                    )
+                  }
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#fbbf24',
+                    fontSize: '0.65rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ↺ Reset Poziție
+                </button>
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '5px'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>ΔX St/Dr (mm)</div>
+                  <input
+                    type="number"
+                    step="5"
+                    value={dxMm}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      handleUpdateGlbSubPartTransform(
+                        partContextMenu.modelId,
+                        partContextMenu.subIdx,
+                        { customOffset: [val / 1000, curOff[1], curOff[2]] }
+                      );
+                    }}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(0,0,0,0.45)',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      color: '#fff',
+                      borderRadius: '5px',
+                      padding: '4px 6px',
+                      fontSize: '0.72rem'
+                    }}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>ΔY Sus/Jos (mm)</div>
+                  <input
+                    type="number"
+                    step="5"
+                    value={dyMm}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      handleUpdateGlbSubPartTransform(
+                        partContextMenu.modelId,
+                        partContextMenu.subIdx,
+                        { customOffset: [curOff[0], val / 1000, curOff[2]] }
+                      );
+                    }}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(0,0,0,0.45)',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      color: '#fff',
+                      borderRadius: '5px',
+                      padding: '4px 6px',
+                      fontSize: '0.72rem'
+                    }}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>ΔZ Sp/Față (mm)</div>
+                  <input
+                    type="number"
+                    step="5"
+                    value={dzMm}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      handleUpdateGlbSubPartTransform(
+                        partContextMenu.modelId,
+                        partContextMenu.subIdx,
+                        { customOffset: [curOff[0], curOff[1], val / 1000] }
+                      );
+                    }}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(0,0,0,0.45)',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      color: '#fff',
+                      borderRadius: '5px',
+                      padding: '4px 6px',
+                      fontSize: '0.72rem'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '5px',
+                  marginTop: '2px'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>Rot X (°)</div>
+                  <input
+                    type="number"
+                    step="15"
+                    value={Math.round(curRot[0])}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      handleUpdateGlbSubPartTransform(
+                        partContextMenu.modelId,
+                        partContextMenu.subIdx,
+                        { customRotDeg: [val, curRot[1], curRot[2]] }
+                      );
+                    }}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(0,0,0,0.45)',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      color: '#cbd5e1',
+                      borderRadius: '5px',
+                      padding: '3px 6px',
+                      fontSize: '0.71rem'
+                    }}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>Rot Y (°)</div>
+                  <input
+                    type="number"
+                    step="15"
+                    value={Math.round(curRot[1])}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      handleUpdateGlbSubPartTransform(
+                        partContextMenu.modelId,
+                        partContextMenu.subIdx,
+                        { customRotDeg: [curRot[0], val, curRot[2]] }
+                      );
+                    }}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(0,0,0,0.45)',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      color: '#cbd5e1',
+                      borderRadius: '5px',
+                      padding: '3px 6px',
+                      fontSize: '0.71rem'
+                    }}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>Rot Z (°)</div>
+                  <input
+                    type="number"
+                    step="15"
+                    value={Math.round(curRot[2])}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      handleUpdateGlbSubPartTransform(
+                        partContextMenu.modelId,
+                        partContextMenu.subIdx,
+                        { customRotDeg: [curRot[0], curRot[1], val] }
+                      );
+                    }}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(0,0,0,0.45)',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      color: '#cbd5e1',
+                      borderRadius: '5px',
+                      padding: '3px 6px',
+                      fontSize: '0.71rem'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Material & Color Actions */}
+            <div style={{ display: 'flex', gap: '5px' }}>
+              <button
+                type="button"
+                className="light-chip"
+                style={{ flex: 1, justifyContent: 'center', padding: '5px' }}
+                onClick={() =>
+                  handlePaintGlbSubMeshWithActiveMat(
+                    partContextMenu.modelId,
+                    partContextMenu.subIdx
+                  )
+                }
+              >
+                🖌️ Aplică Material Activ
+              </button>
+              <label
+                className="light-chip"
+                style={{
+                  cursor: 'pointer',
+                  padding: '5px 10px',
+                  justifyContent: 'center'
+                }}
+                title="Schimbă culoarea acestei piese"
+              >
+                🎨 Culoare
+                <input
+                  type="color"
+                  value={ctxSp.colorHex || '#e5e7eb'}
+                  style={{ width: 0, height: 0, opacity: 0 }}
+                  onChange={(e) =>
+                    handleColorGlbSubMesh(
+                      partContextMenu.modelId,
+                      partContextMenu.subIdx,
+                      e.target.value
+                    )
+                  }
+                />
+              </label>
+            </div>
+
+            {/* 5. Add New Parts / Extend Furniture */}
+            <div
+              style={{
+                borderTop: '1px solid rgba(255,255,255,0.1)',
+                paddingTop: '7px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '5px'
+              }}
+            >
+              <div style={{ fontSize: '0.67rem', color: '#94a3b8', fontWeight: 600 }}>
+                ➕ EXTINDE MOBILIERUL (ADAUGĂ PIESĂ NOUĂ)
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '4px'
+                }}
+              >
+                <button
+                  type="button"
+                  className="light-chip"
+                  style={{ fontSize: '0.67rem', justifyContent: 'center' }}
+                  onClick={() =>
+                    handleAddPartToGlbModel(
+                      partContextMenu.modelId,
+                      {
+                        name: 'Ușă Nouă 600×720',
+                        wMm: 596,
+                        hMm: 716,
+                        dMm: 18,
+                        mechType: 'door_left'
+                      },
+                      partContextMenu.subIdx
+                    )
+                  }
+                >
+                  🚪 + Ușă 600×720
+                </button>
+                <button
+                  type="button"
+                  className="light-chip"
+                  style={{ fontSize: '0.67rem', justifyContent: 'center' }}
+                  onClick={() =>
+                    handleAddPartToGlbModel(
+                      partContextMenu.modelId,
+                      {
+                        name: 'Sertar Nou 600×180',
+                        wMm: 596,
+                        hMm: 176,
+                        dMm: 18,
+                        mechType: 'drawer'
+                      },
+                      partContextMenu.subIdx
+                    )
+                  }
+                >
+                  🗄️ + Sertar 600×180
+                </button>
+                <button
+                  type="button"
+                  className="light-chip"
+                  style={{ fontSize: '0.67rem', justifyContent: 'center' }}
+                  onClick={() =>
+                    handleAddPartToGlbModel(
+                      partContextMenu.modelId,
+                      {
+                        name: 'Poliță Orizontală',
+                        wMm: 564,
+                        hMm: 18,
+                        dMm: 530,
+                        mechType: 'none'
+                      },
+                      partContextMenu.subIdx
+                    )
+                  }
+                >
+                  📐 + Poliță 564×530
+                </button>
+                <button
+                  type="button"
+                  className="light-chip"
+                  style={{ fontSize: '0.67rem', justifyContent: 'center' }}
+                  onClick={() =>
+                    handleAddPartToGlbModel(
+                      partContextMenu.modelId,
+                      {
+                        name: 'Panou Vertical',
+                        wMm: 18,
+                        hMm: 720,
+                        dMm: 560,
+                        mechType: 'none'
+                      },
+                      partContextMenu.subIdx
+                    )
+                  }
+                >
+                  🧱 + Laterală 720×560
+                </button>
+              </div>
+            </div>
+
+            {/* 6. Duplicate & Delete Part */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '6px',
+                borderTop: '1px solid rgba(255,255,255,0.1)',
+                paddingTop: '7px'
+              }}
+            >
+              <button
+                type="button"
+                className="light-chip"
+                style={{
+                  justifyContent: 'center',
+                  padding: '6px',
+                  fontWeight: 600,
+                  color: '#fde68a',
+                  borderColor: 'rgba(251, 191, 36, 0.4)'
+                }}
+                onClick={() =>
+                  handleDuplicateGlbSubPart(
+                    partContextMenu.modelId,
+                    partContextMenu.subIdx
+                  )
+                }
+              >
+                📋 Duplică Piesa
+              </button>
+              <button
+                type="button"
+                className="light-chip"
+                style={{
+                  justifyContent: 'center',
+                  padding: '6px',
+                  fontWeight: 600,
+                  color: '#fda4af',
+                  background: 'rgba(244, 63, 94, 0.16)',
+                  borderColor: 'rgba(244, 63, 94, 0.45)'
+                }}
+                onClick={() =>
+                  handleDeleteGlbSubPart(
+                    partContextMenu.modelId,
+                    partContextMenu.subIdx
+                  )
+                }
+              >
+                🗑️ Șterge Piesa
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       <TechnicalReportModal
         isOpen={technicalReportOpen}

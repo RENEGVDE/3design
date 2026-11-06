@@ -92,19 +92,115 @@ function easeInOutCubic(t) {
 }
 
 /**
+ * Computes the custom local part edit matrix (scale, rotation, offset) in `wrapperGroup` meter-space
+ * around the part's original bounding box center.
+ */
+export function computeSubPartEditMatrix(mesh, sp) {
+  const mat = new THREE.Matrix4();
+  if (!sp || !mesh?.userData?.boxM) return mat;
+
+  const hasScale =
+    Array.isArray(sp.customScale) &&
+    (Math.abs((sp.customScale[0] ?? 1) - 1) > 0.0005 ||
+      Math.abs((sp.customScale[1] ?? 1) - 1) > 0.0005 ||
+      Math.abs((sp.customScale[2] ?? 1) - 1) > 0.0005);
+  const hasRot =
+    Array.isArray(sp.customRotDeg) &&
+    (Math.abs(sp.customRotDeg[0] || 0) > 0.05 ||
+      Math.abs(sp.customRotDeg[1] || 0) > 0.05 ||
+      Math.abs(sp.customRotDeg[2] || 0) > 0.05);
+  const hasOffset =
+    Array.isArray(sp.customOffset) &&
+    (Math.abs(sp.customOffset[0] || 0) > 0.0002 ||
+      Math.abs(sp.customOffset[1] || 0) > 0.0002 ||
+      Math.abs(sp.customOffset[2] || 0) > 0.0002);
+
+  if (!hasScale && !hasRot && !hasOffset) return mat;
+
+  const c = mesh.userData.boxM.center;
+  const sx = hasScale ? Math.max(0.02, Number(sp.customScale[0]) || 1) : 1;
+  const sy = hasScale ? Math.max(0.02, Number(sp.customScale[1]) || 1) : 1;
+  const sz = hasScale ? Math.max(0.02, Number(sp.customScale[2]) || 1) : 1;
+
+  const rx = hasRot ? THREE.MathUtils.degToRad(Number(sp.customRotDeg[0]) || 0) : 0;
+  const ry = hasRot ? THREE.MathUtils.degToRad(Number(sp.customRotDeg[1]) || 0) : 0;
+  const rz = hasRot ? THREE.MathUtils.degToRad(Number(sp.customRotDeg[2]) || 0) : 0;
+
+  const dx = hasOffset ? Number(sp.customOffset[0]) || 0 : 0;
+  const dy = hasOffset ? Number(sp.customOffset[1]) || 0 : 0;
+  const dz = hasOffset ? Number(sp.customOffset[2]) || 0 : 0;
+
+  const tToOrigin = new THREE.Matrix4().makeTranslation(-c.x, -c.y, -c.z);
+  const scaleMat = new THREE.Matrix4().makeScale(sx, sy, sz);
+  const rotMat = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rx, ry, rz, 'YXZ'));
+  const tBack = new THREE.Matrix4().makeTranslation(c.x + dx, c.y + dy, c.z + dz);
+
+  mat.multiplyMatrices(tBack, rotMat).multiply(scaleMat).multiply(tToOrigin);
+  return mat;
+}
+
+/**
+ * Determines the outward room normal (+1 or -1) for a panel along Z or X
+ * by checking which side of the panel contains the cabinet's interior panels.
+ */
+function detectOutwardSign(mesh, allMeshes, orientZ, effCenter) {
+  if (Array.isArray(allMeshes) && allMeshes.length > 1 && mesh?.userData?.boxM) {
+    const b = mesh.userData.boxM;
+    let negCount = 0;
+    let posCount = 0;
+    for (const other of allMeshes) {
+      if (!other || other === mesh || !other.visible || !other.userData?.boxM) continue;
+      const ob = other.userData.boxM;
+      const overlapY = Math.min(b.max.y, ob.max.y) - Math.max(b.min.y, ob.min.y);
+      if (overlapY < 0.05) continue;
+
+      if (!orientZ) {
+        const overlapX = Math.min(b.max.x, ob.max.x) - Math.max(b.min.x, ob.min.x);
+        if (overlapX < 0.05) continue;
+        const dz = ob.center.z - b.center.z;
+        if (dz < -0.02 && dz > -0.75) negCount++;
+        else if (dz > 0.02 && dz < 0.75) posCount++;
+      } else {
+        const overlapZ = Math.min(b.max.z, ob.max.z) - Math.max(b.min.z, ob.min.z);
+        if (overlapZ < 0.05) continue;
+        const dx = ob.center.x - b.center.x;
+        if (dx < -0.02 && dx > -0.75) negCount++;
+        else if (dx > 0.02 && dx < 0.75) posCount++;
+      }
+    }
+    if (negCount !== posCount) {
+      // If cabinet interior is on the negative side (negCount > posCount), outward is +1
+      return negCount > posCount ? 1 : -1;
+    }
+  }
+  if (orientZ) {
+    return effCenter.x >= 0 ? -1 : 1;
+  }
+  return 1;
+}
+
+/**
  * Computes the 4x4 transformation matrix in `innerGroup` meter-space
  * for a given sub-mesh and mechanism type at progress `rawProgress` (0..1).
  */
-export function computeMechMatrixInModelSpace(mesh, mechType, rawProgress, baseDimsCm) {
+export function computeMechMatrixInModelSpace(
+  mesh,
+  mechType,
+  rawProgress,
+  baseDimsCm,
+  spMeta?: any,
+  allMeshes?: any[]
+) {
   const mat = new THREE.Matrix4();
   if (!mechType || mechType === 'none' || rawProgress <= 0.0002) {
     return mat; // Identity
   }
 
   const eased = easeInOutCubic(Math.max(0, Math.min(1, rawProgress)));
+  const userOverridden = Boolean(spMeta?.userOverriddenMech);
 
-  // 1. Exact CAD Animation Transformation (from native CAD Anim data)
-  if (mesh.userData && mesh.userData.cadAnim) {
+  // 1. Exact CAD Animation Transformation (from native CAD Anim & hardware data, unless overridden by user)
+  if (!userOverridden && mesh.userData && mesh.userData.cadAnim) {
     const { animType, axisStart, axisEnd } = mesh.userData.cadAnim;
     if (Array.isArray(axisStart) && Array.isArray(axisEnd)) {
       const p0 = new THREE.Vector3(axisStart[0], axisStart[1], axisStart[2]);
@@ -121,8 +217,6 @@ export function computeMechMatrixInModelSpace(mesh, mechType, rawProgress, baseD
         const len = axis.length();
         if (len > 0.0001) {
           axis.normalize();
-          // In CAD models, the AxisStart -> AxisEnd vector is directed
-          // such that a right-hand rotation around it swings the door/flap OUTWARD into the room.
           const isHorizontal = Math.abs(axis.y) < 0.3;
           const maxDeg = isHorizontal ? 95 : 90;
           const angleRad = THREE.MathUtils.degToRad(maxDeg * eased);
@@ -138,64 +232,61 @@ export function computeMechMatrixInModelSpace(mesh, mechType, rawProgress, baseD
     }
   }
 
-  // 2. Fallback for generic GLB models or standalone facades
+  // 2. Geometric hinge/slide computation for user-assigned mechanisms or generic GLB models
   const boxM = mesh.userData.boxM;
   if (!boxM) return mat;
 
-  const { min, max, size, center } = boxM;
-  const orientZ = size.z > size.x * 1.55;
-  const outSign = orientZ ? (center.x >= 0 ? 1 : -1) : 1;
-  const roomDirZ = !orientZ ? (center.z > 0.5 ? -1 : 1) : 1;
+  const sx = Array.isArray(spMeta?.customScale) ? Math.max(0.02, Number(spMeta.customScale[0]) || 1) : 1;
+  const sy = Array.isArray(spMeta?.customScale) ? Math.max(0.02, Number(spMeta.customScale[1]) || 1) : 1;
+  const sz = Array.isArray(spMeta?.customScale) ? Math.max(0.02, Number(spMeta.customScale[2]) || 1) : 1;
+  const ox = Array.isArray(spMeta?.customOffset) ? Number(spMeta.customOffset[0]) || 0 : 0;
+  const oy = Array.isArray(spMeta?.customOffset) ? Number(spMeta.customOffset[1]) || 0 : 0;
+  const oz = Array.isArray(spMeta?.customOffset) ? Number(spMeta.customOffset[2]) || 0 : 0;
+
+  const center = new THREE.Vector3(boxM.center.x + ox, boxM.center.y + oy, boxM.center.z + oz);
+  const size = new THREE.Vector3(boxM.size.x * sx, boxM.size.y * sy, boxM.size.z * sz);
+  const min = new THREE.Vector3(center.x - size.x * 0.5, center.y - size.y * 0.5, center.z - size.z * 0.5);
+  const max = new THREE.Vector3(center.x + size.x * 0.5, center.y + size.y * 0.5, center.z + size.z * 0.5);
+
+  const orientZ = size.z > size.x * 1.45;
+  const outSign = detectOutwardSign(mesh, allMeshes, orientZ, center);
+  const roomDirZ = !orientZ ? outSign : 1;
 
   if (mechType === 'drawer' || mechType === 'drawer_back') {
     const dirSign = mechType === 'drawer_back' ? -outSign : outSign;
-    const depthM = (orientZ ? baseDimsCm.w : baseDimsCm.d) * 0.01;
-    const slideDist = Math.max(0.24, Math.min(0.48, depthM * 0.72));
+    const slideDist = 0.40;
     const dx = orientZ ? slideDist * dirSign * eased : 0;
-    const dz = orientZ ? 0 : slideDist * roomDirZ * eased;
+    const dz = orientZ ? 0 : slideDist * dirSign * eased;
     mat.makeTranslation(dx, 0, dz);
     return mat;
   }
 
-  let pivot = new THREE.Vector3();
-  let axis = new THREE.Vector3(0, 1, 0);
+  const pivot = new THREE.Vector3();
+  const axis = new THREE.Vector3(0, 1, 0);
   let angleDeg = 0;
 
   if (mechType === 'door_left') {
     if (!orientZ) {
-      // Front-facing door:
-      // If roomDirZ > 0 (room towards +Z): hinged on min.x, angle -90 swings body (+X) towards +Z.
-      // If roomDirZ < 0 (room towards -Z): hinged on min.x, angle +90 swings body (+X) towards -Z.
       pivot.set(min.x, center.y, center.z);
       axis.set(0, 1, 0);
       angleDeg = -90 * roomDirZ * eased;
     } else {
-      // Side-facing door:
-      // If outSign > 0 (+X side): hinge at min.z, min.x. +90 deg swings out to +X.
-      // If outSign < 0 (-X side): hinge at min.z, max.x. -90 deg swings out to -X.
       pivot.set(outSign > 0 ? min.x : max.x, center.y, min.z);
       axis.set(0, 1, 0);
       angleDeg = 90 * outSign * eased;
     }
   } else if (mechType === 'door_right') {
     if (!orientZ) {
-      // Front-facing door:
-      // If roomDirZ > 0: hinged on max.x, angle +90 swings body (-X) towards +Z.
-      // If roomDirZ < 0: hinged on max.x, angle -90 swings body (-X) towards -Z.
       pivot.set(max.x, center.y, center.z);
       axis.set(0, 1, 0);
       angleDeg = 90 * roomDirZ * eased;
     } else {
-      // Side-facing door:
-      // If outSign > 0 (+X side): hinge at max.z, min.x. -90 deg swings out to +X.
-      // If outSign < 0 (-X side): hinge at max.z, max.x. -90 deg swings out to -X.
       pivot.set(outSign > 0 ? min.x : max.x, center.y, max.z);
       axis.set(0, 1, 0);
       angleDeg = -90 * outSign * eased;
     }
   } else if (mechType === 'flap_up') {
     if (!orientZ) {
-      // Hinge at top-back edge (center.x, max.y, center.z).
       pivot.set(center.x, max.y, center.z);
       axis.set(1, 0, 0);
       angleDeg = -95 * roomDirZ * eased;
@@ -328,10 +419,181 @@ export function buildFollowerMap(meshes, subParts) {
 }
 
 /**
- * Applies the current mechanism transforms to all meshes of an imported `.glb` entry.
+ * Ensures any user-duplicated or newly added panels (`sp.isCustomAdded`) are created in 3D
+ * inside `parsedEntry.customPartsGroup` and registered in `parsedEntry.meshes`.
  */
-export function updateGlbMechanismsIn3D(parsedEntry, subParts) {
+export function ensureCustomSubPartMeshes(parsedEntry, subParts, ctx?: any) {
+  if (!parsedEntry || !parsedEntry.wrapperGroup || !Array.isArray(subParts)) return;
+  if (!parsedEntry.customPartsGroup) {
+    const cpg = new THREE.Group();
+    cpg.name = 'custom_added_parts';
+    parsedEntry.wrapperGroup.add(cpg);
+    parsedEntry.customPartsGroup = cpg;
+  }
+
+  let addedNew = false;
+  for (let i = 0; i < subParts.length; i++) {
+    const sp = subParts[i];
+    if (!sp || !sp.isCustomAdded) continue;
+    if (parsedEntry.meshes[i]) continue;
+
+    let newMesh: THREE.Mesh | null = null;
+
+    if (
+      typeof sp.sourceSubIdx === 'number' &&
+      parsedEntry.meshes[sp.sourceSubIdx]
+    ) {
+      const src = parsedEntry.meshes[sp.sourceSubIdx];
+      const geom = src.geometry.clone();
+      const mat = src.material ? src.material.clone() : new THREE.MeshStandardMaterial({ color: sp.colorHex || '#f4f4f2', roughness: 0.45, metalness: 0.05 });
+      newMesh = new THREE.Mesh(geom, mat);
+      newMesh.name = sp.name || `${src.name || 'Piesa'}_copie`;
+      newMesh.castShadow = true;
+      newMesh.receiveShadow = true;
+
+      const restMW = src.userData.restMatrixWorld
+        ? src.userData.restMatrixWorld.clone()
+        : new THREE.Matrix4();
+      const rPos = new THREE.Vector3();
+      const rQuat = new THREE.Quaternion();
+      const rScale = new THREE.Vector3(1, 1, 1);
+      restMW.decompose(rPos, rQuat, rScale);
+
+      newMesh.position.copy(rPos);
+      newMesh.quaternion.copy(rQuat);
+      newMesh.scale.copy(rScale);
+
+      const srcBox = src.userData.boxM;
+      newMesh.userData = {
+        boxM: srcBox
+          ? {
+              min: srcBox.min.clone(),
+              max: srcBox.max.clone(),
+              size: srcBox.size.clone(),
+              center: srcBox.center.clone()
+            }
+          : {
+              min: new THREE.Vector3(-0.2, 0, -0.2),
+              max: new THREE.Vector3(0.2, 0.5, 0.2),
+              size: new THREE.Vector3(0.4, 0.5, 0.4),
+              center: new THREE.Vector3(0, 0.25, 0)
+            },
+        restMatrixWorld: restMW,
+        parentInvMatrixWorld: new THREE.Matrix4(),
+        restPos: rPos,
+        restQuat: rQuat,
+        restScale: rScale,
+        mechProgress: sp.isOpen ? 1 : 0,
+        mechTarget: sp.isOpen ? 1 : 0,
+        originalGlbMaterial: mat.clone(),
+        importedModelId: parsedEntry.id,
+        subMeshIdx: i,
+        isCustomAdded: true
+      };
+    } else {
+      const dimsM = Array.isArray(sp.customDimsM) ? sp.customDimsM : [0.6, 0.72, 0.018];
+      const wM = Math.max(0.005, Number(dimsM[0]) || 0.6);
+      const hM = Math.max(0.005, Number(dimsM[1]) || 0.72);
+      const dM = Math.max(0.005, Number(dimsM[2]) || 0.018);
+
+      const geom = new THREE.BoxGeometry(wM, hM, dM);
+      ensureBoxProjectedUVs(geom);
+      geom.computeBoundingBox();
+      geom.computeBoundingSphere();
+
+      const mat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(sp.colorHex || '#f4f4f2'),
+        roughness: 0.45,
+        metalness: 0.05
+      });
+
+      newMesh = new THREE.Mesh(geom, mat);
+      newMesh.name = sp.name || `Panou_Nou_${i + 1}`;
+      newMesh.castShadow = true;
+      newMesh.receiveShadow = true;
+
+      const initCenter = Array.isArray(sp.initialCenterM)
+        ? new THREE.Vector3(
+            Number(sp.initialCenterM[0]) || 0,
+            Number(sp.initialCenterM[1]) || hM * 0.5,
+            Number(sp.initialCenterM[2]) || 0
+          )
+        : new THREE.Vector3(0, Math.max(0.4, hM * 0.5), 0);
+
+      const restMW = new THREE.Matrix4().makeTranslation(
+        initCenter.x,
+        initCenter.y,
+        initCenter.z
+      );
+      const rPos = initCenter.clone();
+      const rQuat = new THREE.Quaternion();
+      const rScale = new THREE.Vector3(1, 1, 1);
+
+      newMesh.position.copy(rPos);
+      newMesh.quaternion.copy(rQuat);
+      newMesh.scale.copy(rScale);
+
+      const bSize = new THREE.Vector3(wM, hM, dM);
+      const bMin = new THREE.Vector3(
+        initCenter.x - wM * 0.5,
+        initCenter.y - hM * 0.5,
+        initCenter.z - dM * 0.5
+      );
+      const bMax = new THREE.Vector3(
+        initCenter.x + wM * 0.5,
+        initCenter.y + hM * 0.5,
+        initCenter.z + dM * 0.5
+      );
+
+      newMesh.userData = {
+        boxM: {
+          min: bMin,
+          max: bMax,
+          size: bSize,
+          center: initCenter.clone()
+        },
+        restMatrixWorld: restMW,
+        parentInvMatrixWorld: new THREE.Matrix4(),
+        restPos: rPos,
+        restQuat: rQuat,
+        restScale: rScale,
+        mechProgress: sp.isOpen ? 1 : 0,
+        mechTarget: sp.isOpen ? 1 : 0,
+        originalGlbMaterial: mat.clone(),
+        importedModelId: parsedEntry.id,
+        subMeshIdx: i,
+        isCustomAdded: true
+      };
+    }
+
+    if (newMesh) {
+      parsedEntry.customPartsGroup.add(newMesh);
+      parsedEntry.meshes[i] = newMesh;
+      if (ctx) {
+        if (Array.isArray(ctx.importedMeshes) && !ctx.importedMeshes.includes(newMesh)) {
+          ctx.importedMeshes.push(newMesh);
+        }
+        if (Array.isArray(ctx.paintableMeshes) && !ctx.paintableMeshes.includes(newMesh)) {
+          ctx.paintableMeshes.push(newMesh);
+        }
+      }
+      addedNew = true;
+    }
+  }
+
+  if (addedNew) {
+    updateModelBoundingStructure(parsedEntry.wrapperGroup);
+  }
+}
+
+/**
+ * Applies the current mechanism transforms and per-part edits (delete, resize, move, rotate)
+ * to all meshes of an imported `.glb`/`.b3d` entry.
+ */
+export function updateGlbMechanismsIn3D(parsedEntry, subParts, ctx?: any) {
   if (!parsedEntry || !parsedEntry.meshes || !subParts) return;
+  ensureCustomSubPartMeshes(parsedEntry, subParts, ctx);
+
   const { meshes, baseDimsCm } = parsedEntry;
   if (!parsedEntry._cachedFollowerOf || parsedEntry._cachedSubPartsMeta !== subParts) {
     parsedEntry._cachedFollowerOf = buildFollowerMap(meshes, subParts);
@@ -345,6 +607,9 @@ export function updateGlbMechanismsIn3D(parsedEntry, subParts) {
     const m = meshes[i];
     if (!m || !m.userData.restMatrixWorld) continue;
 
+    m.visible = !Boolean(sp?.deleted);
+    if (!m.visible) continue;
+
     if (sp && sp.mechType && sp.mechType !== 'none') {
       const prog = typeof m.userData.mechProgress === 'number'
         ? m.userData.mechProgress
@@ -355,17 +620,24 @@ export function updateGlbMechanismsIn3D(parsedEntry, subParts) {
         m,
         sp.mechType,
         prog,
-        baseDimsCm
+        baseDimsCm,
+        sp,
+        meshes
       );
     }
   }
 
+  const modRestWorld = new THREE.Matrix4();
   const finalWorld = new THREE.Matrix4();
   const finalLocal = new THREE.Matrix4();
 
   for (let i = 0; i < meshes.length; i++) {
     const m = meshes[i];
-    if (!m || !m.userData.restMatrixWorld) continue;
+    if (!m || !m.userData.restMatrixWorld || !m.visible) continue;
+    const sp = subParts[i];
+
+    const editMat = computeSubPartEditMatrix(m, sp);
+    modRestWorld.multiplyMatrices(editMat, m.userData.restMatrixWorld);
 
     const leaderIdx =
       activeMatrices[i] !== undefined
@@ -375,22 +647,18 @@ export function updateGlbMechanismsIn3D(parsedEntry, subParts) {
         : null;
 
     if (leaderIdx !== null && activeMatrices[leaderIdx]) {
-      finalWorld.multiplyMatrices(
-        activeMatrices[leaderIdx],
-        m.userData.restMatrixWorld
-      );
+      finalWorld.multiplyMatrices(activeMatrices[leaderIdx], modRestWorld);
       finalLocal.multiplyMatrices(m.userData.parentInvMatrixWorld, finalWorld);
       finalLocal.decompose(m.position, m.quaternion, m.scale);
     } else {
-      m.position.copy(m.userData.restPos);
-      m.quaternion.copy(m.userData.restQuat);
-      m.scale.copy(m.userData.restScale);
+      finalLocal.multiplyMatrices(m.userData.parentInvMatrixWorld, modRestWorld);
+      finalLocal.decompose(m.position, m.quaternion, m.scale);
     }
   }
 }
 
 /**
- * Smart CAD & Name Heuristic Auto-Detector for Furniture Doors, Flaps & Drawers in `.glb`
+ * Disposes 3D resources of an imported model hierarchy
  */
 export function disposeModelHierarchy(root: any, ctx?: any) {
   if (!root) return;
@@ -429,18 +697,18 @@ export function disposeModelHierarchy(root: any, ctx?: any) {
   }
 }
 
+/**
+ * Extracts opening mechanisms strictly from embedded CAD file data
+ * (`Anim` blocks, physical hinges `Петля`, and physical drawer runners `Quadro`/`ArciTech`/`Направляющая`),
+ * without guessing by panel name.
+ */
 export function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
-  const modelW = (baseDimsCm?.w || 60) * 0.01;
-  const modelH = (baseDimsCm?.h || 80) * 0.01;
-  const modelD = (baseDimsCm?.d || 55) * 0.01;
-
   const updated = subPartsMeta.map((sp) => ({
     ...sp,
     mechType: 'none',
     isOpen: false
   }));
 
-  // 1. Direct CAD Animation Metadata Detection (Highest Priority)
   for (let i = 0; i < meshes.length; i++) {
     const m = meshes[i];
     if (m && m.userData && m.userData.cadAnim) {
@@ -452,136 +720,20 @@ export function autoDetectGlbMechanisms(meshes, subPartsMeta, baseDimsCm) {
           const as = ca.axisStart;
           const ae = ca.axisEnd;
           if (Array.isArray(as) && Array.isArray(ae)) {
-            const dy = Math.abs(ae[1] - as[1]);
+            const dy = ae[1] - as[1];
+            const absDy = Math.abs(dy);
             const dx = Math.abs(ae[0] - as[0]);
             const dz = Math.abs(ae[2] - as[2]);
-            if (dy < 0.25 && (dx > 0.3 || dz > 0.3)) {
-              updated[i].mechType = 'flap_up';
+            if (absDy < 0.25 && (dx > 0.15 || dz > 0.15)) {
+              const centerY = m.userData.boxM ? m.userData.boxM.center.y : m.position.y;
+              updated[i].mechType = as[1] < centerY ? 'flap_down' : 'flap_up';
             } else {
-              const orientZ = m.userData.boxM && m.userData.boxM.size.z > m.userData.boxM.size.x * 1.55;
-              if (orientZ) {
-                updated[i].mechType = m.position.z <= 0 ? 'door_left' : 'door_right';
-              } else {
-                updated[i].mechType = m.position.x <= 0 ? 'door_left' : 'door_right';
-              }
+              updated[i].mechType = dy < 0 ? 'door_left' : 'door_right';
             }
           }
         }
       } else {
         updated[i].mechType = 'none'; // follower part inside the same CAD block
-      }
-    }
-  }
-
-  // 2. Candidate front facade panels for standalone facades (not in anim blocks)
-  const candidates = [];
-
-  for (let i = 0; i < meshes.length; i++) {
-    // If already handled by CAD metadata, skip
-    if (meshes[i]?.userData?.cadAnim) continue;
-
-    const m = meshes[i];
-    const sp = subPartsMeta[i];
-    const b = m.userData.boxM;
-    if (!b || !sp) continue;
-
-    const fullName = `${m.name || ''} ${m.parent?.name || ''} ${sp.name || ''}`.toLowerCase();
-
-    // 0. Skip non-facades strictly: internal carcass panels, dividers, shelves, back walls, plinths, countertops, appliances
-    if (
-      /дно|бок|задн|цокол|soclu|plinth|стенк|polita|polite|blat|корпус|carcass|shelf|divider|back|oven|cuptor|microwave|bosch|siemens/i.test(
-        fullName
-      )
-    ) {
-      continue;
-    }
-    // Plinth at floor
-    if (b.max.y <= 0.14 && b.size.y <= 0.12) continue;
-    // Exclude tall side cover panels (e.g. side cover of tall column, not a door)
-    if (b.size.y >= 1.70 && ((b.size.x <= 0.045 && b.size.z <= 0.35) || (b.size.z <= 0.045 && b.size.x <= 0.35))) continue;
-    // Exclude large back cover panels
-    if (/15|24|back|spate/i.test(fullName) && (b.size.x >= 0.85 || b.size.z >= 0.85)) continue;
-
-    // 1. Explicit Mechanism Keywords
-    let forced = null;
-    if (/drawer|sertar|ящик|tandem/i.test(fullName)) {
-      forced = 'drawer';
-    } else if (/aventos|lift|flap_up|ridicare/i.test(fullName)) {
-      forced = 'flap_up';
-    } else if (/oven|cuptor|dishwasher|flap_down|rabat/i.test(fullName)) {
-      forced = 'flap_down';
-    } else if (/door_l|usa_st|дверь_л/i.test(fullName)) {
-      forced = 'door_left';
-    } else if (/door_r|usa_dr|дверь_п/i.test(fullName)) {
-      forced = 'door_right';
-    }
-
-    // 2. Facade name keyword: "Фронтальная", "Фасад", "Usa", "Door", "Front", etc.
-    const isNamedFacade = /фронтал|front|фасад|facade|fasad|fațad|двер|door|u[sș]a/i.test(fullName);
-    if (!forced && !isNamedFacade) continue;
-
-    // 3. Geometric slab checks:
-    // Normal Z (facing front/back): thin in Z (3mm - 50mm), wide in X (>= 15cm), tall in Y (>= 9cm)
-    const isSlabZ = b.size.z >= 0.003 && b.size.z <= 0.050 && b.size.x >= 0.15 && b.size.y >= 0.09;
-    // Normal X (facing sideways on peninsula or island): thin in X (3mm - 50mm), wide in Z (>= 15cm), tall in Y (>= 9cm)
-    const isSlabX = b.size.x >= 0.003 && b.size.x <= 0.050 && b.size.z >= 0.15 && b.size.y >= 0.09;
-
-    if (!forced) {
-      if (!isSlabZ && !isSlabX) continue;
-    }
-
-    const facingX = isSlabX && (!isSlabZ || b.size.z > b.size.x);
-    candidates.push({ idx: i, forced, box: b, facingX });
-  }
-
-  for (const cand of candidates) {
-    const { idx, forced, box, facingX } = cand;
-    if (forced) {
-      updated[idx].mechType = forced;
-      continue;
-    }
-
-    const w = facingX ? box.size.z : box.size.x;
-    const h = box.size.y;
-
-    // Drawer heuristic: height <= 38cm and width >= 28cm, in lower half of kitchen (Y <= 1.15m)
-    if (h <= 0.38 && w >= 0.28 && box.center.y <= Math.min(1.15, modelH * 0.75)) {
-      updated[idx].mechType = 'drawer';
-      continue;
-    }
-
-    // Upper Lift-Flap (Aventos) heuristic: wide horizontal door in upper half
-    if (w >= h * 1.35 && h <= 0.55 && box.center.y >= modelH * 0.55 && modelH >= 0.65) {
-      updated[idx].mechType = 'flap_up';
-      continue;
-    }
-
-    // Hinged Door (Left vs Right):
-    // Check if there is a sibling door at the same Y height
-    const sibling = candidates.find(
-      (other) =>
-        other.idx !== idx &&
-        other.facingX === facingX &&
-        Math.abs(other.box.center.y - box.center.y) < 0.08 &&
-        Math.abs(other.box.size.y - box.size.y) < 0.08 &&
-        (facingX
-          ? Math.abs(other.box.center.x - box.center.x) < 0.05
-          : Math.abs(other.box.center.z - box.center.z) < 0.05)
-    );
-
-    if (facingX) {
-      if (sibling) {
-        updated[idx].mechType =
-          box.center.z <= sibling.box.center.z ? 'door_left' : 'door_right';
-      } else {
-        updated[idx].mechType = box.center.z <= 0 ? 'door_left' : 'door_right';
-      }
-    } else {
-      if (sibling) {
-        updated[idx].mechType =
-          box.center.x <= sibling.box.center.x ? 'door_left' : 'door_right';
-      } else {
-        updated[idx].mechType = box.center.x <= 0 ? 'door_left' : 'door_right';
       }
     }
   }

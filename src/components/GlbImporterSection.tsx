@@ -30,7 +30,13 @@ export default function GlbImporterSection({
   onOptimizeGlb,
   onExportModelGlb,
   onExportModelB3D,
-  onExportModelObj
+  onExportModelObj,
+  onUpdateGlbSubPartTransform,
+  onDeleteGlbSubPart,
+  onRestoreGlbSubPart,
+  onDuplicateGlbSubPart,
+  onAddPartToGlbModel,
+  onOpenPartContextMenu
 }: {
   lang: any;
   importedModels: any[];
@@ -59,6 +65,12 @@ export default function GlbImporterSection({
   onExportModelGlb?: (modelId: string) => void;
   onExportModelB3D?: (modelId: string) => void;
   onExportModelObj?: (modelId: string) => void;
+  onUpdateGlbSubPartTransform?: any;
+  onDeleteGlbSubPart?: (modelId: string, subIdx: number) => void;
+  onRestoreGlbSubPart?: (modelId: string, subIdx: number) => void;
+  onDuplicateGlbSubPart?: (modelId: string, subIdx: number) => void;
+  onAddPartToGlbModel?: (modelId: string, partConfig: any, nearSubIdx?: number | null) => void;
+  onOpenPartContextMenu?: (modelId: string, subIdx: number) => void;
 }) {
   const dict = I18N[lang] || I18N.ro;
   const isRo = lang === 'ro';
@@ -758,10 +770,120 @@ export default function GlbImporterSection({
                   <span>{dict.resetGlbMatBtn}</span>
                 </button>
 
-                {/* Furniture Mechanisms (Doors & Drawers) Section */}
+                {/* Furniture Mechanisms (Doors & Drawers) & Full CAD Editor Section */}
                 <div className="zone-title" style={{ marginTop: '6px' }}>
                   {dict.glbMechTitle}
                 </div>
+
+                <div
+                  style={{
+                    fontSize: '0.68rem',
+                    color: '#fde68a',
+                    background: 'rgba(212, 163, 89, 0.12)',
+                    border: '1px solid rgba(212, 163, 89, 0.35)',
+                    borderRadius: '7px',
+                    padding: '6px 8px',
+                    lineHeight: 1.35
+                  }}
+                >
+                  💡 <strong>Click Dreapta pe orice piesă în 3D</strong> pentru a-i seta tipul de deschidere (Ușă, Sertar, Aventos), a-i edita dimensiunile (mm), poziția, a o duplica sau a o șterge.
+                </div>
+
+                {onAddPartToGlbModel && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      padding: '6px 8px',
+                      borderRadius: '7px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.08)'
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '0.67rem',
+                        fontWeight: 600,
+                        color: 'var(--text-main)'
+                      }}
+                    >
+                      ➕ Adaugă Piesă / Panou Nou în acest Model:
+                    </div>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '4px'
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="light-chip"
+                        style={{ justifyContent: 'center', fontSize: '0.67rem' }}
+                        onClick={() =>
+                          onAddPartToGlbModel(selectedModel.id, {
+                            name: 'Ușă Nouă 600×720',
+                            wMm: 596,
+                            hMm: 716,
+                            dMm: 18,
+                            mechType: 'door_left'
+                          })
+                        }
+                      >
+                        🚪 + Ușă 600×720
+                      </button>
+                      <button
+                        type="button"
+                        className="light-chip"
+                        style={{ justifyContent: 'center', fontSize: '0.67rem' }}
+                        onClick={() =>
+                          onAddPartToGlbModel(selectedModel.id, {
+                            name: 'Sertar Nou 600×180',
+                            wMm: 596,
+                            hMm: 176,
+                            dMm: 18,
+                            mechType: 'drawer'
+                          })
+                        }
+                      >
+                        🗄️ + Sertar 600×180
+                      </button>
+                      <button
+                        type="button"
+                        className="light-chip"
+                        style={{ justifyContent: 'center', fontSize: '0.67rem' }}
+                        onClick={() =>
+                          onAddPartToGlbModel(selectedModel.id, {
+                            name: 'Poliță Orizontală',
+                            wMm: 564,
+                            hMm: 18,
+                            dMm: 530,
+                            mechType: 'none'
+                          })
+                        }
+                      >
+                        📐 + Poliță 564×530
+                      </button>
+                      <button
+                        type="button"
+                        className="light-chip"
+                        style={{ justifyContent: 'center', fontSize: '0.67rem' }}
+                        onClick={() =>
+                          onAddPartToGlbModel(selectedModel.id, {
+                            name: 'Panou Vertical',
+                            wMm: 18,
+                            hMm: 720,
+                            dMm: 560,
+                            mechType: 'none'
+                          })
+                        }
+                      >
+                        🧱 + Laterală 720×560
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {selectedModel.hasNativeAnimations && (
                   <button
@@ -814,21 +936,25 @@ export default function GlbImporterSection({
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '5px',
-                        maxHeight: '190px',
+                        maxHeight: '230px',
                         overflowY: 'auto'
                       }}
                     >
                       {selectedModel.subParts.map((sp) => {
                         const hasMech = sp.mechType && sp.mechType !== 'none';
+                        const isDeleted = Boolean(sp.deleted);
                         return (
                           <div
                             key={sp.subIdx}
                             className={`part-row ${sp.isOpen ? 'open' : ''}`}
                             style={{
                               padding: '5px 7px',
-                              background: hasMech
-                                ? 'rgba(56, 189, 248, 0.08)'
-                                : 'rgba(255,255,255,0.03)',
+                              opacity: isDeleted ? 0.45 : 1,
+                              background: isDeleted
+                                ? 'rgba(244, 63, 94, 0.08)'
+                                : hasMech
+                                  ? 'rgba(56, 189, 248, 0.08)'
+                                  : 'rgba(255,255,255,0.03)',
                               display: 'flex',
                               flexDirection: 'column',
                               alignItems: 'stretch',
@@ -845,12 +971,17 @@ export default function GlbImporterSection({
                             >
                               <span
                                 className="part-name"
-                                style={{ fontSize: '0.70rem' }}
+                                style={{
+                                  fontSize: '0.70rem',
+                                  textDecoration: isDeleted
+                                    ? 'line-through'
+                                    : 'none'
+                                }}
                               >
                                 #{sp.subIdx + 1} {sp.name}
                               </span>
                               <div className="part-actions">
-                                {hasMech && (
+                                {!isDeleted && hasMech && (
                                   <button
                                     className="part-paint-btn"
                                     style={{
@@ -874,88 +1005,158 @@ export default function GlbImporterSection({
                                     {sp.isOpen ? '🔓' : '🔒'}
                                   </button>
                                 )}
-                                <label
-                                  className="part-paint-btn"
-                                  style={{ cursor: 'pointer' }}
-                                  title="Schimbă culoarea acestei sub-piese"
-                                >
-                                  <span
-                                    className="part-mat-dot"
-                                    style={{
-                                      background: sp.colorHex || '#e5e7eb'
-                                    }}
-                                  />
-                                  🎨
-                                  <input
-                                    type="color"
-                                    value={sp.colorHex || '#e5e7eb'}
-                                    style={{ width: 0, height: 0, opacity: 0 }}
-                                    onChange={(e) =>
-                                      onColorGlbSubMesh(
+                                {!isDeleted && onOpenPartContextMenu && (
+                                  <button
+                                    className="part-paint-btn"
+                                    title="Editează Dimensiuni, Poziție & Mecanism Piesă"
+                                    onClick={() =>
+                                      onOpenPartContextMenu(
                                         selectedModel.id,
-                                        sp.subIdx,
-                                        e.target.value
+                                        sp.subIdx
                                       )
                                     }
-                                  />
-                                </label>
-                                <button
-                                  className="part-paint-btn"
-                                  title="Aplică materialul/textura selectată din Studio pe această sub-piesă"
-                                  onClick={() =>
-                                    onPaintGlbSubMeshWithActiveMat(
-                                      selectedModel.id,
-                                      sp.subIdx
-                                    )
-                                  }
-                                >
-                                  🖌️
-                                </button>
+                                  >
+                                    ✏️
+                                  </button>
+                                )}
+                                {!isDeleted && onDuplicateGlbSubPart && (
+                                  <button
+                                    className="part-paint-btn"
+                                    title="Duplică această piesă"
+                                    onClick={() =>
+                                      onDuplicateGlbSubPart(
+                                        selectedModel.id,
+                                        sp.subIdx
+                                      )
+                                    }
+                                  >
+                                    📋
+                                  </button>
+                                )}
+                                {!isDeleted && (
+                                  <label
+                                    className="part-paint-btn"
+                                    style={{ cursor: 'pointer' }}
+                                    title="Schimbă culoarea acestei sub-piese"
+                                  >
+                                    <span
+                                      className="part-mat-dot"
+                                      style={{
+                                        background: sp.colorHex || '#e5e7eb'
+                                      }}
+                                    />
+                                    🎨
+                                    <input
+                                      type="color"
+                                      value={sp.colorHex || '#e5e7eb'}
+                                      style={{ width: 0, height: 0, opacity: 0 }}
+                                      onChange={(e) =>
+                                        onColorGlbSubMesh(
+                                          selectedModel.id,
+                                          sp.subIdx,
+                                          e.target.value
+                                        )
+                                      }
+                                    />
+                                  </label>
+                                )}
+                                {!isDeleted && (
+                                  <button
+                                    className="part-paint-btn"
+                                    title="Aplică materialul/textura selectată din Studio pe această sub-piesă"
+                                    onClick={() =>
+                                      onPaintGlbSubMeshWithActiveMat(
+                                        selectedModel.id,
+                                        sp.subIdx
+                                      )
+                                    }
+                                  >
+                                    🖌️
+                                  </button>
+                                )}
+                                {!isDeleted && onDeleteGlbSubPart && (
+                                  <button
+                                    className="part-paint-btn"
+                                    style={{
+                                      color: '#fda4af',
+                                      borderColor: 'rgba(244,63,94,0.35)'
+                                    }}
+                                    title="Șterge această piesă din model"
+                                    onClick={() =>
+                                      onDeleteGlbSubPart(
+                                        selectedModel.id,
+                                        sp.subIdx
+                                      )
+                                    }
+                                  >
+                                    🗑️
+                                  </button>
+                                )}
+                                {isDeleted && onRestoreGlbSubPart && (
+                                  <button
+                                    className="part-paint-btn"
+                                    style={{
+                                      color: '#4ade80',
+                                      borderColor: 'rgba(74,222,128,0.4)'
+                                    }}
+                                    title="Restaurează această piesă în model"
+                                    onClick={() =>
+                                      onRestoreGlbSubPart(
+                                        selectedModel.id,
+                                        sp.subIdx
+                                      )
+                                    }
+                                  >
+                                    ♻️ Restaurează
+                                  </button>
+                                )}
                               </div>
                             </div>
 
                             {/* Mechanism Selector Dropdown */}
-                            <select
-                              value={sp.mechType || 'none'}
-                              onChange={(e) =>
-                                onSetGlbSubMeshMechanism(
-                                  selectedModel.id,
-                                  sp.subIdx,
-                                  e.target.value
-                                )
-                              }
-                              style={{
-                                width: '100%',
-                                background: 'rgba(0,0,0,0.45)',
-                                border: hasMech
-                                  ? '1px solid rgba(56, 189, 248, 0.5)'
-                                  : '1px solid rgba(255,255,255,0.14)',
-                                color: hasMech ? '#bae6fd' : '#cbd5e1',
-                                borderRadius: '5px',
-                                padding: '3px 6px',
-                                fontSize: '0.67rem',
-                                outline: 'none',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <option value="none">{dict.mech_none}</option>
-                              <option value="door_left">
-                                {dict.mech_door_left}
-                              </option>
-                              <option value="door_right">
-                                {dict.mech_door_right}
-                              </option>
-                              <option value="flap_up">
-                                {dict.mech_flap_up}
-                              </option>
-                              <option value="flap_down">
-                                {dict.mech_flap_down}
-                              </option>
-                              <option value="drawer">{dict.mech_drawer}</option>
-                              <option value="drawer_back">
-                                {dict.mech_drawer_back}
-                              </option>
-                            </select>
+                            {!isDeleted && (
+                              <select
+                                value={sp.mechType || 'none'}
+                                onChange={(e) =>
+                                  onSetGlbSubMeshMechanism(
+                                    selectedModel.id,
+                                    sp.subIdx,
+                                    e.target.value
+                                  )
+                                }
+                                style={{
+                                  width: '100%',
+                                  background: 'rgba(0,0,0,0.45)',
+                                  border: hasMech
+                                    ? '1px solid rgba(56, 189, 248, 0.5)'
+                                    : '1px solid rgba(255,255,255,0.14)',
+                                  color: hasMech ? '#bae6fd' : '#cbd5e1',
+                                  borderRadius: '5px',
+                                  padding: '3px 6px',
+                                  fontSize: '0.67rem',
+                                  outline: 'none',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <option value="none">{dict.mech_none}</option>
+                                <option value="door_left">
+                                  {dict.mech_door_left}
+                                </option>
+                                <option value="door_right">
+                                  {dict.mech_door_right}
+                                </option>
+                                <option value="flap_up">
+                                  {dict.mech_flap_up}
+                                </option>
+                                <option value="flap_down">
+                                  {dict.mech_flap_down}
+                                </option>
+                                <option value="drawer">{dict.mech_drawer}</option>
+                                <option value="drawer_back">
+                                  {dict.mech_drawer_back}
+                                </option>
+                              </select>
+                            )}
                           </div>
                         );
                       })}
