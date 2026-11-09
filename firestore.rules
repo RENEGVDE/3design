@@ -7,8 +7,11 @@ service cloud.firestore {
     match /cloud_accounts/{accountId} {
       allow read, write: if true;
     }
-    match /shared_projects/{shareId}/{document=**} {
+    match /shared_projects/{shareId} {
       allow read, write: if true;
+      match /{document=**} {
+        allow read, write: if true;
+      }
     }
   }
 }
