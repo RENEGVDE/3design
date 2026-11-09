@@ -1,33 +1,33 @@
 import * as THREE from 'three';
 import { fmtCm } from '../i18n/translations';
 
-const labelTexCache = new Map();
+const labelTexCache = new Map<string, { tex: THREE.CanvasTexture; aspect: number }>();
 
-export function createDimLabelSprite(text, theme = 'amber', scaleFactor = 1.0) {
+export function createDimLabelSprite(text: string, theme = 'amber', scaleFactor = 1.0): THREE.Sprite {
   const key = `${text}|${theme}`;
   let entry = labelTexCache.get(key);
   if (!entry) {
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const fontSize = 36;
+    const ctx = canvas.getContext('2d')!;
+    const fontSize = 34;
     ctx.font = `700 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
     const textW = Math.ceil(ctx.measureText(text).width);
-    const padX = 28;
+    const padX = 24;
     const w = Math.max(120, textW + padX * 2);
-    const h = 68;
+    const h = 64;
     canvas.width = w;
     canvas.height = h;
 
     ctx.font = `700 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
 
-    let bg = 'rgba(15, 18, 24, 0.92)';
+    let bg = 'rgba(15, 23, 42, 0.94)';
     let border = '#f59e0b';
     let fg = '#fde68a';
     if (theme === 'cyan') { border = '#38bdf8'; fg = '#e0f2fe'; }
     else if (theme === 'green') { border = '#34d399'; fg = '#d1fae5'; }
-    else if (theme === 'rose') { border = '#f43f5e'; fg = '#ffe4e6'; bg = 'rgba(28, 12, 18, 0.94)'; }
+    else if (theme === 'rose') { border = '#f43f5e'; fg = '#ffe4e6'; bg = 'rgba(28, 12, 18, 0.96)'; }
 
-    const r = 16;
+    const r = 14;
     ctx.beginPath();
     ctx.moveTo(r, 3);
     ctx.lineTo(w - r, 3);
@@ -41,7 +41,7 @@ export function createDimLabelSprite(text, theme = 'amber', scaleFactor = 1.0) {
     ctx.closePath();
     ctx.fillStyle = bg;
     ctx.fill();
-    ctx.lineWidth = 3.5;
+    ctx.lineWidth = 3;
     ctx.strokeStyle = border;
     ctx.stroke();
 
@@ -70,7 +70,18 @@ export function createDimLabelSprite(text, theme = 'amber', scaleFactor = 1.0) {
   return sprite;
 }
 
-export function addCadDimLine(parent, p1, p2, text, theme = 'amber', tickDir = new THREE.Vector3(0, 1, 0), tickLen = 0.035, scaleFactor = 1.0) {
+export function addCadDimLine(
+  parent: THREE.Group,
+  p1: THREE.Vector3,
+  p2: THREE.Vector3,
+  text: string,
+  theme = 'amber',
+  tickDir = new THREE.Vector3(0, 1, 0),
+  tickLen = 0.035,
+  scaleFactor = 1.0,
+  extOrigin1?: THREE.Vector3,
+  extOrigin2?: THREE.Vector3
+) {
   let hex = 0xf59e0b;
   if (theme === 'cyan') hex = 0x38bdf8;
   else if (theme === 'green') hex = 0x34d399;
@@ -85,11 +96,20 @@ export function addCadDimLine(parent, p1, p2, text, theme = 'amber', tickDir = n
   });
 
   const t = tickDir.clone().normalize().multiplyScalar(tickLen);
-  const pts = [
+  const pts: THREE.Vector3[] = [
     p1, p2,
     p1.clone().sub(t), p1.clone().add(t),
     p2.clone().sub(t), p2.clone().add(t)
   ];
+
+  // Optional extension lines from object corners to dimension line
+  if (extOrigin1) {
+    pts.push(extOrigin1.clone(), p1.clone().add(t.clone().multiplyScalar(0.5)));
+  }
+  if (extOrigin2) {
+    pts.push(extOrigin2.clone(), p2.clone().add(t.clone().multiplyScalar(0.5)));
+  }
+
   const geo = new THREE.BufferGeometry().setFromPoints(pts);
   const segs = new THREE.LineSegments(geo, lineMat);
   segs.renderOrder = 998;
@@ -102,53 +122,163 @@ export function addCadDimLine(parent, p1, p2, text, theme = 'amber', tickDir = n
   parent.add(sprite);
 }
 
-export function buildStaticDimensions(staticDimsGroup) {
-  const V = (x, y, z) => new THREE.Vector3(x, y, z);
-  const UP = V(0, 1, 0);
-  const RIGHT = V(1, 0, 0);
-  const FWD = V(0, 0, 1);
+/**
+ * Render real dynamic CAD dimensions directly on all 3D furniture models in scene.
+ * Measures the exact bounding box in world space directly on the object!
+ */
+export function renderDynamicSceneDimensions(
+  dimsGroup: THREE.Group,
+  importedModels: any[] = [],
+  selectedModelId: string | null = null,
+  importedMap: Record<string, any> = {},
+  fallbackMeshes: THREE.Mesh[] = []
+) {
+  if (!dimsGroup) return;
 
-  // 1. Overall Width along Back Wall (365.4 cm)
-  addCadDimLine(staticDimsGroup, V(0.0, 2.79, 0.35), V(3.654, 2.79, 0.35), '365.4 cm', 'amber', UP, 0.045, 1.15);
+  // Clear previous dimensions
+  while (dimsGroup.children.length > 0) {
+    const c = dimsGroup.children[0];
+    dimsGroup.remove(c);
+  }
 
-  // 2. Overall Total Height (267.2 cm)
-  addCadDimLine(staticDimsGroup, V(-0.14, 0.0, 0.62), V(-0.14, 2.672, 0.62), '267.2 cm', 'green', RIGHT, 0.045, 1.15);
+  // 1. Process imported furniture models
+  if (importedModels && importedModels.length > 0) {
+    importedModels.forEach((model) => {
+      const entry = importedMap[model.id];
+      if (!entry || !entry.wrapperGroup || !entry.wrapperGroup.visible) return;
 
-  // 3. Overall Total Depth including Left Return & Sideboard (329.8 cm)
-  addCadDimLine(staticDimsGroup, V(-0.15, 0.04, 0.0), V(-0.15, 0.04, 3.298), '329.8 cm', 'cyan', RIGHT, 0.045, 1.15);
+      entry.wrapperGroup.updateWorldMatrix(true, true);
+      const box = new THREE.Box3().setFromObject(entry.wrapperGroup);
+      if (box.isEmpty() || !isFinite(box.min.x)) return;
 
-  // 4. Upper Wall Cabinets Breakdown (Left -> Right)
-  const yUp = 2.70;
-  const zUp = 0.56;
-  addCadDimLine(staticDimsGroup, V(0.0,   yUp, zUp), V(0.32,  yUp, zUp), '32 cm',   'cyan', UP, 0.03, 0.88);
-  addCadDimLine(staticDimsGroup, V(0.32,  yUp, zUp), V(1.185, yUp, zUp), '86.5 cm', 'cyan', UP, 0.03, 0.92);
-  addCadDimLine(staticDimsGroup, V(1.185, yUp, zUp), V(1.785, yUp, zUp), '60 cm',   'cyan', UP, 0.03, 0.90);
-  addCadDimLine(staticDimsGroup, V(1.785, yUp, zUp), V(2.454, yUp, zUp), '66.9 cm', 'cyan', UP, 0.03, 0.92);
-  addCadDimLine(staticDimsGroup, V(2.454, yUp, zUp), V(3.054, yUp, zUp), '60 cm',   'cyan', UP, 0.03, 0.90);
-  addCadDimLine(staticDimsGroup, V(3.054, yUp, zUp), V(3.654, yUp, zUp), '60 cm',   'cyan', UP, 0.03, 0.90);
+      const size = new THREE.Vector3();
+      box.getSize(size);
 
-  // 5. Base Cabinets Width Breakdown along Floor Front
-  const yBot = 0.03;
-  const zBot = 0.68;
-  addCadDimLine(staticDimsGroup, V(0.60,  yBot, zBot), V(1.20,  yBot, zBot), '60 cm',   'amber', UP, 0.03, 0.92);
-  addCadDimLine(staticDimsGroup, V(1.20,  yBot, zBot), V(1.80,  yBot, zBot), '60 cm',   'amber', UP, 0.03, 0.92);
-  addCadDimLine(staticDimsGroup, V(1.80,  yBot, zBot), V(2.454, yBot, zBot), '65.4 cm', 'amber', UP, 0.03, 0.92);
+      const wCm = Math.round(size.x * 1000) / 10;
+      const hCm = Math.round(size.y * 1000) / 10;
+      const dCm = Math.round(size.z * 1000) / 10;
 
-  // 6. Vertical Heights Breakdown
-  addCadDimLine(staticDimsGroup, V(2.49, 0.0,   0.64), V(2.49, 0.898, 0.64), '89.8 cm',  'green', RIGHT, 0.03, 0.95);
-  addCadDimLine(staticDimsGroup, V(2.49, 0.898, 0.64), V(2.49, 1.44,  0.64), '54.2 cm',  'green', RIGHT, 0.03, 0.95);
-  addCadDimLine(staticDimsGroup, V(2.49, 1.44,  0.64), V(2.49, 2.672, 0.64), '123.2 cm', 'green', RIGHT, 0.03, 0.95);
+      const isSelected = model.id === selectedModelId;
+      const pad = isSelected ? 0.06 : 0.04;
+      const scaleFactor = isSelected ? 1.05 : 0.95;
 
-  // 7. Right Peninsula & Glass Sideboard Dimensions
-  addCadDimLine(staticDimsGroup, V(3.72, 0.92, 0.60),  V(3.72, 0.92, 2.138), '153.8 cm', 'cyan',  RIGHT, 0.035, 1.0);
-  addCadDimLine(staticDimsGroup, V(3.72, 2.70, 2.138), V(3.72, 2.70, 3.298), '116 cm',   'amber', UP,    0.035, 1.0);
-  addCadDimLine(staticDimsGroup, V(3.04, 0.92, 2.138), V(3.67, 0.92, 2.138), '63 cm',    'cyan',  FWD,   0.03,  0.92);
+      const themeW = isSelected ? 'amber' : 'amber';
+      const themeH = isSelected ? 'green' : 'green';
+      const themeD = isSelected ? 'cyan' : 'cyan';
+
+      // Visual bounding box wireframe outline
+      const boxHelper = new THREE.Box3Helper(box, new THREE.Color(isSelected ? 0x38bdf8 : 0x64748b));
+      const helperMat = boxHelper.material as THREE.LineBasicMaterial;
+      helperMat.depthTest = false;
+      helperMat.transparent = true;
+      helperMat.opacity = isSelected ? 0.6 : 0.25;
+      boxHelper.renderOrder = 995;
+      boxHelper.raycast = () => {};
+      dimsGroup.add(boxHelper);
+
+      // 1. Width Dimension (Along X axis - in front of cabinet)
+      const p1W = new THREE.Vector3(box.min.x, box.max.y + pad, box.max.z + pad);
+      const p2W = new THREE.Vector3(box.max.x, box.max.y + pad, box.max.z + pad);
+      addCadDimLine(
+        dimsGroup,
+        p1W,
+        p2W,
+        `L: ${fmtCm(wCm)} cm`,
+        themeW,
+        new THREE.Vector3(0, 1, 0),
+        0.035,
+        scaleFactor,
+        new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.max.z)
+      );
+
+      // 2. Height Dimension (Along Y axis - right front edge)
+      const p1H = new THREE.Vector3(box.max.x + pad, box.min.y, box.max.z + pad);
+      const p2H = new THREE.Vector3(box.max.x + pad, box.max.y, box.max.z + pad);
+      addCadDimLine(
+        dimsGroup,
+        p1H,
+        p2H,
+        `H: ${fmtCm(hCm)} cm`,
+        themeH,
+        new THREE.Vector3(1, 0, 0),
+        0.035,
+        scaleFactor,
+        new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.max.z)
+      );
+
+      // 3. Depth Dimension (Along Z axis - right lateral edge)
+      if (dCm > 3.0) {
+        const p1D = new THREE.Vector3(box.max.x + pad, box.min.y, box.min.z);
+        const p2D = new THREE.Vector3(box.max.x + pad, box.min.y, box.max.z);
+        addCadDimLine(
+          dimsGroup,
+          p1D,
+          p2D,
+          `A: ${fmtCm(dCm)} cm`,
+          themeD,
+          new THREE.Vector3(1, 0, 0),
+          0.035,
+          scaleFactor,
+          new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+          new THREE.Vector3(box.max.x, box.min.y, box.max.z)
+        );
+      }
+    });
+    return;
+  }
+
+  // 2. Fallback: Measure native kitchen meshes if no external GLB models imported
+  if (fallbackMeshes && fallbackMeshes.length > 0) {
+    const box = new THREE.Box3();
+    for (const m of fallbackMeshes) {
+      if (m.visible) {
+        if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+        const b = m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld);
+        box.union(b);
+      }
+    }
+    if (!box.isEmpty() && isFinite(box.min.x)) {
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const wCm = Math.round(size.x * 1000) / 10;
+      const hCm = Math.round(size.y * 1000) / 10;
+      const dCm = Math.round(size.z * 1000) / 10;
+      const pad = 0.05;
+
+      const p1W = new THREE.Vector3(box.min.x, box.max.y + pad, box.max.z + pad);
+      const p2W = new THREE.Vector3(box.max.x, box.max.y + pad, box.max.z + pad);
+      addCadDimLine(dimsGroup, p1W, p2W, `L: ${fmtCm(wCm)} cm`, 'amber', new THREE.Vector3(0, 1, 0), 0.035, 1.0);
+
+      const p1H = new THREE.Vector3(box.max.x + pad, box.min.y, box.max.z + pad);
+      const p2H = new THREE.Vector3(box.max.x + pad, box.max.y, box.max.z + pad);
+      addCadDimLine(dimsGroup, p1H, p2H, `H: ${fmtCm(hCm)} cm`, 'green', new THREE.Vector3(1, 0, 0), 0.035, 1.0);
+
+      if (dCm > 3.0) {
+        const p1D = new THREE.Vector3(box.max.x + pad, box.min.y, box.min.z);
+        const p2D = new THREE.Vector3(box.max.x + pad, box.min.y, box.max.z);
+        addCadDimLine(dimsGroup, p1D, p2D, `A: ${fmtCm(dCm)} cm`, 'cyan', new THREE.Vector3(1, 0, 0), 0.035, 1.0);
+      }
+    }
+  }
+}
+
+// Backward compatibility alias: redirects to dynamic rendering
+export function buildStaticDimensions(staticDimsGroup: THREE.Group) {
+  while (staticDimsGroup.children.length > 0) {
+    staticDimsGroup.remove(staticDimsGroup.children[0]);
+  }
 }
 
 export function renderPartDimensions3D({
   partId,
   interactiveMap,
   partDimsGroup
+}: {
+  partId: string | null;
+  interactiveMap: Record<string, any>;
+  partDimsGroup: THREE.Group;
 }) {
   while (partDimsGroup.children.length > 0) {
     partDimsGroup.remove(partDimsGroup.children[0]);
@@ -223,12 +353,27 @@ export function renderPartDimensions3D({
   return item;
 }
 
-export function createPinMarker(pos, colorHex = 0xf43f5e) {
-  const geo = new THREE.SphereGeometry(0.016, 16, 16);
+export function createPinMarker(pos: THREE.Vector3, colorHex = 0xf43f5e): THREE.Group {
+  const group = new THREE.Group();
+
+  // Outer sphere
+  const geo = new THREE.SphereGeometry(0.02, 16, 16);
   const mat = new THREE.MeshBasicMaterial({ color: colorHex, depthTest: false });
   const m = new THREE.Mesh(geo, mat);
-  m.position.copy(pos);
   m.renderOrder = 999;
   m.raycast = () => {};
-  return m;
+  group.add(m);
+
+  // Inner bright core
+  const coreGeo = new THREE.SphereGeometry(0.009, 12, 12);
+  const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false });
+  const core = new THREE.Mesh(coreGeo, coreMat);
+  core.renderOrder = 1000;
+  core.raycast = () => {};
+  group.add(core);
+
+  group.position.copy(pos);
+  group.renderOrder = 999;
+  group.raycast = () => {};
+  return group;
 }

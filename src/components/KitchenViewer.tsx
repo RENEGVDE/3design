@@ -23,6 +23,7 @@ import {
 import {
   addCadDimLine,
   buildStaticDimensions,
+  renderDynamicSceneDimensions,
   renderPartDimensions3D,
   createPinMarker
 } from '../utils/dimensions3d';
@@ -42,7 +43,6 @@ import {
 } from '../utils/cadModelOptimizer';
 
 import TopBar from './TopBar';
-import DimensionToolbar from './DimensionToolbar';
 import CameraPresetsBar from './CameraPresetsBar';
 import MaterialStudioSection from './MaterialStudioSection';
 import UniversalFurnitureStudioSection from './UniversalFurnitureStudioSection';
@@ -209,7 +209,7 @@ export default function KitchenViewer() {
 
   // Studio Tabs & Navigation State
   const [activeStudioTab, setActiveStudioTab] = useState('furniture'); // 'furniture' | 'appliances' | 'materials' | 'models' | 'architecture' | 'tree' | 'lighting'
-  const [furnitureSubTab, setFurnitureSubTab] = useState('universal'); // 'universal' | 'kitchen' | 'single'
+  const [furnitureSubTab, setFurnitureSubTab] = useState('kitchen'); // 'kitchen' | 'universal' | 'single'
 
   // CAD Engineering & Model Tree States
   const [explodedProgress, setExplodedProgress] = useState(0);
@@ -1429,7 +1429,8 @@ export default function KitchenViewer() {
         staticDimsGroup,
         partDimsGroup,
         tapeDimsGroup,
-        tapePointA: null,
+        tapePointA: null as THREE.Vector3 | null,
+        tapePreviewLine: null as THREE.Line | null,
         hoveredGroupId: null,
         selectedPartId: null,
         camAnim: null,
@@ -1759,6 +1760,41 @@ export default function KitchenViewer() {
         if ((curDims && curDimMode === 'tape') || curPlaceSurface) {
           renderer.domElement.style.cursor = 'crosshair';
           updateTooltipDOM(false);
+
+          if (curDims && curDimMode === 'tape' && ctx.tapePointA) {
+            raycaster.setFromCamera(pointer, camera);
+            const allTargets: THREE.Mesh[] = [
+              ...allKitchenMeshes,
+              ...importedMeshes,
+              ...(ctx.floorMesh ? [ctx.floorMesh] : []),
+              ...(ctx.roomWallsGroup ? (ctx.roomWallsGroup.children.filter((c: any) => c.isMesh) as THREE.Mesh[]) : [])
+            ];
+            const hits = intersectAcceleratedTargets(raycaster, allTargets);
+            if (hits.length > 0) {
+              const livePt = hits[0].point;
+              if (!ctx.tapePreviewLine) {
+                const geo = new THREE.BufferGeometry().setFromPoints([ctx.tapePointA, livePt]);
+                const mat = new THREE.LineDashedMaterial({
+                  color: 0xf43f5e,
+                  dashSize: 0.04,
+                  gapSize: 0.02,
+                  depthTest: false,
+                  depthWrite: false,
+                  transparent: true,
+                  opacity: 0.9
+                });
+                const line = new THREE.Line(geo, mat);
+                line.computeLineDistances();
+                line.renderOrder = 998;
+                line.raycast = () => {};
+                ctx.tapePreviewLine = line;
+                tapeDimsGroup.add(line);
+              } else {
+                ctx.tapePreviewLine.geometry.setFromPoints([ctx.tapePointA, livePt]);
+                ctx.tapePreviewLine.computeLineDistances();
+              }
+            }
+          }
           return;
         }
 
@@ -2065,11 +2101,17 @@ export default function KitchenViewer() {
             return;
           }
 
-          // 1. Tape Measure Mode
+          // 1. Tape Measure Mode (Measure between 2 points on any 3D furniture surface)
           if (curDims && curDimMode === 'tape') {
+            const allTargets: THREE.Mesh[] = [
+              ...allKitchenMeshes,
+              ...importedMeshes,
+              ...(ctx.floorMesh ? [ctx.floorMesh] : []),
+              ...(ctx.roomWallsGroup ? (ctx.roomWallsGroup.children.filter((c: any) => c.isMesh) as THREE.Mesh[]) : [])
+            ];
             const allHits = intersectAcceleratedTargets(
               raycaster,
-              [...allKitchenMeshes, ...importedMeshes]
+              allTargets
             );
             if (allHits.length > 0) {
               const hitPoint = allHits[0].point;
@@ -2078,14 +2120,20 @@ export default function KitchenViewer() {
                 tapeDimsGroup.add(createPinMarker(ctx.tapePointA, 0xf43f5e));
                 setTapeHasPointA(true);
                 setTapeMeasurement(null);
+                showToast(curLang === 'ro' ? '📍 Punctul 1 marcat! Dă click pe al 2-lea punct' : '📍 Point 1 set! Click 2nd point to measure');
               } else {
                 const ptB = hitPoint.clone();
+                if (ctx.tapePreviewLine) {
+                  tapeDimsGroup.remove(ctx.tapePreviewLine);
+                  ctx.tapePreviewLine = null;
+                }
                 tapeDimsGroup.add(createPinMarker(ptB, 0xf43f5e));
                 const distCm = ctx.tapePointA.distanceTo(ptB) * 100.0;
                 const dxCm = Math.abs(ptB.x - ctx.tapePointA.x) * 100.0;
                 const dyCm = Math.abs(ptB.y - ctx.tapePointA.y) * 100.0;
                 const dzCm = Math.abs(ptB.z - ctx.tapePointA.z) * 100.0;
-                const labelStr = `${fmtCm(distCm)} cm`;
+                const distMm = Math.round(distCm * 10);
+                const labelStr = `${fmtCm(distCm)} cm (${distMm} mm)`;
 
                 addCadDimLine(
                   tapeDimsGroup,
@@ -2094,11 +2142,12 @@ export default function KitchenViewer() {
                   labelStr,
                   'rose',
                   new THREE.Vector3(0, 1, 0),
-                  0.025,
-                  1.0
+                  0.035,
+                  1.05
                 );
 
-                setTapeMeasurement({ labelStr, dxCm, dyCm, dzCm });
+                setTapeMeasurement({ labelStr, distCm, distMm, dxCm, dyCm, dzCm });
+                showToast(`📏 ${curLang === 'ro' ? 'Distanță' : 'Distance'}: ${labelStr}`);
                 setTapeHasPointA(false);
                 ctx.tapePointA = null;
               }
@@ -2445,7 +2494,7 @@ export default function KitchenViewer() {
     ctx.scene.environmentIntensity = 0.65 * ambScale;
   }, [lightState, loading]);
 
-  // Sync Dimensions Group Visibility
+  // Sync Dimensions Group Visibility & Dynamic Scene Dimensions
   useEffect(() => {
     const ctx = sceneRef.current;
     if (!ctx) return;
@@ -2453,10 +2502,25 @@ export default function KitchenViewer() {
     ctx.staticDimsGroup.visible = dimsEnabled && dimMode === 'all';
     ctx.partDimsGroup.visible = dimsEnabled && dimMode !== 'tape';
     ctx.tapeDimsGroup.visible = dimsEnabled;
+
+    if (dimsEnabled && dimMode === 'all') {
+      renderDynamicSceneDimensions(
+        ctx.staticDimsGroup,
+        importedModels,
+        selectedGlbId,
+        ctx.importedMap,
+        ctx.allKitchenMeshes
+      );
+    } else if (ctx.staticDimsGroup) {
+      while (ctx.staticDimsGroup.children.length > 0) {
+        ctx.staticDimsGroup.remove(ctx.staticDimsGroup.children[0]);
+      }
+    }
+
     if (dimsEnabled && dimMode !== 'tape') {
       update3DDimensionsDisplay(ctx.hoveredGroupId || ctx.selectedPartId);
     }
-  }, [dimsEnabled, dimMode, update3DDimensionsDisplay]);
+  }, [dimsEnabled, dimMode, importedModels, selectedGlbId, update3DDimensionsDisplay]);
 
   // Toggle Interactive Door / Drawer
   const toggleInteractivePart = useCallback(
@@ -3513,6 +3577,7 @@ export default function KitchenViewer() {
     const ctx = sceneRef.current;
     if (!ctx) return;
     ctx.tapePointA = null;
+    ctx.tapePreviewLine = null;
     while (ctx.tapeDimsGroup.children.length > 0) {
       ctx.tapeDimsGroup.remove(ctx.tapeDimsGroup.children[0]);
     }
@@ -4875,7 +4940,27 @@ export default function KitchenViewer() {
         lang={lang}
         onChangeLang={handleChangeLang}
         dimsEnabled={dimsEnabled}
-        onToggleDims={() => setDimsEnabled((v) => !v)}
+        onToggleDims={() => {
+          if (dimMode === 'tape') {
+            setDimMode('all');
+            setDimsEnabled(true);
+          } else {
+            setDimsEnabled((v) => !v);
+          }
+        }}
+        isTapeActive={dimsEnabled && dimMode === 'tape'}
+        onToggleTapeMeasure={() => {
+          if (dimsEnabled && dimMode === 'tape') {
+            setDimMode('all');
+            setDimsEnabled(false);
+            handleClearTape();
+          } else {
+            setDimsEnabled(true);
+            setDimMode('tape');
+            handleClearTape();
+            showToast(lang === 'ro' ? '🎯 Mod Ruletă 3D: Dă click pe 2 puncte pe orice suprafață' : '🎯 3D Tape Measure: Click 2 points on any surface');
+          }
+        }}
         panelOpen={panelOpen}
         onTogglePanel={() => setPanelOpen((v) => !v)}
         canUndo={canUndo}
@@ -4902,6 +4987,121 @@ export default function KitchenViewer() {
         isSharedReadOnly={isSharedReadOnly}
         sharedMeta={sharedMeta}
       />
+
+      {/* 3D Tape Measure Floating HUD */}
+      {dimsEnabled && dimMode === 'tape' && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '58px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 100,
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(28, 12, 18, 0.96))',
+            border: '1px solid rgba(244, 63, 94, 0.55)',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(244, 63, 94, 0.2)',
+            backdropFilter: 'blur(12px)',
+            borderRadius: '12px',
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            maxWidth: '92vw',
+            animation: 'fadeIn 0.2s ease-out',
+            color: '#f8fafc'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.1rem' }}>🎯</span>
+            <div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fda4af', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>{lang === 'ro' ? 'Ruletă 3D' : lang === 'ru' ? 'Рулетка 3D' : '3D Tape Measure'}</span>
+                <span
+                  style={{
+                    background: tapeHasPointA ? '#f43f5e' : 'rgba(244, 63, 94, 0.2)',
+                    color: tapeHasPointA ? '#fff' : '#fda4af',
+                    border: '1px solid rgba(244, 63, 94, 0.4)',
+                    padding: '1px 6px',
+                    borderRadius: '8px',
+                    fontSize: '0.64rem',
+                    fontWeight: 700
+                  }}
+                >
+                  {tapeHasPointA
+                    ? (lang === 'ro' ? 'PAS 2: CLICK PE AL 2-LEA PUNCT' : 'STEP 2: CLICK 2ND POINT')
+                    : (lang === 'ro' ? 'PAS 1: CLICK PE PRIMUL PUNCT' : 'STEP 1: CLICK 1ST POINT')}
+                </span>
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#cbd5e1' }}>
+                {tapeHasPointA
+                  ? (lang === 'ro' ? 'Apasă pe suprafața țintă pentru a calcula distanța' : 'Click destination surface to compute distance')
+                  : (lang === 'ro' ? 'Apasă pe orice colț, cant sau punct de pe mobilă/perete/podea' : 'Click on any edge, point or surface on furniture/wall/floor')}
+              </div>
+            </div>
+          </div>
+
+          {tapeMeasurement && (
+            <div
+              style={{
+                background: 'rgba(244, 63, 94, 0.15)',
+                border: '1px solid rgba(244, 63, 94, 0.4)',
+                borderRadius: '8px',
+                padding: '4px 10px',
+                display: 'flex',
+                flexDirection: 'column',
+                lineHeight: 1.2
+              }}
+            >
+              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#ffe4e6' }}>
+                📏 {tapeMeasurement.labelStr}
+              </div>
+              <div style={{ fontSize: '0.65rem', color: '#fda4af', fontWeight: 500 }}>
+                ΔX: {fmtCm(tapeMeasurement.dxCm)} · ΔY: {fmtCm(tapeMeasurement.dyCm)} · ΔZ: {fmtCm(tapeMeasurement.dzCm)} cm
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              type="button"
+              onClick={handleClearTape}
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: '#f1f5f9',
+                padding: '4px 8px',
+                borderRadius: '8px',
+                fontSize: '0.7rem',
+                cursor: 'pointer'
+              }}
+              title="Resetează măsurătorile de pe scenă"
+            >
+              🔄 {lang === 'ro' ? 'Reset' : 'Clear'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDimMode('all');
+                setDimsEnabled(false);
+                handleClearTape();
+              }}
+              style={{
+                background: 'rgba(244, 63, 94, 0.25)',
+                border: '1px solid rgba(244, 63, 94, 0.6)',
+                color: '#fecdd3',
+                padding: '4px 8px',
+                borderRadius: '8px',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+              title="Ieși din modul ruletă"
+            >
+              ✕ {lang === 'ro' ? 'Închide' : 'Close'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Shared Client Presentation Top Notification Bar */}
       {isSharedReadOnly && (
@@ -4994,17 +5194,6 @@ export default function KitchenViewer() {
           </div>
         </div>
       )}
-
-      <DimensionToolbar
-        lang={lang}
-        dimsEnabled={dimsEnabled}
-        dimMode={dimMode}
-        onSetDimMode={setDimMode}
-        activeDimInfo={activeDimInfo}
-        tapeMeasurement={tapeMeasurement}
-        tapeHasPointA={tapeHasPointA}
-        onClearTape={handleClearTape}
-      />
 
       <aside
         id="side-panel"
@@ -5127,72 +5316,6 @@ export default function KitchenViewer() {
             <span className="tab-icon">💡</span>
             <span className="tab-label">{dict.tabLighting}</span>
           </button>
-        </div>
-
-        {/* Compact Quick Actions Strip */}
-        <div className="compact-quick-actions">
-          <div className="quick-actions-bar">
-            <button
-              className="quick-icon-btn"
-              disabled={!canUndo}
-              onClick={handleUndo}
-              title={dict.undo}
-            >
-              ↩️
-            </button>
-            <button
-              className="quick-icon-btn"
-              disabled={!canRedo}
-              onClick={handleRedo}
-              title={dict.redo}
-            >
-              ↪️
-            </button>
-            <div className="quick-divider" />
-            <button
-              className={`quick-icon-btn ${magneticSnapEnabled ? 'active' : ''}`}
-              onClick={() => setMagneticSnapEnabled((v) => !v)}
-              title={lang === 'ro' ? 'Aliniere & Snap Magnetic CAD' : lang === 'ru' ? 'Магнитная привязка CAD' : 'Magnetic Snap CAD'}
-            >
-              🧲
-            </button>
-            <button
-              className={`quick-icon-btn ${is2DPlanMode ? 'active' : ''}`}
-              onClick={() => setIs2DPlanMode((v) => !v)}
-              title={lang === 'ro' ? 'Comută Mod Schiță 2D / Plan Tehnic' : lang === 'ru' ? 'Режим 2D плана' : '2D Floor Plan Mode'}
-            >
-              📐
-            </button>
-            <button
-              className={`quick-icon-btn ${dimsEnabled ? 'active' : ''}`}
-              onClick={() => setDimsEnabled((v) => !v)}
-              title={dict.showDims}
-            >
-              📏
-            </button>
-            <button
-              className={`quick-icon-btn ${roomWallsActive ? 'active' : ''}`}
-              onClick={handleToggleRoomWalls}
-              title={lang === 'ro' ? 'Pereți de Referință Cameră (ON/OFF)' : lang === 'ru' ? 'Стены комнаты (Вкл/Выкл)' : 'Room Reference Walls (ON/OFF)'}
-            >
-              🧱
-            </button>
-            <button
-              className={`quick-icon-btn ${activeStudioTab === 'tree' ? 'active' : ''}`}
-              onClick={() => setActiveStudioTab('tree')}
-              title={lang === 'ro' ? 'Arbore CAD & Structură' : lang === 'ru' ? 'Дерево сборки CAD' : 'CAD Assembly Tree'}
-            >
-              🌲
-            </button>
-            <button
-              className="quick-icon-btn"
-              onClick={() => setPhotorealRenderOpen(true)}
-              title={lang === 'ro' ? 'Studio Randare 3D Fotorealistă' : lang === 'ru' ? 'Фотореалистичный 3D Рендер' : 'Photorealistic 3D Render Studio'}
-              style={{ marginLeft: 'auto' }}
-            >
-              📸
-            </button>
-          </div>
         </div>
 
         {/* Studio Content Area */}
@@ -6336,16 +6459,6 @@ export default function KitchenViewer() {
         onCaptureThumbnailDataUrl={handleCaptureCloudThumbnail}
         onShowToast={showToast}
       />
-
-      <div id="help-pill">
-        <span>🖱️ {dict.hintOrbit}</span>
-        <span>•</span>
-        <span>✋ {dict.hintPan}</span>
-        <span>•</span>
-        <span>🔍 {dict.hintZoom}</span>
-        <span>•</span>
-        <span>👆 {dict.hintClick}</span>
-      </div>
     </>
   );
 }

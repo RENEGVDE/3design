@@ -8,6 +8,8 @@ export interface TopBarProps {
   onChangeLang: (lang: string) => void;
   dimsEnabled: boolean;
   onToggleDims: () => void;
+  isTapeActive?: boolean;
+  onToggleTapeMeasure?: () => void;
   panelOpen: boolean;
   onTogglePanel: () => void;
   canUndo?: boolean;
@@ -40,6 +42,8 @@ export default function TopBar({
   onChangeLang,
   dimsEnabled,
   onToggleDims,
+  isTapeActive = false,
+  onToggleTapeMeasure,
   panelOpen,
   onTogglePanel,
   canUndo = false,
@@ -305,6 +309,31 @@ export default function TopBar({
 
                 <div className="dropdown-divider" />
 
+                {onToggle2DPlanMode && (
+                  <button
+                    type="button"
+                    className="dropdown-item"
+                    onClick={() => {
+                      setProjectMenuOpen(false);
+                      onToggle2DPlanMode();
+                    }}
+                  >
+                    <span>📐</span>
+                    <div>
+                      <strong>
+                        {is2DPlanMode
+                          ? (isRo ? 'Comută la Vedere 3D CAD' : isRu ? 'Перейти в 3D вид' : 'Switch to 3D View')
+                          : (isRo ? 'Schiță 2D Plan Arhitectural' : isRu ? '2D Архитектурный план' : '2D Floor Plan')}
+                      </strong>
+                      <small>
+                        {isRo
+                          ? 'Vedere tehnică de sus cu pereți, cote și amplasare mobilier'
+                          : 'Top-down layout of room & furniture placement'}
+                      </small>
+                    </div>
+                  </button>
+                )}
+
                 {onOpenPhotorealRender && (
                   <button
                     type="button"
@@ -359,82 +388,6 @@ export default function TopBar({
           />
         </div>
 
-        {/* User Profile & Multi-Device Cloud Projects Button */}
-        {onOpenUserProfile && (
-          <button
-            type="button"
-            className="action-btn"
-            onClick={onOpenUserProfile}
-            title={
-              currentUser
-                ? `${currentUser.displayName} (${currentUser.email})${activeCloudProjectName ? ` — Proiect: ${activeCloudProjectName}` : ''}`
-                : isRo
-                ? 'Autentificare & Proiecte Cloud (Email / Gmail)'
-                : isRu
-                ? 'Профиль и облачные проекты'
-                : 'Sign In & Cloud Projects'
-            }
-            style={
-              currentUser
-                ? {
-                    background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(99, 102, 241, 0.22))',
-                    borderColor: 'rgba(56, 189, 248, 0.55)'
-                  }
-                : {
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    borderColor: 'rgba(255, 255, 255, 0.2)'
-                  }
-            }
-          >
-            <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-              {currentUser ? '☁️' : '👤'}
-              {currentUser && (
-                <span
-                  style={{
-                    width: '7px',
-                    height: '7px',
-                    borderRadius: '50%',
-                    background: '#22c55e',
-                    position: 'absolute',
-                    bottom: '-1px',
-                    right: '-2px',
-                    boxShadow: '0 0 6px #22c55e'
-                  }}
-                />
-              )}
-            </span>
-            <span className="btn-label-desktop">
-              {currentUser
-                ? currentUser.displayName.length > 14
-                  ? currentUser.displayName.slice(0, 14) + '…'
-                  : currentUser.displayName
-                : isRo
-                ? 'Contul Meu'
-                : isRu
-                ? 'Профиль'
-                : 'Profile'}
-            </span>
-          </button>
-        )}
-
-        {/* 2D Plan View / 3D CAD Perspective Switcher */}
-        {onToggle2DPlanMode && (
-          <button
-            type="button"
-            className={`action-btn hide-on-mobile ${is2DPlanMode ? 'active' : ''}`}
-            onClick={onToggle2DPlanMode}
-            title={is2DPlanMode ? 'Comută la Perspectivă 3D CAD' : 'Comută la Schiță 2D Plan Arhitectural'}
-            style={is2DPlanMode ? { background: 'rgba(56, 189, 248, 0.25)', borderColor: '#38bdf8' } : {}}
-          >
-            <span>{is2DPlanMode ? '🏛️' : '📐'}</span>
-            <span className="btn-label-desktop">
-              {is2DPlanMode
-                ? (isRo ? 'Vedere 3D' : isRu ? 'Вид 3D' : '3D View')
-                : (isRo ? 'Schiță 2D' : isRu ? 'План 2D' : '2D Plan')}
-            </span>
-          </button>
-        )}
-
         {/* Magnetic Snapping Toggle */}
         <button
           type="button"
@@ -444,18 +397,6 @@ export default function TopBar({
         >
           <span>🧲</span>
           <span className="btn-label-desktop">{magneticSnapEnabled ? 'Snap: ON' : 'Snap: OFF'}</span>
-        </button>
-
-        {/* Technical Report Direct Button */}
-        <button
-          type="button"
-          className="action-btn"
-          onClick={onOpenTechnicalReport}
-          title={isRo ? 'Fișă Tehnică & Raport Debitări' : isRu ? 'Техническая спецификация' : 'Technical Report'}
-          style={{ background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(99, 102, 241, 0.15))', borderColor: 'rgba(56, 189, 248, 0.4)' }}
-        >
-          <span>📄</span>
-          <span className="btn-label-desktop">{isRo ? 'Fișă Tehnică' : isRu ? 'Спецификация' : 'Cutting List'}</span>
         </button>
 
         {/* Photorealistic 3D Render Studio Button */}
@@ -533,12 +474,24 @@ export default function TopBar({
         <button
           type="button"
           id="btn-top-dims"
-          className={`action-btn ${dimsEnabled ? 'active' : ''}`}
+          className={`action-btn ${dimsEnabled && !isTapeActive ? 'active' : ''}`}
           onClick={onToggleDims}
-          title="Toggle Dimensions in cm"
+          title={isRo ? "Comută afișare cote mobilier 3D (Lățime x Înălțime x Adâncime)" : "Toggle 3D Dimensions in cm"}
         >
           <span>📏</span>
           <span className="btn-label-desktop">{dict.showDims}</span>
+        </button>
+
+        <button
+          type="button"
+          id="btn-top-tape"
+          className={`action-btn ${isTapeActive ? 'active' : ''}`}
+          onClick={onToggleTapeMeasure}
+          title={isRo ? "Ruletă Măsurare 3D: Dă click pe oricare 2 puncte pe suprafețe pentru a măsura distanța exactă" : "3D Tape Measure: Click any 2 points on surfaces to measure distance"}
+          style={isTapeActive ? { borderColor: '#f43f5e', background: 'rgba(244, 63, 94, 0.22)', color: '#fda4af' } : undefined}
+        >
+          <span>🎯</span>
+          <span className="btn-label-desktop">{dict.dimModeTape || (isRo ? 'Ruletă (2 Puncte)' : 'Tape Measure')}</span>
         </button>
 
         <div className="lang-switch">

@@ -74,69 +74,24 @@ export default function ModelTreePanel({
 
   return (
     <div className="cad-tree-container">
-      {/* CAD Engineering Control Toolbar */}
-      <div className="cad-toolbar-card">
-        <div className="cad-toolbar-header">
-          <span className="cad-badge">CAD Studio</span>
-          <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
-            {isRo ? 'Control Asamblare & Proiectare' : isRu ? 'Управление сборкой и моделью' : 'Assembly & CAD Controls'}
-          </span>
+      {/* Quick Add Custom Panel Action */}
+      <div className="cad-toolbar-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+        <div>
+          <strong style={{ fontSize: '0.8rem', color: '#f8fafc', display: 'block' }}>
+            {isRo ? 'Corpuri & Piese CAD' : isRu ? 'Модули и детали CAD' : 'CAD Modules & Panels'}
+          </strong>
+          <small style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+            {importedModels.length} {isRo ? 'corpuri de mobilier în scenă' : 'cabinets in scene'}
+          </small>
         </div>
-
-        {/* Exploded View Slider */}
-        <div className="cad-slider-box">
-          <div className="cad-slider-header">
-            <span>{isRo ? '💥 Schemă Explodată (Exploded View):' : isRu ? '💥 Разнесение сборки (Взрыв-схема):' : '💥 Exploded Assembly View:'}</span>
-            <strong style={{ color: '#38bdf8' }}>{explodedProgress}%</strong>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value={explodedProgress}
-            onChange={(e) => onChangeExplodedProgress && onChangeExplodedProgress(Number(e.target.value))}
-            className="cad-range-slider"
-          />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#64748b', marginTop: '2px' }}>
-            <span>0% ({isRo ? 'Asamblat' : isRu ? 'Собрано' : 'Assembled'})</span>
-            <span>50%</span>
-            <span>100% ({isRo ? 'Dezasamblat' : isRu ? 'Разобрано' : 'Disassembled'})</span>
-          </div>
-        </div>
-
-        {/* Quick Toggles: Fasteners & Wireframe */}
-        <div className="cad-toggle-grid">
-          <button
-            type="button"
-            className={`cad-btn ${showFasteners3d ? 'active' : ''}`}
-            onClick={onToggleFasteners3d}
-            title={isRo ? 'Afișează feronerie 3D (Euroșuruburi, Minifix, Știfturi, Balamale)' : isRu ? 'Показать крепеж и присадку 3D' : 'Toggle 3D Fasteners & Hardware'}
-          >
-            <span>🔩</span>
-            <span>{showFasteners3d ? (isRo ? 'Feronerie 3D: ON' : isRu ? 'Крепеж: ВКЛ' : 'Fasteners: ON') : (isRo ? 'Feronerie 3D: OFF' : isRu ? 'Крепеж: ВЫКЛ' : 'Fasteners: OFF')}</span>
-          </button>
-
-          <button
-            type="button"
-            className={`cad-btn ${wireframeActive ? 'active' : ''}`}
-            onClick={onToggleWireframe}
-            title={isRo ? 'Mod transparent tip schelet tehnic' : isRu ? 'Каркасный режим (Wireframe)' : 'CAD Wireframe Mode'}
-          >
-            <span>📐</span>
-            <span>{wireframeActive ? 'Wireframe: ON' : 'Wireframe: OFF'}</span>
-          </button>
-        </div>
-
-        {/* Add Free Panel Button */}
         <button
           type="button"
           className="cad-btn-primary"
           onClick={() => setNewPanelModalOpen(true)}
-          style={{ width: '100%', marginTop: '6px' }}
+          style={{ padding: '5px 10px', fontSize: '0.74rem', whiteSpace: 'nowrap' }}
         >
           <span>➕</span>
-          <span>{isRo ? 'Adaugă Panou Liber (CAD)' : isRu ? 'Добавить деталь / панель' : 'Add Custom Panel (CAD)'}</span>
+          <span>{isRo ? 'Panou Liber' : isRu ? 'Добавить деталь' : 'Add Panel'}</span>
         </button>
       </div>
 
