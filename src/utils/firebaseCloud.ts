@@ -757,3 +757,128 @@ export async function deleteUserCloudProject(uid: string, projectId: string): Pr
     setActiveCloudProjectMeta(null);
   }
 }
+
+/**
+ * Generate a Public Read-Only Share Link for Clients / Collaborators.
+ * Saves project payload into `shared_projects/{shareId}` with chunking for large models.
+ */
+export async function createPublicSharedProject(
+  projectName: string,
+  workspacePayload: any,
+  options?: {
+    authorName?: string;
+    thumbnailDataUrl?: string | null;
+    onProgress?: (percent: number, label: string) => void;
+  }
+): Promise<{ shareId: string; shareUrl: string }> {
+  const cleanName = (projectName || 'Proiect Mobilier 3D').trim();
+  const shareId = `sh_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  options?.onProgress?.(10, 'Se pregătește linkul de prezentare 3D...');
+
+  const payloadWithMeta = {
+    ...workspacePayload,
+    isSharedReadOnly: true,
+    shareId,
+    shareTitle: cleanName,
+    sharedAt: Date.now()
+  };
+
+  const payloadJson = JSON.stringify(payloadWithMeta);
+  const totalBytes = payloadJson.length;
+  const chunks: string[] = [];
+  for (let offset = 0; offset < payloadJson.length; offset += CHUNK_CHAR_SIZE) {
+    chunks.push(payloadJson.slice(offset, offset + CHUNK_CHAR_SIZE));
+  }
+
+  const rc = workspacePayload?.roomConfig;
+  const roomSummary = rc
+    ? `${rc.width || rc.widthCm || 400} × ${rc.depth || rc.lengthCm || 300} × ${rc.height || rc.heightCm || 260} cm`
+    : 'Scenă 3D CAD';
+
+  const summary = {
+    id: shareId,
+    name: cleanName,
+    authorName: options?.authorName || 'Designer',
+    createdAt: Date.now(),
+    roomSummary,
+    thumbnailDataUrl: options?.thumbnailDataUrl || null,
+    chunkCount: chunks.length,
+    totalBytes
+  };
+
+  options?.onProgress?.(30, `Se generează spațiul cloud (${chunks.length} pachete)...`);
+
+  const BATCH_SIZE = 4;
+  for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+    const batch = chunks.slice(i, i + BATCH_SIZE);
+    await Promise.all(
+      batch.map((chunkStr, idx) => {
+        const chunkIndex = i + idx;
+        const chunkId = `chunk_${String(chunkIndex).padStart(4, '0')}`;
+        const chunkRef = doc(db, 'shared_projects', shareId, 'chunks', chunkId);
+        return setDoc(chunkRef, { index: chunkIndex, data: chunkStr });
+      })
+    );
+    const pct = Math.min(92, Math.round(30 + ((i + batch.length) / Math.max(1, chunks.length)) * 62));
+    options?.onProgress?.(pct, `Publicare link client: ${pct}%`);
+  }
+
+  const shareDocRef = doc(db, 'shared_projects', shareId);
+  await setDoc(shareDocRef, summary, { merge: true });
+
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://bucatarie-3d-viewer.web.app';
+  const shareUrl = `${origin}/?share=${shareId}`;
+
+  options?.onProgress?.(100, 'Link public generat!');
+  return { shareId, shareUrl };
+}
+
+/**
+ * Load a Public Read-Only Shared Project for a client viewing the 3D scene.
+ */
+export async function loadPublicSharedProject(
+  shareId: string,
+  onProgress?: (percent: number, label: string) => void
+): Promise<{ summary: any; payload: any }> {
+  if (!shareId) throw new Error('ID link share invalid.');
+
+  onProgress?.(15, 'Se deschide prezentarea 3D...');
+
+  const shareDocRef = doc(db, 'shared_projects', shareId);
+  const snap = await getDoc(shareDocRef);
+  if (!snap.exists()) {
+    throw new Error('Proiectul partajat nu a fost găsit sau a expirat.');
+  }
+
+  const summary = snap.data();
+  onProgress?.(40, 'Se descarcă modelul 3D complet...');
+
+  const chunksCol = collection(db, 'shared_projects', shareId, 'chunks');
+  const chunksSnap = await getDocs(chunksCol);
+
+  const orderedChunks: { index: number; data: string }[] = [];
+  chunksSnap.forEach((cDoc) => {
+    const cData = cDoc.data();
+    if (typeof cData.data === 'string') {
+      orderedChunks.push({
+        index: Number(cData.index) || 0,
+        data: cData.data
+      });
+    }
+  });
+
+  orderedChunks.sort((a, b) => a.index - b.index);
+  const fullJson = orderedChunks.map((c) => c.data).join('');
+
+  if (!fullJson) {
+    throw new Error('Datele proiectului partajat sunt goale.');
+  }
+
+  onProgress?.(85, 'Se inițializează vizualizarea 3D...');
+  const payload = JSON.parse(fullJson);
+  onProgress?.(100, 'Scenă 3D pregătită!');
+
+  return { summary, payload };
+}
+

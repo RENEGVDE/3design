@@ -270,17 +270,22 @@ export function optimizeSheetNesting(panels: any[], sheet = DEFAULT_SHEET) {
   // Expand panel quantities
   const expandedItems: any[] = [];
   panels.forEach((p, idx) => {
-    const qty = p.quantity || p.count || 1;
+    const qty = p.quantity || p.count || p.qty || 1;
     for (let i = 0; i < qty; i++) {
       expandedItems.push({
-        id: `${p.name || 'Part'}_${idx}_${i}`,
-        name: p.name || `Panel ${idx + 1}`,
+        id: `${p.partName || p.name || 'Part'}_${idx}_${i}`,
+        name: p.partName || p.name || `Panel ${idx + 1}`,
+        partName: p.partName || p.name || `Panel ${idx + 1}`,
+        cabinet: p.cabinet || 'Mobilier',
         length: Math.max(p.length || p.lengthMm || 100, p.width || p.widthMm || 100),
         width: Math.min(p.length || p.lengthMm || 100, p.width || p.widthMm || 100),
+        origLength: p.length || p.lengthMm || 100,
+        origWidth: p.width || p.widthMm || 100,
         thickness: p.thickness || p.thicknessMm || 18,
         material: p.material || 'PAL Melaminat',
-        edgeBanding: p.edgeBanding || '-',
-        allowRotation: p.allowRotation !== false
+        grain: p.grain || 'Vertical',
+        edgeBanding: p.edgeBanding || 'Cant ABS 1mm',
+        allowRotation: p.allowRotation !== false && (!p.grain || p.grain === 'Fără' || p.grain === 'None')
       });
     }
   });
@@ -317,8 +322,12 @@ export function optimizeSheetNesting(panels: any[], sheet = DEFAULT_SHEET) {
         sheetIndex: sheets.length + 1,
         width: sheet.widthMm,
         height: sheet.heightMm,
+        totalW: sheet.widthMm,
+        totalH: sheet.heightMm,
         trim: sheet.trimMm,
+        trimMm: sheet.trimMm,
         kerf: sheet.kerfMm,
+        kerfMm: sheet.kerfMm,
         placedPanels: [],
         freeRectangles: [
           {

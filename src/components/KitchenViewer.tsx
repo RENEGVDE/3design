@@ -70,12 +70,14 @@ import {
 import TechnicalReportModal from './TechnicalReportModal';
 import UserProfileModal from './UserProfileModal';
 import PhotorealRenderModal from './PhotorealRenderModal';
+import ShareProjectModal from './ShareProjectModal';
 import {
   CloudUserProfile,
   CloudProjectSummary,
   subscribeToAuthChanges,
   getActiveCloudProjectMeta,
-  setActiveCloudProjectMeta
+  setActiveCloudProjectMeta,
+  loadPublicSharedProject
 } from '../utils/firebaseCloud';
 import { calculateMagneticSnap, alignModelDirectly } from '../utils/magneticSnapping';
 import {
@@ -185,6 +187,14 @@ export default function KitchenViewer() {
   const [activeCloudProject, setActiveCloudProject] = useState<{ id: string; name: string } | null>(
     null
   );
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [isSharedReadOnly, setIsSharedReadOnly] = useState(false);
+  const [sharedMeta, setSharedMeta] = useState<{
+    projectName?: string;
+    authorName?: string;
+    createdAt?: any;
+  } | null>(null);
+  const [sharedLoadingProgress, setSharedLoadingProgress] = useState<string | null>(null);
 
   useEffect(() => {
     setActiveCloudProject(getActiveCloudProjectMeta());
@@ -4063,6 +4073,81 @@ export default function KitchenViewer() {
     [mountParsedGlbIntoScene, persistWorkspace]
   );
 
+  // Auto-detect and load client 3D presentation link from URL query params (?share=... or ?p=...)
+  useEffect(() => {
+    if (loading) return;
+    if (typeof window === 'undefined') return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const shareId = urlParams.get('share') || urlParams.get('p');
+    if (!shareId) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        setSharedLoadingProgress(
+          lang === 'ro'
+            ? 'Se descarcă prezentarea 3D pentru client...'
+            : 'Downloading 3D presentation for client...'
+        );
+
+        const sharedResult = await loadPublicSharedProject(shareId, (pct, status) => {
+          if (!cancelled) {
+            setSharedLoadingProgress(`${status} (${pct}%)`);
+          }
+        });
+
+        if (sharedResult && sharedResult.payload && !cancelled) {
+          const { summary: sMeta, payload: sPayload } = sharedResult;
+          const fullSummary: CloudProjectSummary = {
+            id: shareId,
+            uid: 'public',
+            name: sMeta?.name || 'Prezentare 3D Client',
+            createdAt: sMeta?.createdAt || Date.now(),
+            updatedAt: sMeta?.createdAt || Date.now(),
+            modelsCount: Array.isArray(sPayload?.importedModels) ? sPayload.importedModels.length : 0,
+            appliancesCount: Array.isArray(sPayload?.appliances) ? sPayload.appliances.length : 0,
+            roomSummary: sMeta?.roomSummary || 'Scenă 3D CAD',
+            thumbnailDataUrl: sMeta?.thumbnailDataUrl || null,
+            chunkCount: sMeta?.chunkCount || 1,
+            totalBytes: sMeta?.totalBytes || 0
+          };
+
+          await handleApplyCloudProject(sPayload, fullSummary);
+
+          setIsSharedReadOnly(true);
+          setSharedMeta({
+            projectName: sMeta?.name || 'Proiect Bucătărie & Mobilier CAD',
+            authorName: sMeta?.authorName || 'Studio Design & Producție',
+            createdAt: sMeta?.createdAt
+          });
+
+          showToast(
+            lang === 'ro'
+              ? `👁️ Prezentare 3D încărcată: "${sMeta?.name || 'Proiect 3D'}"`
+              : `👁️ 3D presentation loaded: "${sMeta?.name || '3D Project'}"`
+          );
+        }
+      } catch (err: any) {
+        console.error('Failed to auto-load shared project:', err);
+        showToast(
+          lang === 'ro'
+            ? '⚠️ Link-ul de prezentare nu a putut fi deschis sau a expirat.'
+            : '⚠️ Failed to open shared 3D project link.'
+        );
+      } finally {
+        if (!cancelled) {
+          setSharedLoadingProgress(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, handleApplyCloudProject, lang, showToast]);
+
   const handleSaveProject = useCallback(() => {
     const projectData = handleGetWorkspacePayloadForCloud();
 
@@ -4813,7 +4898,102 @@ export default function KitchenViewer() {
         activeCloudProjectName={activeCloudProject?.name || null}
         onOpenUserProfile={() => setUserProfileModalOpen(true)}
         onOpenPhotorealRender={() => setPhotorealRenderOpen(true)}
+        onOpenShareModal={() => setShareModalOpen(true)}
+        isSharedReadOnly={isSharedReadOnly}
+        sharedMeta={sharedMeta}
       />
+
+      {/* Shared Client Presentation Top Notification Bar */}
+      {isSharedReadOnly && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '56px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 100,
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))',
+            border: '1px solid rgba(56, 189, 248, 0.45)',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.15)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '12px',
+            padding: '7px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            maxWidth: '92vw',
+            animation: 'fadeIn 0.3s ease-out'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.05rem' }}>👁️</span>
+            <div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>{sharedMeta?.projectName || 'Prezentare 3D Interactivă'}</span>
+                <span
+                  style={{
+                    background: 'rgba(34, 197, 94, 0.2)',
+                    color: '#4ade80',
+                    border: '1px solid rgba(34, 197, 94, 0.4)',
+                    padding: '1px 6px',
+                    borderRadius: '8px',
+                    fontSize: '0.64rem'
+                  }}
+                >
+                  MOD CLIENT (DOAR VIZUALIZARE)
+                </span>
+              </div>
+              <div style={{ fontSize: '0.69rem', color: '#94a3b8' }}>
+                {sharedMeta?.authorName ? `Pregătit de: ${sharedMeta.authorName} • ` : ''}
+                {lang === 'ro'
+                  ? 'Apasă pe uși sau sertare pentru deschidere • Rotește și mărește liber'
+                  : 'Click on doors or drawers to open/close • Orbit & zoom freely'}
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShareModalOpen(true)}
+            style={{
+              background: 'rgba(56, 189, 248, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              color: '#7dd3fc',
+              padding: '4px 10px',
+              borderRadius: '8px',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            🔗 {lang === 'ro' ? 'Trimite mai departe' : 'Share link'}
+          </button>
+        </div>
+      )}
+
+      {/* Loading overlay during remote share sync */}
+      {sharedLoadingProgress && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10000,
+            background: 'rgba(15, 23, 42, 0.88)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px'
+          }}
+        >
+          <div className="spinner" />
+          <div style={{ color: '#38bdf8', fontWeight: 700, fontSize: '0.95rem' }}>
+            {sharedLoadingProgress}
+          </div>
+        </div>
+      )}
 
       <DimensionToolbar
         lang={lang}
@@ -6144,6 +6324,16 @@ export default function KitchenViewer() {
         onClose={() => setPhotorealRenderOpen(false)}
         lang={lang}
         onGetSceneContext={() => sceneRef.current}
+        onShowToast={showToast}
+      />
+
+      <ShareProjectModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        lang={lang}
+        projectName={activeCloudProject?.name || (lang === 'ro' ? 'Proiect Bucătărie & Mobilier CAD' : '3D Kitchen & Furniture Project')}
+        onGetWorkspacePayload={handleGetWorkspacePayloadForCloud}
+        onCaptureThumbnailDataUrl={handleCaptureCloudThumbnail}
         onShowToast={showToast}
       />
 

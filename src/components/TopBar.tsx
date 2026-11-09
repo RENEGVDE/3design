@@ -30,6 +30,9 @@ export interface TopBarProps {
   activeCloudProjectName?: string | null;
   onOpenUserProfile?: () => void;
   onOpenPhotorealRender?: () => void;
+  onOpenShareModal?: () => void;
+  isSharedReadOnly?: boolean;
+  sharedMeta?: { projectName?: string; authorName?: string } | null;
 }
 
 export default function TopBar({
@@ -58,7 +61,10 @@ export default function TopBar({
   currentUser,
   activeCloudProjectName,
   onOpenUserProfile,
-  onOpenPhotorealRender
+  onOpenPhotorealRender,
+  onOpenShareModal,
+  isSharedReadOnly = false,
+  sharedMeta
 }: TopBarProps) {
   const dict = I18N[lang] || I18N.ro;
   const isRo = lang === 'ro';
@@ -81,8 +87,27 @@ export default function TopBar({
       <div className="brand-card">
         <div className="brand-icon">3D</div>
         <div className="brand-text">
-          <h1>{dict.title}</h1>
-          <p>{dict.subtitle}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h1>{dict.title}</h1>
+            {isSharedReadOnly && (
+              <span
+                style={{
+                  background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(6, 182, 212, 0.25))',
+                  border: '1px solid rgba(34, 197, 94, 0.55)',
+                  color: '#4ade80',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase'
+                }}
+              >
+                👁️ {isRo ? 'Prezentare Client' : isRu ? 'Просмотр Клиента' : 'Client View'}
+              </span>
+            )}
+          </div>
+          <p>{sharedMeta?.projectName ? `${sharedMeta.projectName} • ${sharedMeta.authorName || 'Design 3D'}` : dict.subtitle}</p>
         </div>
       </div>
 
@@ -151,6 +176,40 @@ export default function TopBar({
                     </button>
                     <div className="dropdown-divider" />
                   </>
+                )}
+
+                {onOpenShareModal && (
+                  <button
+                    type="button"
+                    className="dropdown-item"
+                    onClick={() => {
+                      setProjectMenuOpen(false);
+                      onOpenShareModal();
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.16), rgba(6, 182, 212, 0.16))',
+                      border: '1px solid rgba(34, 197, 94, 0.35)',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    <span>🔗</span>
+                    <div>
+                      <strong style={{ color: '#4ade80' }}>
+                        {isRo
+                          ? 'Partajează cu Clientul (Link 3D / WhatsApp)'
+                          : isRu
+                          ? 'Поделиться 3D с клиентом (WhatsApp)'
+                          : 'Share 3D with Client (Public Link / WhatsApp)'}
+                      </strong>
+                      <small>
+                        {isRo
+                          ? 'Generează link public pentru telefon, tabletă sau PC fără cont'
+                          : isRu
+                          ? 'Публичная 3D ссылка для смартфона и ПК'
+                          : 'Public read-only link for client on any device'}
+                      </small>
+                    </div>
+                  </button>
                 )}
 
                 <button
@@ -421,6 +480,31 @@ export default function TopBar({
             {isRo ? 'Render Foto 3D' : isRu ? '3D Рендер' : '3D Render'}
           </span>
         </button>
+
+        {/* Client 3D Presentation & WhatsApp Quick Share */}
+        {onOpenShareModal && (
+          <button
+            type="button"
+            className="action-btn"
+            onClick={onOpenShareModal}
+            title={
+              isRo
+                ? 'Partajează Prezentarea 3D cu Clientul (Link Public / WhatsApp)'
+                : isRu
+                ? 'Поделиться 3D с клиентом (Ссылка / WhatsApp)'
+                : 'Share 3D Presentation with Client (Public Link / WhatsApp)'
+            }
+            style={{
+              background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.22), rgba(6, 182, 212, 0.22))',
+              borderColor: 'rgba(34, 197, 94, 0.55)'
+            }}
+          >
+            <span>🔗</span>
+            <span className="btn-label-desktop">
+              {isRo ? 'Partajează' : isRu ? 'Поделиться' : 'Share 3D'}
+            </span>
+          </button>
+        )}
 
         <button
           type="button"

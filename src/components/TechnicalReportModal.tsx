@@ -189,12 +189,26 @@ export default function TechnicalReportModal({
 
     // Compute 2D Nesting Cut Plan (Optimizare Debit & Croire)
     const nestingResult = useMemo(() => {
-      const sheetDims = sheetFormat === '2440x1830'
-        ? { widthMm: 2440, heightMm: 1830, trimMm: 15, kerfMm: 4 }
-        : { widthMm: 2800, heightMm: 2070, trimMm: 15, kerfMm: 4 };
+      let sheetDims = { widthMm: 2800, heightMm: 2070, trimMm: 15, kerfMm: 4 };
+      if (sheetFormat === '2440x1830') {
+        sheetDims = { widthMm: 2440, heightMm: 1830, trimMm: 15, kerfMm: 4 };
+      } else if (sheetFormat === '2750x1830') {
+        sheetDims = { widthMm: 2750, heightMm: 1830, trimMm: 15, kerfMm: 4 };
+      }
 
       return calculateCuttingNesting(aggregatedParts, sheetDims);
     }, [aggregatedParts, sheetFormat]);
+
+    // Download high-resolution PNG of the active 2D cutting nesting sheet
+    const handleDownloadNestingSheetPng = () => {
+      const canvas = nestingCanvasRef.current;
+      if (!canvas) return;
+      const dataUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `plan_debitare_foaia_${activeSheetIndex + 1}_${sheetFormat}_${Date.now()}.png`;
+      a.click();
+    };
 
     // Draw Active Nesting Sheet on HTML5 Canvas
     useEffect(() => {
@@ -203,10 +217,12 @@ export default function TechnicalReportModal({
       if (!canvas) return;
 
       const ctx = canvas.getContext('2d');
+      if (!ctx) return;
       const w = canvas.width;
       const h = canvas.height;
 
-      ctx.fillStyle = '#0f172a';
+      // Dark CAD workshop background
+      ctx.fillStyle = '#0b0f19';
       ctx.fillRect(0, 0, w, h);
 
       const sheet = nestingResult.sheets[activeSheetIndex] || nestingResult.sheets[0];
@@ -218,79 +234,189 @@ export default function TechnicalReportModal({
         return;
       }
 
-      const margin = 40;
+      const totalSheetW = sheet.totalW || sheet.width || 2800;
+      const totalSheetH = sheet.totalH || sheet.height || 2070;
+      const trimMm = sheet.trimMm || sheet.trim || 15;
+      const kerfMm = sheet.kerfMm || sheet.kerf || 4;
+
+      const margin = 48;
       const availW = w - margin * 2;
       const availH = h - margin * 2;
-      const scale = Math.min(availW / sheet.totalW, availH / sheet.totalH);
+      const scale = Math.min(availW / totalSheetW, availH / totalSheetH);
 
-      const sheetDrawW = sheet.totalW * scale;
-      const sheetDrawH = sheet.totalH * scale;
+      const sheetDrawW = totalSheetW * scale;
+      const sheetDrawH = totalSheetH * scale;
       const startX = (w - sheetDrawW) / 2;
       const startY = (h - sheetDrawH) / 2;
 
-      // Draw Master Sheet Outline (Egger / Kronospan PAL)
+      // Master Sheet Raw Board Outline (Egger / Kronospan PAL)
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(startX, startY, sheetDrawW, sheetDrawH);
       ctx.strokeStyle = '#475569';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.8;
       ctx.strokeRect(startX, startY, sheetDrawW, sheetDrawH);
 
-      // Trim border
-      const trimDraw = sheet.trimMm * scale;
-      ctx.strokeStyle = '#ef4444';
-      ctx.lineWidth = 0.8;
-      ctx.setLineDash([4, 4]);
-      ctx.strokeRect(startX + trimDraw, startY + trimDraw, sheetDrawW - trimDraw * 2, sheetDrawH - trimDraw * 2);
+      // Trim perimeter border (Margine tunsă/curățată)
+      const trimDraw = trimMm * scale;
+      ctx.strokeStyle = '#f43f5e';
+      ctx.lineWidth = 1.0;
+      ctx.setLineDash([5, 4]);
+      ctx.strokeRect(
+        startX + trimDraw,
+        startY + trimDraw,
+        sheetDrawW - trimDraw * 2,
+        sheetDrawH - trimDraw * 2
+      );
       ctx.setLineDash([]);
 
-      // Pastel palette for placed panels
-      const panelColors = [
-        '#0284c7', '#0d9488', '#16a34a', '#d97706', '#9333ea',
-        '#e11d48', '#2563eb', '#059669', '#ca8a04', '#4f46e5'
+      // Color palette for distinguishing different cabinets/parts
+      const palette = [
+        { bg: 'rgba(2, 132, 199, 0.72)', border: '#38bdf8' },
+        { bg: 'rgba(13, 148, 136, 0.72)', border: '#2dd4bf' },
+        { bg: 'rgba(22, 163, 74, 0.72)', border: '#4ade80' },
+        { bg: 'rgba(217, 119, 6, 0.72)', border: '#fbbf24' },
+        { bg: 'rgba(147, 51, 234, 0.72)', border: '#c084fc' },
+        { bg: 'rgba(225, 29, 72, 0.72)', border: '#fb7185' },
+        { bg: 'rgba(37, 99, 235, 0.72)', border: '#60a5fa' },
+        { bg: 'rgba(5, 150, 105, 0.72)', border: '#34d399' },
+        { bg: 'rgba(202, 138, 4, 0.72)', border: '#facc15' },
+        { bg: 'rgba(79, 70, 229, 0.72)', border: '#818cf8' }
       ];
 
-      // Draw placed panels
-      sheet.placedPanels.forEach((p, idx) => {
+      // Draw placed panels with ABS edge banding borders and grain orientation
+      sheet.placedPanels.forEach((p: any, idx: number) => {
         const px = startX + p.x * scale;
         const py = startY + p.y * scale;
         const pw = p.w * scale;
         const ph = p.h * scale;
 
-        const baseColor = panelColors[idx % panelColors.length];
-        ctx.fillStyle = baseColor;
-        ctx.globalAlpha = 0.75;
-        ctx.fillRect(px, py, pw, ph);
-        ctx.globalAlpha = 1.0;
+        const colorEntry = palette[idx % palette.length];
 
-        ctx.strokeStyle = '#ffffff';
+        // Fill panel body
+        ctx.fillStyle = colorEntry.bg;
+        ctx.fillRect(px, py, pw, ph);
+
+        // Determine edge banding classification
+        const edgeStr = (p.edgeBanding || '').toLowerCase();
+        let edgeColor = '#94a3b8'; // default neutral
+        let edgeWidth = 1.2;
+        let edgeLabel = '';
+
+        if (edgeStr.includes('2mm') || edgeStr.includes('2 mm') || edgeStr.includes('2.0')) {
+          edgeColor = '#f59e0b'; // Amber / 2mm
+          edgeWidth = 3.2;
+          edgeLabel = 'ABS 2mm';
+        } else if (edgeStr.includes('1mm') || edgeStr.includes('1 mm') || edgeStr.includes('1.0')) {
+          edgeColor = '#06b6d4'; // Cyan / 1mm
+          edgeWidth = 2.4;
+          edgeLabel = 'ABS 1mm';
+        } else if (edgeStr.includes('0.4') || edgeStr.includes('0.5')) {
+          edgeColor = '#10b981'; // Emerald / 0.4mm
+          edgeWidth = 1.6;
+          edgeLabel = 'ABS 0.4mm';
+        }
+
+        // Draw inner outline
+        ctx.strokeStyle = colorEntry.border;
         ctx.lineWidth = 1;
         ctx.strokeRect(px, py, pw, ph);
 
-        // Label panel
-        if (pw > 30 && ph > 18) {
+        // Draw high-visibility ABS Edge Banding outer line
+        ctx.strokeStyle = edgeColor;
+        ctx.lineWidth = edgeWidth;
+        ctx.strokeRect(px + edgeWidth / 2, py + edgeWidth / 2, Math.max(1, pw - edgeWidth), Math.max(1, ph - edgeWidth));
+
+        // Grain Orientation Indicator & Subtle Grain Lines
+        const isVerticalGrain = p.grain !== 'Orizontal' && p.grain !== 'Horizontal';
+        if (pw > 28 && ph > 20) {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+          ctx.lineWidth = 1;
+          if (isVerticalGrain) {
+            for (let gx = px + 10; gx < px + pw - 8; gx += 16) {
+              ctx.beginPath();
+              ctx.moveTo(gx, py + 4);
+              ctx.lineTo(gx, py + ph - 4);
+              ctx.stroke();
+            }
+          } else {
+            for (let gy = py + 10; gy < py + ph - 8; gy += 16) {
+              ctx.beginPath();
+              ctx.moveTo(px + 4, gy);
+              ctx.lineTo(px + pw - 4, gy);
+              ctx.stroke();
+            }
+          }
+        }
+
+        // Panel Identification & Cutting Dimensions
+        if (pw >= 65 && ph >= 38) {
+          // Large Panel: Full detail
+          ctx.fillStyle = '#cbd5e1';
+          ctx.font = '600 8.5px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          const cabText = p.cabinet ? `[${p.cabinet}]` : '';
+          ctx.fillText(cabText, px + pw / 2, py + 4, pw - 8);
+
           ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 10px Inter, sans-serif';
+          ctx.font = 'bold 10.5px Inter, sans-serif';
+          ctx.fillText(p.partName || 'Piesă', px + pw / 2, py + 15, pw - 8);
+
+          ctx.font = 'bold 10px JetBrains Mono, monospace';
+          ctx.fillStyle = '#fef08a';
+          ctx.fillText(`${p.w} × ${p.h} mm`, px + pw / 2, py + 28);
+
+          if (edgeLabel && ph >= 52) {
+            ctx.font = '600 8px Inter, sans-serif';
+            ctx.fillStyle = edgeColor;
+            ctx.fillText(`${edgeLabel} • ${isVerticalGrain ? '↕ Fibră' : '↔ Fibră'}`, px + pw / 2, py + 40);
+          }
+        } else if (pw >= 40 && ph >= 24) {
+          // Medium Panel: Name & Dimensions
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 9.5px Inter, sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(p.partName, px + pw / 2, py + ph / 2 - 5, pw - 4);
+          ctx.fillText(p.partName || 'Piesă', px + pw / 2, py + ph / 2 - 6, pw - 6);
 
           ctx.font = '9px JetBrains Mono, monospace';
-          ctx.fillStyle = '#e2e8f0';
-          ctx.fillText(`${p.w}×${p.h}`, px + pw / 2, py + ph / 2 + 7);
+          ctx.fillStyle = '#fef08a';
+          ctx.fillText(`${p.w}×${p.h}`, px + pw / 2, py + ph / 2 + 6);
+        } else if (pw >= 24 && ph >= 16) {
+          // Compact Panel: Dimension only
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '8.5px JetBrains Mono, monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`${p.w}×${p.h}`, px + pw / 2, py + ph / 2, pw - 4);
         }
       });
 
-      // Sheet Dimension Annotation
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '11px JetBrains Mono, monospace';
+      // Sheet Dimension Labels (Technical CAD Cotation)
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 12px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(`${sheet.totalW} mm`, startX + sheetDrawW / 2, startY - 10);
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(`◄ ${totalSheetW} mm ►`, startX + sheetDrawW / 2, startY - 8);
+
       ctx.save();
-      ctx.translate(startX - 12, startY + sheetDrawH / 2);
+      ctx.translate(startX - 14, startY + sheetDrawH / 2);
       ctx.rotate(-Math.PI / 2);
-      ctx.fillText(`${sheet.totalH} mm`, 0, 0);
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(`◄ ${totalSheetH} mm ►`, 0, 0);
       ctx.restore();
-    }, [activeTab, nestingResult, activeSheetIndex]);
+
+      // Footer stamp on sheet: Placed panels count & efficiency
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.font = '9.5px Inter, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'top';
+      ctx.fillText(
+        `Foaia #${activeSheetIndex + 1} • ${sheet.placedPanels.length} piese • Kerf: ${kerfMm}mm • Trim: ${trimMm}mm`,
+        startX + sheetDrawW,
+        startY + sheetDrawH + 8
+      );
+    }, [activeTab, nestingResult, activeSheetIndex, sheetFormat]);
 
     // Draw 2D Blueprint for Selected Part (Чертёж детали)
     useEffect(() => {
@@ -679,33 +805,73 @@ export default function TechnicalReportModal({
                                                 className="cost-select"
                                                 style={{ padding: '4px 8px', fontSize: '0.78rem' }}
                                               >
-                                                <option value="2800x2070">2800 × 2070 mm (Standard Egger)</option>
-                                                <option value="2440x1830">2440 × 1830 mm (Standard Krono)</option>
+                                                <option value="2800x2070">2800 × 2070 mm (Standard Egger / Kastamonu)</option>
+                                                <option value="2440x1830">2440 × 1830 mm (Standard Kronospan)</option>
+                                                <option value="2750x1830">2750 × 1830 mm (Standard AGT / Swisspan)</option>
                                               </select>
                                             </div>
                                           </div>
 
-                                          {/* Sheet Switcher */}
-                                          <div className="raskroy-sheet-nav">
-                                            <button
-                                              type="button"
-                                              className="btn-pill"
-                                              disabled={activeSheetIndex <= 0}
-                                              onClick={() => setActiveSheetIndex((v) => Math.max(0, v - 1))}
-                                            >
-                                              ◄ Foaia Anterioară
-                                            </button>
-                                            <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.85rem' }}>
-                                              Foaia {activeSheetIndex + 1} din {nestingResult.sheetsCount} (Eficiență: {nestingResult.sheets[activeSheetIndex]?.efficiencyPercent || 0}%)
-                                            </span>
-                                            <button
-                                              type="button"
-                                              className="btn-pill"
-                                              disabled={activeSheetIndex >= nestingResult.sheetsCount - 1}
-                                              onClick={() => setActiveSheetIndex((v) => Math.min(nestingResult.sheetsCount - 1, v + 1))}
-                                            >
-                                              Foaia Următoare ►
-                                            </button>
+                                          {/* Sheet Switcher & Print / PNG Export Actions */}
+                                          <div className="raskroy-sheet-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                              <button
+                                                type="button"
+                                                className="btn-pill"
+                                                disabled={activeSheetIndex <= 0}
+                                                onClick={() => setActiveSheetIndex((v) => Math.max(0, v - 1))}
+                                              >
+                                                ◄ Foaia Anterioară
+                                              </button>
+                                              <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.85rem' }}>
+                                                Foaia {activeSheetIndex + 1} din {nestingResult.sheetsCount} (Randament: {nestingResult.sheets[activeSheetIndex]?.efficiencyPercent || 0}%)
+                                              </span>
+                                              <button
+                                                type="button"
+                                                className="btn-pill"
+                                                disabled={activeSheetIndex >= nestingResult.sheetsCount - 1}
+                                                onClick={() => setActiveSheetIndex((v) => Math.min(nestingResult.sheetsCount - 1, v + 1))}
+                                              >
+                                                Foaia Următoare ►
+                                              </button>
+                                            </div>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                              <button
+                                                type="button"
+                                                onClick={handleDownloadNestingSheetPng}
+                                                className="btn-pill"
+                                                style={{
+                                                  background: 'rgba(56, 189, 248, 0.18)',
+                                                  borderColor: 'rgba(56, 189, 248, 0.45)',
+                                                  color: '#7dd3fc',
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  gap: '5px'
+                                                }}
+                                                title="Descarcă imaginea de debitare la rezoluție înaltă"
+                                              >
+                                                <span>📥</span>
+                                                <span>{isRo ? 'Descarcă PNG Foaie' : 'Download Sheet PNG'}</span>
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={handlePrint}
+                                                className="btn-pill"
+                                                style={{
+                                                  background: 'rgba(34, 197, 94, 0.18)',
+                                                  borderColor: 'rgba(34, 197, 94, 0.45)',
+                                                  color: '#4ade80',
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  gap: '5px'
+                                                }}
+                                                title="Imprimare fișă tehnică și plan de debitare atelier"
+                                              >
+                                                <span>🖨️</span>
+                                                <span>{isRo ? 'Imprimă Plan' : 'Print Plan'}</span>
+                                              </button>
+                                            </div>
                                           </div>
 
                                           {/* 2D Canvas Viewport */}
@@ -716,6 +882,48 @@ export default function TechnicalReportModal({
                                               height={560}
                                               className="raskroy-canvas"
                                             />
+                                          </div>
+
+                                          {/* Visual Workshop Legend */}
+                                          <div
+                                            style={{
+                                              display: 'flex',
+                                              flexWrap: 'wrap',
+                                              gap: '12px 18px',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              padding: '10px 14px',
+                                              background: 'rgba(15, 23, 42, 0.75)',
+                                              borderRadius: '8px',
+                                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                                              fontSize: '0.74rem',
+                                              color: '#cbd5e1'
+                                            }}
+                                          >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                              <span style={{ width: '14px', height: '14px', background: 'rgba(217, 119, 6, 0.72)', border: '2px solid #f59e0b', borderRadius: '3px' }} />
+                                              <span><strong>Cant ABS 2.0 mm</strong> (Uși & Fațade expuse)</span>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                              <span style={{ width: '14px', height: '14px', background: 'rgba(2, 132, 199, 0.72)', border: '2px solid #06b6d4', borderRadius: '3px' }} />
+                                              <span><strong>Cant ABS 1.0 mm</strong> (Carcase & Polițe)</span>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                              <span style={{ width: '14px', height: '14px', background: 'rgba(22, 163, 74, 0.72)', border: '1.5px solid #10b981', borderRadius: '3px' }} />
+                                              <span><strong>Cant ABS 0.4 mm</strong> (Spate / Elemente secundare)</span>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                              <span style={{ width: '14px', height: '14px', border: '1px dashed #f43f5e', borderRadius: '2px' }} />
+                                              <span><strong>Margine Trim 15 mm</strong> (Curățare placă)</span>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                              <span style={{ fontWeight: 700, color: '#fef08a' }}>↕ / ↔</span>
+                                              <span><strong>Orientare Fibră</strong> (Texture Grain)</span>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                              <span style={{ color: '#38bdf8' }}>✂️</span>
+                                              <span><strong>Pânză Circular (Kerf 4 mm)</strong></span>
+                                            </div>
                                           </div>
                                         </div>
           )}
