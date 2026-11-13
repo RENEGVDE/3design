@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
-import { X } from 'lucide-react';
+import X from 'lucide-react/icons/x';
 import { cn } from '../../utils/cn';
 
 export const Dialog = DialogPrimitive.Root;

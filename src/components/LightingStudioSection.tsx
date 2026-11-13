@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Sun, Sparkles } from 'lucide-react';
+import Sun from 'lucide-react/icons/sun';
+import Sparkles from 'lucide-react/icons/sparkles';
 import { I18N } from '../i18n/translations';
 import { LIGHT_POS_PRESETS } from '../utils/textures';
 import { Slider } from './ui/slider';

@@ -1,23 +1,21 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Cloud,
-  User,
-  LogOut,
-  Save,
-  FolderOpen,
-  Pencil,
-  Trash2,
-  Eye,
-  EyeOff,
-  Check,
-  X,
-  RefreshCw,
-  Mail,
-  Lock,
-  Sparkles,
-} from 'lucide-react';
+import Cloud from 'lucide-react/icons/cloud';
+import User from 'lucide-react/icons/user';
+import LogOut from 'lucide-react/icons/log-out';
+import Save from 'lucide-react/icons/save';
+import FolderOpen from 'lucide-react/icons/folder-open';
+import Pencil from 'lucide-react/icons/pencil';
+import Trash2 from 'lucide-react/icons/trash-2';
+import Eye from 'lucide-react/icons/eye';
+import EyeOff from 'lucide-react/icons/eye-off';
+import Check from 'lucide-react/icons/check';
+import X from 'lucide-react/icons/x';
+import RefreshCw from 'lucide-react/icons/refresh-cw';
+import Mail from 'lucide-react/icons/mail';
+import Lock from 'lucide-react/icons/lock';
+import Sparkles from 'lucide-react/icons/sparkles';
 import {
   CloudUserProfile,
   CloudProjectSummary,

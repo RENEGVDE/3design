@@ -1,7 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Globe, Focus, Compass, Map, ZoomIn, RotateCw } from 'lucide-react';
+import Globe from 'lucide-react/icons/globe';
+import Focus from 'lucide-react/icons/focus';
+import Compass from 'lucide-react/icons/compass';
+import Map from 'lucide-react/icons/map';
+import ZoomIn from 'lucide-react/icons/zoom-in';
+import RotateCw from 'lucide-react/icons/rotate-cw';
 import { I18N } from '../i18n/translations';
 import { cn } from '../utils/cn';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';

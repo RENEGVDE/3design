@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera } from 'lucide-react';
+import Camera from 'lucide-react/icons/camera';
 import {
   PhotorealRenderSettings,
   PostProcessSettings,

@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+@source "../components";
+@source "../app";
 
 @theme {
   --color-studio-bg: #111317;

@@ -1,16 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Link2,
-  Check,
-  Copy,
-  MessageCircle,
-  ExternalLink,
-  Lock,
-  Smartphone,
-  DoorOpen,
-} from 'lucide-react';
+import Link2 from 'lucide-react/icons/link-2';
+import Check from 'lucide-react/icons/check';
+import Copy from 'lucide-react/icons/copy';
+import MessageCircle from 'lucide-react/icons/message-circle';
+import ExternalLink from 'lucide-react/icons/external-link';
+import Lock from 'lucide-react/icons/lock';
+import Smartphone from 'lucide-react/icons/smartphone';
+import DoorOpen from 'lucide-react/icons/door-open';
 import { createPublicSharedProject } from '../utils/firebaseCloud';
 import {
   Dialog,

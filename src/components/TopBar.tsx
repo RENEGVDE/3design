@@ -1,28 +1,26 @@
 'use client';
 
 import React, { useRef } from 'react';
-import {
-  FolderOpen,
-  ChevronDown,
-  Magnet,
-  Camera,
-  Share2,
-  Undo2,
-  Redo2,
-  Ruler,
-  Crosshair,
-  SlidersHorizontal,
-  Cloud,
-  FilePlus,
-  Save,
-  Upload,
-  Box,
-  Layers,
-  Map,
-  FileSpreadsheet,
-  Eye,
-  Sparkles,
-} from 'lucide-react';
+import FolderOpen from 'lucide-react/icons/folder-open';
+import ChevronDown from 'lucide-react/icons/chevron-down';
+import Magnet from 'lucide-react/icons/magnet';
+import Camera from 'lucide-react/icons/camera';
+import Share2 from 'lucide-react/icons/share-2';
+import Undo2 from 'lucide-react/icons/undo-2';
+import Redo2 from 'lucide-react/icons/redo-2';
+import Ruler from 'lucide-react/icons/ruler';
+import Crosshair from 'lucide-react/icons/crosshair';
+import SlidersHorizontal from 'lucide-react/icons/sliders-horizontal';
+import Cloud from 'lucide-react/icons/cloud';
+import FilePlus from 'lucide-react/icons/file-plus';
+import Save from 'lucide-react/icons/save';
+import Upload from 'lucide-react/icons/upload';
+import Box from 'lucide-react/icons/box';
+import Layers from 'lucide-react/icons/layers';
+import Map from 'lucide-react/icons/map';
+import FileSpreadsheet from 'lucide-react/icons/file-spreadsheet';
+import Eye from 'lucide-react/icons/eye';
+import Sparkles from 'lucide-react/icons/sparkles';
 import { I18N } from '../i18n/translations';
 import { cn } from '../utils/cn';
 import {
