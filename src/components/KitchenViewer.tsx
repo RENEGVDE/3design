@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { TooltipProvider } from './ui/tooltip';
+import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 
 import {
   I18N,
@@ -4916,7 +4918,7 @@ export default function KitchenViewer() {
 
 
   return (
-    <>
+    <TooltipProvider delayDuration={250}>
       <div id="loader" className={loading ? '' : 'hidden'}>
         <div className="spinner" />
         <div style={{ fontWeight: 600, letterSpacing: '0.03em' }}>
@@ -5258,65 +5260,47 @@ export default function KitchenViewer() {
           </div>
         </div>
 
-        {/* Studio Top Navigation Tab Bar */}
-        <div className="studio-tab-bar">
-          <button
-            className={`studio-tab-btn ${activeStudioTab === 'furniture' ? 'active' : ''}`}
-            onClick={() => setActiveStudioTab('furniture')}
-            title={dict.tabFurniture}
-          >
-            <span className="tab-icon">🛋️</span>
-            <span className="tab-label">{dict.tabFurniture}</span>
-          </button>
-          <button
-            className={`studio-tab-btn ${activeStudioTab === 'appliances' ? 'active' : ''}`}
-            onClick={() => setActiveStudioTab('appliances')}
-            title={lang === 'ro' ? 'Electrocasnice' : lang === 'ru' ? 'Техника' : 'Appliances'}
-          >
-            <span className="tab-icon">🍳</span>
-            <span className="tab-label">{lang === 'ro' ? 'Tehnică' : lang === 'ru' ? 'Техника' : 'Appliances'}</span>
-          </button>
-          <button
-            className={`studio-tab-btn ${activeStudioTab === 'materials' ? 'active' : ''}`}
-            onClick={() => setActiveStudioTab('materials')}
-            title={dict.tabMaterials}
-          >
-            <span className="tab-icon">🎨</span>
-            <span className="tab-label">{dict.tabMaterials}</span>
-          </button>
-          <button
-            className={`studio-tab-btn ${activeStudioTab === 'models' ? 'active' : ''}`}
-            onClick={() => setActiveStudioTab('models')}
-            title={dict.tab3DModels}
-          >
-            <span className="tab-icon">📦</span>
-            <span className="tab-label">{dict.tab3DModels}</span>
-          </button>
-          <button
-            className={`studio-tab-btn ${activeStudioTab === 'architecture' ? 'active' : ''}`}
-            onClick={() => setActiveStudioTab('architecture')}
-            title={lang === 'ro' ? 'Arhitectură Cameră' : lang === 'ru' ? 'Архитектура комнаты' : 'Room Architecture'}
-          >
-            <span className="tab-icon">🏛️</span>
-            <span className="tab-label">{lang === 'ro' ? 'Cameră' : lang === 'ru' ? 'Комната' : 'Room'}</span>
-          </button>
-          <button
-            className={`studio-tab-btn ${activeStudioTab === 'tree' ? 'active' : ''}`}
-            onClick={() => setActiveStudioTab('tree')}
-            title={dict.tabModelTree || 'Arbore CAD'}
-          >
-            <span className="tab-icon">🌲</span>
-            <span className="tab-label">{dict.tabModelTree || 'Arbore CAD'}</span>
-          </button>
-          <button
-            className={`studio-tab-btn ${activeStudioTab === 'lighting' ? 'active' : ''}`}
-            onClick={() => setActiveStudioTab('lighting')}
-            title={dict.tabLighting}
-          >
-            <span className="tab-icon">💡</span>
-            <span className="tab-label">{dict.tabLighting}</span>
-          </button>
-        </div>
+        {/* Studio Top Navigation Tab Bar (Radix UI Tabs) */}
+        <Tabs value={activeStudioTab} onValueChange={(v) => setActiveStudioTab(v as any)}>
+          <TabsList className="studio-tab-bar w-full rounded-none border-x-0 border-t-0 bg-black/25 p-1">
+            <TabsTrigger value="furniture" className="studio-tab-btn" title={dict.tabFurniture}>
+              <span className="tab-icon">🛋️</span>
+              <span className="tab-label">{dict.tabFurniture}</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="appliances"
+              className="studio-tab-btn"
+              title={lang === 'ro' ? 'Electrocasnice' : lang === 'ru' ? 'Техника' : 'Appliances'}
+            >
+              <span className="tab-icon">🍳</span>
+              <span className="tab-label">{lang === 'ro' ? 'Tehnică' : lang === 'ru' ? 'Техника' : 'Appliances'}</span>
+            </TabsTrigger>
+            <TabsTrigger value="materials" className="studio-tab-btn" title={dict.tabMaterials}>
+              <span className="tab-icon">🎨</span>
+              <span className="tab-label">{dict.tabMaterials}</span>
+            </TabsTrigger>
+            <TabsTrigger value="models" className="studio-tab-btn" title={dict.tab3DModels}>
+              <span className="tab-icon">📦</span>
+              <span className="tab-label">{dict.tab3DModels}</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="architecture"
+              className="studio-tab-btn"
+              title={lang === 'ro' ? 'Arhitectură Cameră' : lang === 'ru' ? 'Архитектура комнаты' : 'Room Architecture'}
+            >
+              <span className="tab-icon">🏛️</span>
+              <span className="tab-label">{lang === 'ro' ? 'Cameră' : lang === 'ru' ? 'Комната' : 'Room'}</span>
+            </TabsTrigger>
+            <TabsTrigger value="tree" className="studio-tab-btn" title={dict.tabModelTree || 'Arbore CAD'}>
+              <span className="tab-icon">🌲</span>
+              <span className="tab-label">{dict.tabModelTree || 'Arbore CAD'}</span>
+            </TabsTrigger>
+            <TabsTrigger value="lighting" className="studio-tab-btn" title={dict.tabLighting}>
+              <span className="tab-icon">💡</span>
+              <span className="tab-label">{dict.tabLighting}</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* Studio Content Area */}
         <div className="studio-tab-content">
@@ -6459,6 +6443,6 @@ export default function KitchenViewer() {
         onCaptureThumbnailDataUrl={handleCaptureCloudThumbnail}
         onShowToast={showToast}
       />
-    </>
+    </TooltipProvider>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Camera } from 'lucide-react';
 import {
   PhotorealRenderSettings,
   PostProcessSettings,
@@ -12,6 +13,13 @@ import {
   RenderAtmospherePreset,
   RenderBackdropMode
 } from '../utils/photorealRenderer';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
 
 export interface PhotorealRenderModalProps {
   isOpen: boolean;
@@ -107,8 +115,6 @@ export default function PhotorealRenderModal({
     }
   }, [rawBuffer, postSettings]);
 
-  if (!isOpen) return null;
-
   const handleDownloadImage = (format: 'png' | 'jpeg') => {
     const canvas = previewCanvasRef.current;
     if (!canvas) return;
@@ -139,112 +145,41 @@ export default function PhotorealRenderModal({
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        background: 'rgba(6, 9, 16, 0.85)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '12px',
-        overflowY: 'auto'
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !isRendering) onClose();
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          cancelRef.current = true;
+          onClose();
+        }
       }}
     >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '1180px',
-          maxHeight: '92dvh',
-          background: 'linear-gradient(165deg, rgba(18, 24, 38, 0.99), rgba(10, 14, 24, 0.99))',
-          border: '1px solid rgba(255, 255, 255, 0.14)',
-          borderRadius: '20px',
-          boxShadow: '0 30px 90px rgba(0, 0, 0, 0.85)',
-          color: '#f8fafc',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}
-      >
+      <DialogContent className="flex max-h-[92dvh] max-w-6xl flex-col overflow-hidden border-white/15 bg-gradient-to-b from-[#121826]/99 to-[#0a0e18]/99 p-0">
         {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '14px 20px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.09)',
-            background: 'rgba(255, 255, 255, 0.02)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '11px',
-                background: 'linear-gradient(135deg, #f59e0b, #ec4899)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '19px',
-                boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)'
-              }}
-            >
-              📸
+        <DialogHeader className="mb-0 border-b border-white/10 bg-white/[0.02] px-5 py-3.5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-pink-500 text-white shadow-lg shadow-amber-500/30">
+              <Camera className="h-5 w-5" />
             </div>
             <div>
-              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>
+              <DialogTitle>
                 {isRo
                   ? 'Studio Randare 3D Fotorealistă (Ray-Shadow & Post-Processing)'
                   : isRu
                   ? 'Студия фотореалистичного 3D рендера'
                   : 'Photorealistic 3D Render Studio'}
-              </h2>
-              <p style={{ margin: '2px 0 0', fontSize: '11.5px', color: '#94a3b8' }}>
+              </DialogTitle>
+              <DialogDescription>
                 {isRo
                   ? 'Acumulare multi-pas de umbre moi (Soft Area Shadows), reflexii PBR și procesare fotografică în timp real'
                   : 'Multi-pass soft area shadows, PBR reflections & live photographic color grading'}
-              </p>
+              </DialogDescription>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              cancelRef.current = true;
-              onClose();
-            }}
-            style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '10px',
-              border: '1px solid rgba(255, 255, 255, 0.14)',
-              background: 'rgba(255, 255, 255, 0.05)',
-              color: '#cbd5e1',
-              fontSize: '16px',
-              cursor: 'pointer'
-            }}
-          >
-            ✕
-          </button>
-        </div>
+        </DialogHeader>
 
         {/* Main Body: Responsive Split Layout */}
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            flex: 1,
-            overflowY: 'auto'
-          }}
-        >
+        <div className="flex flex-1 flex-wrap overflow-y-auto">
           {/* Left Column: Photo Preview Viewport */}
           <div
             style={{
@@ -748,8 +683,8 @@ export default function PhotorealRenderModal({
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

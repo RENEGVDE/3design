@@ -7,6 +7,13 @@ import {
   drawPanelBlueprint,
   generateCncDrillingCsv
 } from '../utils/furnitureEngineering';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from './ui/dialog';
+import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 
 export default function TechnicalReportModal({
   isOpen,
@@ -524,11 +531,18 @@ export default function TechnicalReportModal({
       window.print();
     };
 
-    if (!isOpen) return null;
-
     return (
-      <div className="report-modal-backdrop" onClick={onClose}>
-          <div className="report-modal-window cad-manufacturing-window" onClick={(e) => e.stopPropagation()}>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent
+          showClose={false}
+          className="report-modal-window cad-manufacturing-window max-w-[1200px] w-[96vw] max-h-[92vh] p-0 overflow-hidden flex flex-col border-white/15 bg-[#121620]/98"
+        >
+          <DialogTitle className="sr-only">
+            {isRo ? 'Centru Producție & Fabricație Tehnică CAD' : 'CAD Furniture Manufacturing & Production Suite'}
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            {isRo ? 'Debitări, Hărți de tăiere, Planșe tehnice și Program CNC' : 'Cutting nesting, drawings & CNC drilling'}
+          </DialogDescription>
             {/* Header Bar */}
             <div className="report-header-bar">
               <div className="report-brand">
@@ -574,37 +588,27 @@ export default function TechnicalReportModal({
               </div>
             </div>
 
-            {/* Manufacturing Suite Sub-Navigation Tabs */}
-            <div className="cad-modal-tabs">
-              <button
-                className={`cad-modal-tab-btn ${activeTab === 'bom' ? 'active' : ''}`}
-                onClick={() => setActiveTab('bom')}
-              >
-                <span>📄</span>
-                <span>{isRo ? '1. Fișă Tehnică & Raport BOM' : isRu ? '1. Спецификация & Смета' : '1. BOM & Spec Sheet'}</span>
-              </button>
-              <button
-                className={`cad-modal-tab-btn ${activeTab === 'raskroy' ? 'active' : ''}`}
-                onClick={() => setActiveTab('raskroy')}
-              >
-                <span>🗺️</span>
-                <span>{isRo ? '2. Optimizare Debit & Croire (Hărți Tăiere PAL)' : isRu ? '2. Optimizare Debit & Croire (Карты раскроя)' : '2. 2D Cut Nesting (2D)'}</span>
-              </button>
-              <button
-                className={`cad-modal-tab-btn ${activeTab === 'blueprint' ? 'active' : ''}`}
-                onClick={() => setActiveTab('blueprint')}
-              >
-                <span>📐</span>
-                <span>{isRo ? '3. Planșă Tehnică Detaliu (Чертёж)' : isRu ? '3. Чертеж детали & Присадка' : '3. Panel Blueprint & Cotation'}</span>
-              </button>
-              <button
-                className={`cad-modal-tab-btn ${activeTab === 'cnc' ? 'active' : ''}`}
-                onClick={() => setActiveTab('cnc')}
-              >
-                <span>⚙️</span>
-                <span>{isRo ? '4. Programare CNC & Găurire (G-Code & Găurire)' : isRu ? '4. Programare CNC & Găurire (Сверловка ЧПУ)' : '4. CNC Drilling Program'}</span>
-              </button>
-            </div>
+            {/* Manufacturing Suite Sub-Navigation Tabs (Radix UI) */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="border-b border-white/10 bg-black/20 px-4 py-2">
+              <TabsList className="flex w-full flex-wrap gap-1 bg-transparent p-0 border-0">
+                <TabsTrigger value="bom" className="gap-1.5">
+                  <span>📄</span>
+                  <span>{isRo ? '1. Fișă Tehnică & BOM' : isRu ? '1. Спецификация & Смета' : '1. BOM & Spec Sheet'}</span>
+                </TabsTrigger>
+                <TabsTrigger value="raskroy" className="gap-1.5">
+                  <span>🗺️</span>
+                  <span>{isRo ? '2. Optimizare Debit & Croire' : isRu ? '2. Карты раскроя' : '2. 2D Cut Nesting'}</span>
+                </TabsTrigger>
+                <TabsTrigger value="blueprint" className="gap-1.5">
+                  <span>📐</span>
+                  <span>{isRo ? '3. Planșă Tehnică Detaliu' : isRu ? '3. Чертеж детали' : '3. Panel Blueprint'}</span>
+                </TabsTrigger>
+                <TabsTrigger value="cnc" className="gap-1.5">
+                  <span>⚙️</span>
+                  <span>{isRo ? '4. Programare CNC & Găurire' : isRu ? '4. Сверловка ЧПУ' : '4. CNC Drilling'}</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
             {/* Printable & Interactive Content Area */}
             <div className="report-printable-area">
@@ -1023,8 +1027,8 @@ export default function TechnicalReportModal({
               </div>
                                           </div>
           )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  );
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }

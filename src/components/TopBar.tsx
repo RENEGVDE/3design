@@ -1,7 +1,42 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
+import {
+  FolderOpen,
+  ChevronDown,
+  Magnet,
+  Camera,
+  Share2,
+  Undo2,
+  Redo2,
+  Ruler,
+  Crosshair,
+  SlidersHorizontal,
+  Cloud,
+  FilePlus,
+  Save,
+  Upload,
+  Box,
+  Layers,
+  Map,
+  FileSpreadsheet,
+  Eye,
+  Sparkles,
+} from 'lucide-react';
 import { I18N } from '../i18n/translations';
+import { cn } from '../utils/cn';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from './ui/tooltip';
 
 export interface TopBarProps {
   lang: string;
@@ -63,18 +98,15 @@ export default function TopBar({
   onExportSceneB3D,
   onExportSceneObj,
   currentUser,
-  activeCloudProjectName,
   onOpenUserProfile,
   onOpenPhotorealRender,
   onOpenShareModal,
   isSharedReadOnly = false,
-  sharedMeta
+  sharedMeta,
 }: TopBarProps) {
   const dict = I18N[lang] || I18N.ro;
   const isRo = lang === 'ro';
   const isRu = lang === 'ru';
-
-  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,440 +115,455 @@ export default function TopBar({
       onLoadProject(file);
     }
     e.target.value = '';
-    setProjectMenuOpen(false);
   };
 
   return (
-    <div id="top-bar">
-      <div className="brand-card">
-        <div className="brand-icon">3D</div>
-        <div className="brand-text">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h1>{dict.title}</h1>
+    <header
+      id="top-bar"
+      className="pointer-events-none fixed left-3 right-3 top-3 z-20 flex items-center justify-between gap-2"
+    >
+      {/* Brand Card */}
+      <div className="pointer-events-auto flex min-w-0 items-center gap-2.5 rounded-2xl border border-white/12 bg-[#14171d]/90 px-3.5 py-2 shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+        <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-[9px] bg-gradient-to-br from-[#d4a359] to-[#9b6b29] text-sm font-extrabold text-zinc-950 shadow-[0_4px_12px_rgba(212,163,89,0.25)]">
+          3D
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="truncate text-[0.92rem] font-bold tracking-tight text-zinc-100">
+              {dict.title}
+            </h1>
             {isSharedReadOnly && (
-              <span
-                style={{
-                  background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(6, 182, 212, 0.25))',
-                  border: '1px solid rgba(34, 197, 94, 0.55)',
-                  color: '#4ade80',
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase'
-                }}
-              >
-                👁️ {isRo ? 'Prezentare Client' : isRu ? 'Просмотр Клиента' : 'Client View'}
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/50 bg-gradient-to-r from-emerald-500/25 to-cyan-500/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                <Eye className="h-3 w-3" />
+                {isRo ? 'Prezentare Client' : isRu ? 'Просмотр Клиента' : 'Client View'}
               </span>
             )}
           </div>
-          <p>{sharedMeta?.projectName ? `${sharedMeta.projectName} • ${sharedMeta.authorName || 'Design 3D'}` : dict.subtitle}</p>
+          <p className="truncate text-[11px] text-zinc-400">
+            {sharedMeta?.projectName
+              ? `${sharedMeta.projectName} • ${sharedMeta.authorName || 'Design 3D'}`
+              : dict.subtitle}
+          </p>
         </div>
       </div>
 
-      <div className="top-actions">
-        {/* Project Manager Dropdown */}
-        <div style={{ position: 'relative' }}>
-          <button
-            type="button"
-            className={`action-btn ${projectMenuOpen ? 'active' : ''}`}
-            onClick={() => setProjectMenuOpen((v) => !v)}
-            title="Meniu Proiect & Export"
-          >
-            <span>📂</span>
-            <span className="btn-label-desktop">{isRo ? 'Proiect' : isRu ? 'Проект' : 'Project'} ▾</span>
-          </button>
+      {/* Top Actions */}
+      <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-1.5">
+        {/* Project Dropdown Menu (Radix UI) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="inline-flex h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border border-white/12 bg-[#14171d]/90 px-3 text-xs font-semibold text-zinc-100 shadow-lg backdrop-blur-xl transition hover:border-white/25 hover:bg-white/10 data-[state=open]:border-amber-400/50 data-[state=open]:bg-amber-500/15 data-[state=open]:text-amber-300"
+            >
+              <FolderOpen className="h-3.5 w-3.5 text-amber-400" />
+              <span className="hidden lg:inline">
+                {isRo ? 'Proiect' : isRu ? 'Проект' : 'Project'}
+              </span>
+              <ChevronDown className="h-3 w-3 opacity-70" />
+            </button>
+          </DropdownMenuTrigger>
 
-          {projectMenuOpen && (
-            <>
-              <div
-                style={{
-                  position: 'fixed',
-                  inset: 0,
-                  zIndex: 40,
-                  cursor: 'default'
-                }}
-                onClick={() => setProjectMenuOpen(false)}
-              />
-
-              <div className="project-dropdown-menu" style={{ zIndex: 50 }}>
-                {onOpenUserProfile && (
-                  <>
-                    <button
-                      type="button"
-                      className="dropdown-item"
-                      onClick={() => {
-                        setProjectMenuOpen(false);
-                        onOpenUserProfile();
-                      }}
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(99, 102, 241, 0.14))',
-                        border: '1px solid rgba(56, 189, 248, 0.3)',
-                        marginBottom: '4px'
-                      }}
-                    >
-                      <span>☁️</span>
-                      <div>
-                        <strong style={{ color: '#7dd3fc' }}>
-                          {currentUser
-                            ? isRo
-                              ? `Proiecte Cloud (${currentUser.displayName})`
-                              : `Cloud Projects (${currentUser.displayName})`
-                            : isRo
-                            ? 'Contul Meu & Proiecte Cloud (Multi-Device)'
-                            : isRu
-                            ? 'Мой профиль и облачные проекты'
-                            : 'My Account & Cloud Projects'}
-                        </strong>
-                        <small>
-                          {isRo
-                            ? 'Salvează și deschide proiectele tale de pe PC, tabletă sau telefon'
-                            : isRu
-                            ? 'Синхронизация проектов между ПК и смартфоном'
-                            : 'Sync and access your 3D projects on any device'}
-                        </small>
-                      </div>
-                    </button>
-                    <div className="dropdown-divider" />
-                  </>
-                )}
-
-                {onOpenShareModal && (
-                  <button
-                    type="button"
-                    className="dropdown-item"
-                    onClick={() => {
-                      setProjectMenuOpen(false);
-                      onOpenShareModal();
-                    }}
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.16), rgba(6, 182, 212, 0.16))',
-                      border: '1px solid rgba(34, 197, 94, 0.35)',
-                      marginBottom: '4px'
-                    }}
-                  >
-                    <span>🔗</span>
-                    <div>
-                      <strong style={{ color: '#4ade80' }}>
-                        {isRo
-                          ? 'Partajează cu Clientul (Link 3D / WhatsApp)'
-                          : isRu
-                          ? 'Поделиться 3D с клиентом (WhatsApp)'
-                          : 'Share 3D with Client (Public Link / WhatsApp)'}
-                      </strong>
-                      <small>
-                        {isRo
-                          ? 'Generează link public pentru telefon, tabletă sau PC fără cont'
-                          : isRu
-                          ? 'Публичная 3D ссылка для смартфона и ПК'
-                          : 'Public read-only link for client on any device'}
-                      </small>
-                    </div>
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  className="dropdown-item"
-                  onClick={() => {
-                    setProjectMenuOpen(false);
-                    if (onNewProject) onNewProject();
-                  }}
+          <DropdownMenuContent align="end" className="w-80">
+            {onOpenUserProfile && (
+              <>
+                <DropdownMenuItem
+                  onClick={onOpenUserProfile}
+                  className="border border-sky-500/30 bg-gradient-to-r from-sky-500/15 to-indigo-500/15 hover:from-sky-500/25 hover:to-indigo-500/25"
                 >
-                  <span>🆕</span>
-                  <div>
-                    <strong>{isRo ? 'Proiect Nou (Scenă Curată CAD)' : isRu ? 'Новый проект (Чистая сцена)' : 'New Project (Clean CAD Space)'}</strong>
-                    <small>{isRo ? 'Spațiu de lucru liber cu grilă milimetrică CAD' : isRu ? 'Чистое рабочее пространство с сеткой CAD' : 'Clean workspace with millimeter CAD grid'}</small>
+                  <Cloud className="h-4 w-4 shrink-0 text-sky-400" />
+                  <div className="flex flex-col">
+                    <span className="font-bold text-sky-300">
+                      {currentUser
+                        ? isRo
+                          ? `Proiecte Cloud (${currentUser.displayName})`
+                          : `Cloud Projects (${currentUser.displayName})`
+                        : isRo
+                        ? 'Contul Meu & Proiecte Cloud'
+                        : isRu
+                        ? 'Мой профиль и облачные проекты'
+                        : 'My Account & Cloud Projects'}
+                    </span>
+                    <span className="text-[10px] text-zinc-400">
+                      {isRo
+                        ? 'Salvează și deschide proiectele de pe orice dispozitiv'
+                        : isRu
+                        ? 'Синхронизация проектов между ПК и смартфоном'
+                        : 'Sync and access your 3D projects on any device'}
+                    </span>
                   </div>
-                </button>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
 
-                <div className="dropdown-divider" />
+            {onOpenShareModal && (
+              <DropdownMenuItem
+                onClick={onOpenShareModal}
+                className="mb-1 border border-emerald-500/35 bg-gradient-to-r from-emerald-500/15 to-cyan-500/15 hover:from-emerald-500/25 hover:to-cyan-500/25"
+              >
+                <Share2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                <div className="flex flex-col">
+                  <span className="font-bold text-emerald-300">
+                    {isRo
+                      ? 'Partajează cu Clientul (Link 3D)'
+                      : isRu
+                      ? 'Поделиться 3D с клиентом'
+                      : 'Share 3D with Client'}
+                  </span>
+                  <span className="text-[10px] text-zinc-400">
+                    {isRo
+                      ? 'Link public pentru telefon, tabletă sau PC fără cont'
+                      : isRu
+                      ? 'Публичная 3D ссылка для смартфона и ПК'
+                      : 'Public read-only link for client'}
+                  </span>
+                </div>
+              </DropdownMenuItem>
+            )}
 
-                <button
-                  type="button"
-                  className="dropdown-item"
-                  onClick={() => {
-                    setProjectMenuOpen(false);
-                    if (onSaveProject) onSaveProject();
-                  }}
-                >
-                  <span>💾</span>
-                  <div>
-                    <strong>{isRo ? 'Salvează Proiect (.json / .cadproj)' : isRu ? 'Сохранить проект (.json / .cadproj)' : 'Save Project (.json / .cadproj)'}</strong>
-                    <small>{isRo ? 'Fișier standard cu toate corpurile, cotele și finisajele' : isRu ? 'Файл проекта со всеми деталями и материалами' : 'Standard project file with models & materials'}</small>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  className="dropdown-item"
-                  onClick={() => {
-                    fileInputRef.current?.click();
-                  }}
-                >
-                  <span>📥</span>
-                  <div>
-                    <strong>{isRo ? 'Încarcă Proiect sau Model (.glb, .b3d, .obj, .json)' : isRu ? 'Открыть проект или 3D модель (.glb, .b3d, .obj, .json)' : 'Open Project or 3D Model (.glb, .b3d, .obj, .json)'}</strong>
-                    <small>{isRo ? 'Recunoaște automat modele 3D, proiecte și fișiere de fabricație' : isRu ? 'Автоматическое распознавание 3D моделей и проектов' : 'Auto-detects 3D models, projects & CAD assemblies'}</small>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  className="dropdown-item"
-                  onClick={() => {
-                    setProjectMenuOpen(false);
-                    if (onExportSceneGlb) onExportSceneGlb();
-                  }}
-                >
-                  <span>📦</span>
-                  <div>
-                    <strong>{isRo ? 'Exportă Scenă 3D (.glb)' : isRu ? 'Экспорт 3D сцены (.glb)' : 'Export 3D Scene (.glb)'}</strong>
-                    <small>{isRo ? 'Model 3D binar complet pentru randare, Blender și 3ds Max' : isRu ? 'Бинарная 3D модель для Blender / 3ds Max / AR' : 'Binary 3D model for rendering & visualization'}</small>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  className="dropdown-item"
-                  onClick={() => {
-                    setProjectMenuOpen(false);
-                    if (onExportSceneB3D) onExportSceneB3D();
-                  }}
-                >
-                  <span>🧱</span>
-                  <div>
-                    <strong>{isRo ? 'Exportă Model Tehnic CAD (.b3d)' : isRu ? 'Экспорт модели CAD (.b3d)' : 'Export Technical CAD Model (.b3d)'}</strong>
-                    <small>{isRo ? 'Tabel panouri (mm), canturi ABS, feronerie și cote atelier' : isRu ? 'Панели (мм), кромки ABS, фурнитура и спецификация' : 'Panels (mm), ABS edge bands & hardware'}</small>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  className="dropdown-item"
-                  onClick={() => {
-                    setProjectMenuOpen(false);
-                    if (onExportSceneObj) onExportSceneObj();
-                  }}
-                >
-                  <span>📐</span>
-                  <div>
-                    <strong>{isRo ? 'Exportă Geometrie CAD (.obj + .mtl)' : isRu ? 'Экспорт геометрии CAD (.obj + .mtl)' : 'Export CAD Geometry (.obj + .mtl)'}</strong>
-                    <small>{isRo ? 'Format geometric universal pentru softuri CAD și CNC' : isRu ? 'Универсальный формат геометрии для CAD и ЧПУ' : 'Universal geometric format for CAD & CNC'}</small>
-                  </div>
-                </button>
-
-                <div className="dropdown-divider" />
-
-                {onToggle2DPlanMode && (
-                  <button
-                    type="button"
-                    className="dropdown-item"
-                    onClick={() => {
-                      setProjectMenuOpen(false);
-                      onToggle2DPlanMode();
-                    }}
-                  >
-                    <span>📐</span>
-                    <div>
-                      <strong>
-                        {is2DPlanMode
-                          ? (isRo ? 'Comută la Vedere 3D CAD' : isRu ? 'Перейти в 3D вид' : 'Switch to 3D View')
-                          : (isRo ? 'Schiță 2D Plan Arhitectural' : isRu ? '2D Архитектурный план' : '2D Floor Plan')}
-                      </strong>
-                      <small>
-                        {isRo
-                          ? 'Vedere tehnică de sus cu pereți, cote și amplasare mobilier'
-                          : 'Top-down layout of room & furniture placement'}
-                      </small>
-                    </div>
-                  </button>
-                )}
-
-                {onOpenPhotorealRender && (
-                  <button
-                    type="button"
-                    className="dropdown-item"
-                    onClick={() => {
-                      setProjectMenuOpen(false);
-                      onOpenPhotorealRender();
-                    }}
-                  >
-                    <span>📸</span>
-                    <div>
-                      <strong style={{ color: '#fde68a' }}>
-                        {isRo
-                          ? 'Studio Randare 3D Fotorealistă (Poză Realistă)'
-                          : isRu
-                          ? 'Фотореалистичный 3D Рендер (Фото)'
-                          : 'Photorealistic 3D Render Studio'}
-                      </strong>
-                      <small>
-                        {isRo
-                          ? 'Umbre moi Ray-Shadow, parchet/marmură, iluminare 5500K/3700K și export 4K'
-                          : 'Soft shadows, realistic floor & walls, color grading & 4K export'}
-                      </small>
-                    </div>
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  className="dropdown-item"
-                  onClick={() => {
-                    setProjectMenuOpen(false);
-                    if (onOpenTechnicalReport) onOpenTechnicalReport();
-                  }}
-                >
-                  <span>📄</span>
-                  <div>
-                    <strong>{isRo ? 'Fișă Tehnică & Raport Fabricație' : isRu ? 'Техническая карта и спецификация' : 'Technical Spec & Cutting List'}</strong>
-                    <small>{isRo ? 'Tabel debitare, suprafețe m² și consum PAL' : isRu ? 'Карта раскроя, площадь м² и смета' : 'Cutting list, board area & hardware'}</small>
-                  </div>
-                </button>
+            <DropdownMenuItem onClick={() => onNewProject?.()}>
+              <FilePlus className="h-4 w-4 shrink-0 text-zinc-300" />
+              <div className="flex flex-col">
+                <span className="font-semibold">
+                  {isRo
+                    ? 'Proiect Nou (Scenă Curată CAD)'
+                    : isRu
+                    ? 'Новый проект (Чистая сцена)'
+                    : 'New Project (Clean CAD Space)'}
+                </span>
+                <span className="text-[10px] text-zinc-400">
+                  {isRo
+                    ? 'Spațiu de lucru liber cu grilă milimetrică CAD'
+                    : 'Clean workspace with millimeter CAD grid'}
+                </span>
               </div>
-            </>
-          )}
+            </DropdownMenuItem>
 
-          <input
-            type="file"
-            ref={fileInputRef}
-            style={{ display: 'none' }}
-            accept=".json,.cadproj,.glb,.gltf,.b3d,.obj,.3design"
-            onChange={handleFileChange}
-          />
-        </div>
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem onClick={() => onSaveProject?.()}>
+              <Save className="h-4 w-4 shrink-0 text-amber-400" />
+              <div className="flex flex-col">
+                <span className="font-semibold">
+                  {isRo
+                    ? 'Salvează Proiect (.json / .cadproj)'
+                    : isRu
+                    ? 'Сохранить проект (.json / .cadproj)'
+                    : 'Save Project (.json / .cadproj)'}
+                </span>
+                <span className="text-[10px] text-zinc-400">
+                  {isRo
+                    ? 'Fișier standard cu corpuri, cote și finisaje'
+                    : 'Standard project file with models & materials'}
+                </span>
+              </div>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+              <Upload className="h-4 w-4 shrink-0 text-sky-400" />
+              <div className="flex flex-col">
+                <span className="font-semibold">
+                  {isRo
+                    ? 'Încarcă Proiect sau Model (.glb, .b3d, .obj)'
+                    : isRu
+                    ? 'Открыть проект или модель (.glb, .b3d, .obj)'
+                    : 'Open Project or 3D Model (.glb, .b3d, .obj)'}
+                </span>
+                <span className="text-[10px] text-zinc-400">
+                  {isRo
+                    ? 'Recunoaște automat modele 3D și proiecte'
+                    : 'Auto-detects 3D models & projects'}
+                </span>
+              </div>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={() => onExportSceneGlb?.()}>
+              <Box className="h-4 w-4 shrink-0 text-indigo-400" />
+              <div className="flex flex-col">
+                <span className="font-semibold">
+                  {isRo ? 'Exportă Scenă 3D (.glb)' : isRu ? 'Экспорт 3D сцены (.glb)' : 'Export 3D Scene (.glb)'}
+                </span>
+                <span className="text-[10px] text-zinc-400">
+                  {isRo ? 'Model 3D complet pentru Blender / 3ds Max' : 'Binary 3D model for rendering'}
+                </span>
+              </div>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={() => onExportSceneB3D?.()}>
+              <Layers className="h-4 w-4 shrink-0 text-emerald-400" />
+              <div className="flex flex-col">
+                <span className="font-semibold">
+                  {isRo ? 'Exportă Model Tehnic CAD (.b3d)' : isRu ? 'Экспорт CAD (.b3d)' : 'Export Technical CAD (.b3d)'}
+                </span>
+                <span className="text-[10px] text-zinc-400">
+                  {isRo ? 'Panouri (mm), canturi ABS și feronerie' : 'Panels (mm), ABS edge bands & hardware'}
+                </span>
+              </div>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={() => onExportSceneObj?.()}>
+              <Box className="h-4 w-4 shrink-0 text-zinc-400" />
+              <div className="flex flex-col">
+                <span className="font-semibold">
+                  {isRo ? 'Exportă Geometrie CAD (.obj + .mtl)' : isRu ? 'Экспорт геометрии (.obj + .mtl)' : 'Export CAD Geometry (.obj + .mtl)'}
+                </span>
+                <span className="text-[10px] text-zinc-400">
+                  {isRo ? 'Format geometric universal CAD & CNC' : 'Universal geometric format for CAD & CNC'}
+                </span>
+              </div>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            {onToggle2DPlanMode && (
+              <DropdownMenuItem onClick={onToggle2DPlanMode}>
+                <Map className="h-4 w-4 shrink-0 text-cyan-400" />
+                <div className="flex flex-col">
+                  <span className="font-semibold">
+                    {is2DPlanMode
+                      ? isRo
+                        ? 'Comută la Vedere 3D CAD'
+                        : isRu
+                        ? 'Перейти в 3D вид'
+                        : 'Switch to 3D View'
+                      : isRo
+                      ? 'Schiță 2D Plan Arhitectural'
+                      : isRu
+                      ? '2D Архитектурный план'
+                      : '2D Floor Plan'}
+                  </span>
+                  <span className="text-[10px] text-zinc-400">
+                    {isRo ? 'Vedere tehnică de sus cu pereți și cote' : 'Top-down layout of room & furniture'}
+                  </span>
+                </div>
+              </DropdownMenuItem>
+            )}
+
+            {onOpenPhotorealRender && (
+              <DropdownMenuItem onClick={onOpenPhotorealRender}>
+                <Sparkles className="h-4 w-4 shrink-0 text-amber-300" />
+                <div className="flex flex-col">
+                  <span className="font-bold text-amber-200">
+                    {isRo
+                      ? 'Studio Randare 3D Fotorealistă'
+                      : isRu
+                      ? 'Фотореалистичный 3D Рендер'
+                      : 'Photorealistic 3D Render Studio'}
+                  </span>
+                  <span className="text-[10px] text-zinc-400">
+                    {isRo ? 'Umbre moi, iluminare 5500K și export 4K' : 'Soft shadows, lighting & 4K export'}
+                  </span>
+                </div>
+              </DropdownMenuItem>
+            )}
+
+            <DropdownMenuItem onClick={() => onOpenTechnicalReport?.()}>
+              <FileSpreadsheet className="h-4 w-4 shrink-0 text-amber-400" />
+              <div className="flex flex-col">
+                <span className="font-semibold">
+                  {isRo
+                    ? 'Fișă Tehnică & Raport Fabricație'
+                    : isRu
+                    ? 'Техническая карта'
+                    : 'Technical Spec & Cutting List'}
+                </span>
+                <span className="text-[10px] text-zinc-400">
+                  {isRo ? 'Tabel debitare, suprafețe m² și consum PAL' : 'Cutting list & board area'}
+                </span>
+              </div>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          accept=".json,.cadproj,.glb,.gltf,.b3d,.obj,.3design"
+          onChange={handleFileChange}
+        />
 
         {/* Magnetic Snapping Toggle */}
-        <button
-          type="button"
-          className={`action-btn hide-on-mobile ${magneticSnapEnabled ? 'active' : ''}`}
-          onClick={onToggleMagneticSnap}
-          title={isRo ? 'Lipire Magnetică Automată (Snapping 3D)' : isRu ? 'Магнитное прилипание деталей' : 'Magnetic 3D Snapping'}
-        >
-          <span>🧲</span>
-          <span className="btn-label-desktop">{magneticSnapEnabled ? 'Snap: ON' : 'Snap: OFF'}</span>
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={onToggleMagneticSnap}
+              className={cn(
+                'hidden h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border px-2.5 text-xs font-semibold shadow-lg backdrop-blur-xl transition md:inline-flex',
+                magneticSnapEnabled
+                  ? 'border-amber-400/50 bg-amber-500/15 text-amber-300'
+                  : 'border-white/12 bg-[#14171d]/90 text-zinc-300 hover:bg-white/10'
+              )}
+            >
+              <Magnet className="h-3.5 w-3.5" />
+              <span className="hidden xl:inline">{magneticSnapEnabled ? 'Snap: ON' : 'Snap: OFF'}</span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isRo ? 'Lipire Magnetică Automată (Snapping 3D)' : isRu ? 'Магнитное прилипание' : 'Magnetic 3D Snapping'}
+          </TooltipContent>
+        </Tooltip>
 
-        {/* Photorealistic 3D Render Studio Button */}
-        <button
-          type="button"
-          className="action-btn"
-          onClick={onOpenPhotorealRender || onCaptureScreenshot}
-          title={
-            isRo
-              ? 'Studio Randare 3D Fotorealistă (Poză Realistă HD / 4K)'
-              : isRu
-              ? 'Фотореалистичный 3D Рендер (HD / 4K)'
-              : 'Photorealistic 3D Render Studio'
-          }
-          style={{
-            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(236, 72, 153, 0.18))',
-            borderColor: 'rgba(245, 158, 11, 0.5)'
-          }}
-        >
-          <span>📸</span>
-          <span className="btn-label-desktop">
-            {isRo ? 'Render Foto 3D' : isRu ? '3D Рендер' : '3D Render'}
-          </span>
-        </button>
+        {/* Photorealistic 3D Render */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={onOpenPhotorealRender || onCaptureScreenshot}
+              className="inline-flex h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border border-amber-500/45 bg-gradient-to-r from-amber-500/20 to-pink-500/15 px-3 text-xs font-semibold text-amber-200 shadow-lg backdrop-blur-xl transition hover:from-amber-500/30 hover:to-pink-500/25"
+            >
+              <Camera className="h-3.5 w-3.5 text-amber-300" />
+              <span className="hidden lg:inline">
+                {isRo ? 'Render Foto 3D' : isRu ? '3D Рендер' : '3D Render'}
+              </span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isRo ? 'Studio Randare 3D Fotorealistă (HD / 4K)' : 'Photorealistic 3D Render Studio'}
+          </TooltipContent>
+        </Tooltip>
 
-        {/* Client 3D Presentation & WhatsApp Quick Share */}
+        {/* Client Share */}
         {onOpenShareModal && (
-          <button
-            type="button"
-            className="action-btn"
-            onClick={onOpenShareModal}
-            title={
-              isRo
-                ? 'Partajează Prezentarea 3D cu Clientul (Link Public / WhatsApp)'
-                : isRu
-                ? 'Поделиться 3D с клиентом (Ссылка / WhatsApp)'
-                : 'Share 3D Presentation with Client (Public Link / WhatsApp)'
-            }
-            style={{
-              background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.22), rgba(6, 182, 212, 0.22))',
-              borderColor: 'rgba(34, 197, 94, 0.55)'
-            }}
-          >
-            <span>🔗</span>
-            <span className="btn-label-desktop">
-              {isRo ? 'Partajează' : isRu ? 'Поделиться' : 'Share 3D'}
-            </span>
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={onOpenShareModal}
+                className="inline-flex h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border border-emerald-500/50 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 px-3 text-xs font-semibold text-emerald-200 shadow-lg backdrop-blur-xl transition hover:from-emerald-500/30 hover:to-cyan-500/30"
+              >
+                <Share2 className="h-3.5 w-3.5 text-emerald-300" />
+                <span className="hidden lg:inline">
+                  {isRo ? 'Partajează' : isRu ? 'Поделиться' : 'Share 3D'}
+                </span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isRo ? 'Partajează Prezentarea 3D cu Clientul (Link Public)' : 'Share 3D Presentation with Client'}
+            </TooltipContent>
+          </Tooltip>
         )}
 
-        <button
-          type="button"
-          id="btn-top-undo"
-          className="action-btn hide-on-mobile"
-          disabled={!canUndo}
-          onClick={onUndo}
-          title={dict.undo}
-        >
-          <span>↩️</span>
-          <span className="btn-label-desktop">{dict.undoBtn}</span>
-        </button>
+        {/* Undo / Redo */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              id="btn-top-undo"
+              disabled={!canUndo}
+              onClick={onUndo}
+              className="hidden h-8.5 cursor-pointer items-center gap-1 rounded-xl border border-white/12 bg-[#14171d]/90 px-2.5 text-xs font-semibold text-zinc-200 shadow-lg backdrop-blur-xl transition hover:bg-white/10 disabled:pointer-events-none disabled:opacity-35 md:inline-flex"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+              <span className="hidden xl:inline">{dict.undoBtn}</span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{dict.undo}</TooltipContent>
+        </Tooltip>
 
-        <button
-          type="button"
-          id="btn-top-redo"
-          className="action-btn hide-on-mobile"
-          disabled={!canRedo}
-          onClick={onRedo}
-          title={dict.redo}
-        >
-          <span>↪️</span>
-          <span className="btn-label-desktop">{dict.redoBtn}</span>
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              id="btn-top-redo"
+              disabled={!canRedo}
+              onClick={onRedo}
+              className="hidden h-8.5 cursor-pointer items-center gap-1 rounded-xl border border-white/12 bg-[#14171d]/90 px-2.5 text-xs font-semibold text-zinc-200 shadow-lg backdrop-blur-xl transition hover:bg-white/10 disabled:pointer-events-none disabled:opacity-35 md:inline-flex"
+            >
+              <Redo2 className="h-3.5 w-3.5" />
+              <span className="hidden xl:inline">{dict.redoBtn}</span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{dict.redo}</TooltipContent>
+        </Tooltip>
 
-        <button
-          type="button"
-          id="btn-top-dims"
-          className={`action-btn ${dimsEnabled && !isTapeActive ? 'active' : ''}`}
-          onClick={onToggleDims}
-          title={isRo ? "Comută afișare cote mobilier 3D (Lățime x Înălțime x Adâncime)" : "Toggle 3D Dimensions in cm"}
-        >
-          <span>📏</span>
-          <span className="btn-label-desktop">{dict.showDims}</span>
-        </button>
+        {/* 3D Dimensions Toggle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              id="btn-top-dims"
+              onClick={onToggleDims}
+              className={cn(
+                'inline-flex h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border px-2.5 text-xs font-semibold shadow-lg backdrop-blur-xl transition',
+                dimsEnabled && !isTapeActive
+                  ? 'border-amber-400/55 bg-amber-500/20 text-amber-200'
+                  : 'border-white/12 bg-[#14171d]/90 text-zinc-200 hover:bg-white/10'
+              )}
+            >
+              <Ruler className="h-3.5 w-3.5 text-amber-400" />
+              <span className="hidden lg:inline">{dict.showDims}</span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isRo ? 'Comută afișare cote mobilier 3D (Lățime × Înălțime × Adâncime)' : 'Toggle 3D Dimensions in cm'}
+          </TooltipContent>
+        </Tooltip>
 
-        <button
-          type="button"
-          id="btn-top-tape"
-          className={`action-btn ${isTapeActive ? 'active' : ''}`}
-          onClick={onToggleTapeMeasure}
-          title={isRo ? "Ruletă Măsurare 3D: Dă click pe oricare 2 puncte pe suprafețe pentru a măsura distanța exactă" : "3D Tape Measure: Click any 2 points on surfaces to measure distance"}
-          style={isTapeActive ? { borderColor: '#f43f5e', background: 'rgba(244, 63, 94, 0.22)', color: '#fda4af' } : undefined}
-        >
-          <span>🎯</span>
-          <span className="btn-label-desktop">{dict.dimModeTape || (isRo ? 'Ruletă (2 Puncte)' : 'Tape Measure')}</span>
-        </button>
+        {/* 3D Tape Measure (2 Points) */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              id="btn-top-tape"
+              onClick={onToggleTapeMeasure}
+              className={cn(
+                'inline-flex h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border px-2.5 text-xs font-semibold shadow-lg backdrop-blur-xl transition',
+                isTapeActive
+                  ? 'border-rose-500/70 bg-rose-500/25 text-rose-200 shadow-[0_0_18px_rgba(244,63,94,0.25)]'
+                  : 'border-white/12 bg-[#14171d]/90 text-zinc-200 hover:bg-white/10'
+              )}
+            >
+              <Crosshair className={cn('h-3.5 w-3.5', isTapeActive ? 'text-rose-300' : 'text-rose-400')} />
+              <span className="hidden lg:inline">
+                {dict.dimModeTape || (isRo ? 'Ruletă (2 Puncte)' : 'Tape Measure')}
+              </span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isRo
+              ? 'Ruletă Măsurare 3D: Dă click pe 2 puncte pe orice suprafață'
+              : '3D Tape Measure: Click any 2 points on surfaces'}
+          </TooltipContent>
+        </Tooltip>
 
-        <div className="lang-switch">
+        {/* Language Switch */}
+        <div className="hidden items-center rounded-xl border border-white/12 bg-[#14171d]/90 p-0.5 shadow-lg backdrop-blur-xl sm:inline-flex">
           {['en', 'ru', 'ro'].map((l) => (
             <button
               type="button"
               key={l}
-              className={`lang-btn ${lang === l ? 'active' : ''}`}
               onClick={() => onChangeLang(l)}
+              className={cn(
+                'cursor-pointer rounded-lg px-2 py-1 text-[11px] font-bold transition',
+                lang === l
+                  ? 'bg-amber-500/25 text-amber-300'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              )}
             >
               {l.toUpperCase()}
             </button>
           ))}
         </div>
 
+        {/* Side Panel Toggle */}
         <button
           type="button"
           id="btn-toggle-panel"
-          className={`action-btn ${panelOpen ? 'active' : ''}`}
           onClick={onTogglePanel}
+          className={cn(
+            'inline-flex h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold shadow-lg backdrop-blur-xl transition',
+            panelOpen
+              ? 'border-amber-400/55 bg-amber-500/20 text-amber-200'
+              : 'border-white/12 bg-[#14171d]/90 text-zinc-100 hover:bg-white/10'
+          )}
         >
-          <span>⚙️</span>
-          <span className="btn-label-panel">{dict.controlsToggle}</span>
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">{dict.controlsToggle}</span>
         </button>
       </div>
-    </div>
+    </header>
   );
 }
