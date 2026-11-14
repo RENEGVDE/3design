@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, lazy, Suspense } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
@@ -68,10 +68,18 @@ import {
   ApplianceDefinition,
   ApplianceInstance
 } from '../utils/applianceCatalog';
-import TechnicalReportModal from './TechnicalReportModal';
-import UserProfileModal from './UserProfileModal';
-import PhotorealRenderModal from './PhotorealRenderModal';
-import ShareProjectModal from './ShareProjectModal';
+import {
+  resolveTapeSnapPoint,
+  createTapeSnapIndicator,
+  updateTapeSnapIndicator,
+  TapeSnapType,
+  TapeMeasurement
+} from '../utils/tapeMeasure3d';
+
+const TechnicalReportModal = lazy(() => import('./TechnicalReportModal'));
+const UserProfileModal = lazy(() => import('./UserProfileModal'));
+const PhotorealRenderModal = lazy(() => import('./PhotorealRenderModal'));
+const ShareProjectModal = lazy(() => import('./ShareProjectModal'));
 import {
   CloudUserProfile,
   CloudProjectSummary,
@@ -142,7 +150,9 @@ export default function KitchenViewer() {
   const [dimsEnabled, setDimsEnabled] = useState(false);
   const [dimMode, setDimMode] = useState('all');
   const [tapeHasPointA, setTapeHasPointA] = useState(false);
-  const [tapeMeasurement, setTapeMeasurement] = useState(null);
+  const [tapeMeasurement, setTapeMeasurement] = useState<TapeMeasurement | null>(null);
+  const [tapeSnapType, setTapeSnapType] = useState<TapeSnapType>('surface');
+  const [tapeLiveDistCm, setTapeLiveDistCm] = useState<number | null>(null);
 
   // Architectural Space & Appliances State
   const [roomConfig, setRoomConfig] = useState<RoomConfig>(DEFAULT_ROOM_CONFIG);
@@ -1335,6 +1345,9 @@ export default function KitchenViewer() {
       const tapeDimsGroup = new THREE.Group();
       dimsRootGroup.add(tapeDimsGroup);
 
+      const tapeSnapIndicator = createTapeSnapIndicator();
+      dimsRootGroup.add(tapeSnapIndicator);
+
       const ctx = {
         payload,
         scene,
@@ -1373,6 +1386,7 @@ export default function KitchenViewer() {
         staticDimsGroup,
         partDimsGroup,
         tapeDimsGroup,
+        tapeSnapIndicator,
         tapePointA: null as THREE.Vector3 | null,
         tapePreviewLine: null as THREE.Line | null,
         hoveredGroupId: null,
@@ -1705,7 +1719,7 @@ export default function KitchenViewer() {
           renderer.domElement.style.cursor = 'crosshair';
           updateTooltipDOM(false);
 
-          if (curDims && curDimMode === 'tape' && ctx.tapePointA) {
+          if (curDims && curDimMode === 'tape') {
             raycaster.setFromCamera(pointer, camera);
             const allTargets: THREE.Mesh[] = [
               ...allKitchenMeshes,
@@ -1715,32 +1729,45 @@ export default function KitchenViewer() {
             ];
             const hits = intersectAcceleratedTargets(raycaster, allTargets);
             if (hits.length > 0) {
-              const livePt = hits[0].point;
-              if (!ctx.tapePreviewLine) {
-                const geo = new THREE.BufferGeometry().setFromPoints([ctx.tapePointA, livePt]);
-                const mat = new THREE.LineDashedMaterial({
-                  color: 0xf43f5e,
-                  dashSize: 0.04,
-                  gapSize: 0.02,
-                  depthTest: false,
-                  depthWrite: false,
-                  transparent: true,
-                  opacity: 0.9
-                });
-                const line = new THREE.Line(geo, mat);
-                line.computeLineDistances();
-                line.renderOrder = 998;
-                line.raycast = () => {};
-                ctx.tapePreviewLine = line;
-                tapeDimsGroup.add(line);
+              const snap = resolveTapeSnapPoint(hits[0]);
+              updateTapeSnapIndicator(ctx.tapeSnapIndicator, snap, camera);
+              setTapeSnapType(snap.snapType);
+
+              if (ctx.tapePointA) {
+                const livePt = snap.point;
+                setTapeLiveDistCm(ctx.tapePointA.distanceTo(livePt) * 100.0);
+                if (!ctx.tapePreviewLine) {
+                  const geo = new THREE.BufferGeometry().setFromPoints([ctx.tapePointA, livePt]);
+                  const mat = new THREE.LineDashedMaterial({
+                    color: 0xf43f5e,
+                    dashSize: 0.04,
+                    gapSize: 0.02,
+                    depthTest: false,
+                    depthWrite: false,
+                    transparent: true,
+                    opacity: 0.9
+                  });
+                  const line = new THREE.Line(geo, mat);
+                  line.computeLineDistances();
+                  line.renderOrder = 998;
+                  line.raycast = () => {};
+                  ctx.tapePreviewLine = line;
+                  tapeDimsGroup.add(line);
+                } else {
+                  ctx.tapePreviewLine.geometry.setFromPoints([ctx.tapePointA, livePt]);
+                  ctx.tapePreviewLine.computeLineDistances();
+                }
               } else {
-                ctx.tapePreviewLine.geometry.setFromPoints([ctx.tapePointA, livePt]);
-                ctx.tapePreviewLine.computeLineDistances();
+                setTapeLiveDistCm(null);
               }
+            } else {
+              updateTapeSnapIndicator(ctx.tapeSnapIndicator, null);
+              setTapeLiveDistCm(null);
             }
           }
           return;
         }
+        updateTapeSnapIndicator(ctx.tapeSnapIndicator, null);
 
         raycaster.setFromCamera(pointer, camera);
         const targetList = curPaint
@@ -2058,12 +2085,14 @@ export default function KitchenViewer() {
               allTargets
             );
             if (allHits.length > 0) {
-              const hitPoint = allHits[0].point;
+              const snap = resolveTapeSnapPoint(allHits[0]);
+              const hitPoint = snap.point;
               if (!ctx.tapePointA) {
                 ctx.tapePointA = hitPoint.clone();
-                tapeDimsGroup.add(createPinMarker(ctx.tapePointA, 0xf43f5e));
+                tapeDimsGroup.add(createPinMarker(ctx.tapePointA, snap.snapType === 'vertex' ? 0xf59e0b : snap.snapType === 'edge' ? 0x38bdf8 : 0xf43f5e));
                 setTapeHasPointA(true);
                 setTapeMeasurement(null);
+                setTapeLiveDistCm(0);
                 showToast(curLang === 'ro' ? '📍 Punctul 1 marcat! Dă click pe al 2-lea punct' : '📍 Point 1 set! Click 2nd point to measure');
               } else {
                 const ptB = hitPoint.clone();
@@ -2071,7 +2100,7 @@ export default function KitchenViewer() {
                   tapeDimsGroup.remove(ctx.tapePreviewLine);
                   ctx.tapePreviewLine = null;
                 }
-                tapeDimsGroup.add(createPinMarker(ptB, 0xf43f5e));
+                tapeDimsGroup.add(createPinMarker(ptB, snap.snapType === 'vertex' ? 0xf59e0b : snap.snapType === 'edge' ? 0x38bdf8 : 0xf43f5e));
                 const distCm = ctx.tapePointA.distanceTo(ptB) * 100.0;
                 const dxCm = Math.abs(ptB.x - ctx.tapePointA.x) * 100.0;
                 const dyCm = Math.abs(ptB.y - ctx.tapePointA.y) * 100.0;
@@ -2091,6 +2120,7 @@ export default function KitchenViewer() {
                 );
 
                 setTapeMeasurement({ labelStr, distCm, distMm, dxCm, dyCm, dzCm });
+                setTapeLiveDistCm(null);
                 showToast(`📏 ${curLang === 'ro' ? 'Distanță' : 'Distance'}: ${labelStr}`);
                 setTapeHasPointA(false);
                 ctx.tapePointA = null;
@@ -3522,11 +3552,13 @@ export default function KitchenViewer() {
     if (!ctx) return;
     ctx.tapePointA = null;
     ctx.tapePreviewLine = null;
+    updateTapeSnapIndicator(ctx.tapeSnapIndicator, null);
     while (ctx.tapeDimsGroup.children.length > 0) {
       ctx.tapeDimsGroup.remove(ctx.tapeDimsGroup.children[0]);
     }
     setTapeHasPointA(false);
     setTapeMeasurement(null);
+    setTapeLiveDistCm(null);
   };
 
   // Camera Presets & AutoRotate
@@ -4923,6 +4955,26 @@ export default function KitchenViewer() {
                     ? (lang === 'ro' ? 'PAS 2: CLICK PE AL 2-LEA PUNCT' : 'STEP 2: CLICK 2ND POINT')
                     : (lang === 'ro' ? 'PAS 1: CLICK PE PRIMUL PUNCT' : 'STEP 1: CLICK 1ST POINT')}
                 </span>
+                <span
+                  className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${
+                    tapeSnapType === 'vertex'
+                      ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
+                      : tapeSnapType === 'edge'
+                        ? 'border-sky-400/50 bg-sky-500/20 text-sky-300'
+                        : 'border-white/15 bg-white/5 text-slate-300'
+                  }`}
+                >
+                  {tapeSnapType === 'vertex'
+                    ? (lang === 'ro' ? '🧲 Colț' : '🧲 Corner')
+                    : tapeSnapType === 'edge'
+                      ? (lang === 'ro' ? '📐 Muchie' : '📐 Edge')
+                      : (lang === 'ro' ? '● Suprafață' : '● Surface')}
+                </span>
+                {tapeLiveDistCm !== null && (
+                  <span className="rounded-md bg-rose-500/25 px-1.5 py-0.5 text-[11px] font-mono font-bold text-rose-100">
+                    {fmtCm(tapeLiveDistCm)} cm
+                  </span>
+                )}
               </div>
               <div className="text-[11px] text-slate-300">
                 {tapeHasPointA
@@ -5964,44 +6016,54 @@ export default function KitchenViewer() {
         );
       })()}
 
-      <TechnicalReportModal
-        isOpen={technicalReportOpen}
-        onClose={() => setTechnicalReportOpen(false)}
-        lang={lang}
-        importedModels={importedModels}
-        materials={materials}
-        onCaptureScreenshot={handleCaptureScreenshot}
-      />
+      <Suspense fallback={null}>
+        {technicalReportOpen && (
+          <TechnicalReportModal
+            isOpen={technicalReportOpen}
+            onClose={() => setTechnicalReportOpen(false)}
+            lang={lang}
+            importedModels={importedModels}
+            materials={materials}
+            onCaptureScreenshot={handleCaptureScreenshot}
+          />
+        )}
 
-      <UserProfileModal
-        isOpen={userProfileModalOpen}
-        onClose={() => setUserProfileModalOpen(false)}
-        lang={lang}
-        currentUser={currentUser}
-        activeCloudProject={activeCloudProject}
-        onGetWorkspacePayload={handleGetWorkspacePayloadForCloud}
-        onCaptureThumbnailDataUrl={handleCaptureCloudThumbnail}
-        onApplyCloudProject={handleApplyCloudProject}
-        onShowToast={showToast}
-      />
+        {userProfileModalOpen && (
+          <UserProfileModal
+            isOpen={userProfileModalOpen}
+            onClose={() => setUserProfileModalOpen(false)}
+            lang={lang}
+            currentUser={currentUser}
+            activeCloudProject={activeCloudProject}
+            onGetWorkspacePayload={handleGetWorkspacePayloadForCloud}
+            onCaptureThumbnailDataUrl={handleCaptureCloudThumbnail}
+            onApplyCloudProject={handleApplyCloudProject}
+            onShowToast={showToast}
+          />
+        )}
 
-      <PhotorealRenderModal
-        isOpen={photorealRenderOpen}
-        onClose={() => setPhotorealRenderOpen(false)}
-        lang={lang}
-        onGetSceneContext={() => sceneRef.current}
-        onShowToast={showToast}
-      />
+        {photorealRenderOpen && (
+          <PhotorealRenderModal
+            isOpen={photorealRenderOpen}
+            onClose={() => setPhotorealRenderOpen(false)}
+            lang={lang}
+            onGetSceneContext={() => sceneRef.current}
+            onShowToast={showToast}
+          />
+        )}
 
-      <ShareProjectModal
-        isOpen={shareModalOpen}
-        onClose={() => setShareModalOpen(false)}
-        lang={lang}
-        projectName={activeCloudProject?.name || (lang === 'ro' ? 'Proiect Bucătărie & Mobilier CAD' : '3D Kitchen & Furniture Project')}
-        onGetWorkspacePayload={handleGetWorkspacePayloadForCloud}
-        onCaptureThumbnailDataUrl={handleCaptureCloudThumbnail}
-        onShowToast={showToast}
-      />
+        {shareModalOpen && (
+          <ShareProjectModal
+            isOpen={shareModalOpen}
+            onClose={() => setShareModalOpen(false)}
+            lang={lang}
+            projectName={activeCloudProject?.name || (lang === 'ro' ? 'Proiect Bucătărie & Mobilier CAD' : '3D Kitchen & Furniture Project')}
+            onGetWorkspacePayload={handleGetWorkspacePayloadForCloud}
+            onCaptureThumbnailDataUrl={handleCaptureCloudThumbnail}
+            onShowToast={showToast}
+          />
+        )}
+      </Suspense>
     </TooltipProvider>
   );
 }

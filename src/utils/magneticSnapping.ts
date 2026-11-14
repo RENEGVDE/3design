@@ -1,14 +1,28 @@
 import * as THREE from 'three';
 
+export interface SnapModelRecord {
+  id: string;
+  name: string;
+}
+
+export interface SnapMapEntry {
+  wrapperGroup: THREE.Object3D;
+}
+
+export interface MagneticSnapResult {
+  position: [number, number, number];
+  info: string;
+}
+
 /**
  * Computes magnetic snapping for a moving model against all other models in the scene
- * @param {string} movingModelId - ID of the model currently being moved
- * @param {Array} importedModels - List of all model records
- * @param {Object} importedMap - Three.js object wrappers
- * @param {number} snapThresholdM - Distance threshold in meters (default 0.05m / 5cm)
- * @returns {Object|null} - Snapped position [x, y, z] and snap details
  */
-export function calculateMagneticSnap(movingModelId, importedModels, importedMap, snapThresholdM = 0.055) {
+export function calculateMagneticSnap(
+  movingModelId: string,
+  importedModels: SnapModelRecord[],
+  importedMap: Record<string, SnapMapEntry>,
+  snapThresholdM = 0.055
+): MagneticSnapResult | null {
   const movingEntry = importedMap[movingModelId];
   if (!movingEntry) return null;
 
@@ -84,76 +98,5 @@ export function calculateMagneticSnap(movingModelId, importedModels, importedMap
     ],
     info: snappedInfo.join(' • ')
   };
-}
-
-/**
- * 1-Click Discrete Alignment tool
- */
-export function alignModelDirectly(targetId, direction, importedModels, importedMap) {
-  const targetEntry = importedMap[targetId];
-  if (!targetEntry) return null;
-
-  const targetBox = new THREE.Box3().setFromObject(targetEntry.wrapperGroup);
-  const currentPos = targetEntry.wrapperGroup.position.clone();
-
-  if (direction === 'floor') {
-    const deltaY = -targetBox.min.y;
-    return [currentPos.x, Math.max(0, currentPos.y + deltaY), currentPos.z];
-  }
-
-  // Find closest neighbor
-  let closestNeighbor = null;
-  let minDist = Infinity;
-
-  for (const m of importedModels) {
-    if (m.id === targetId) continue;
-    const entry = importedMap[m.id];
-    if (!entry) continue;
-    const box = new THREE.Box3().setFromObject(entry.wrapperGroup);
-    const dist = targetBox.getCenter(new THREE.Vector3()).distanceTo(box.getCenter(new THREE.Vector3()));
-    if (dist < minDist) {
-      minDist = dist;
-      closestNeighbor = { model: m, box, entry };
-    }
-  }
-
-  if (!closestNeighbor) return null;
-
-  const nBox = closestNeighbor.box;
-
-  if (direction === 'snap_right_of_neighbor') {
-    const deltaX = nBox.max.x - targetBox.min.x;
-    const deltaZ = nBox.min.z - targetBox.min.z;
-    const deltaY = nBox.min.y - targetBox.min.y;
-    return [
-      Math.round((currentPos.x + deltaX) * 1000) / 1000,
-      Math.round(Math.max(0, currentPos.y + deltaY) * 1000) / 1000,
-      Math.round((currentPos.z + deltaZ) * 1000) / 1000
-    ];
-  }
-
-  if (direction === 'snap_left_of_neighbor') {
-    const deltaX = nBox.min.x - targetBox.max.x;
-    const deltaZ = nBox.min.z - targetBox.min.z;
-    const deltaY = nBox.min.y - targetBox.min.y;
-    return [
-      Math.round((currentPos.x + deltaX) * 1000) / 1000,
-      Math.round(Math.max(0, currentPos.y + deltaY) * 1000) / 1000,
-      Math.round((currentPos.z + deltaZ) * 1000) / 1000
-    ];
-  }
-
-  if (direction === 'stack_on_neighbor') {
-    const deltaY = nBox.max.y - targetBox.min.y;
-    const deltaX = nBox.min.x - targetBox.min.x;
-    const deltaZ = nBox.min.z - targetBox.min.z;
-    return [
-      Math.round((currentPos.x + deltaX) * 1000) / 1000,
-      Math.round(Math.max(0, currentPos.y + deltaY) * 1000) / 1000,
-      Math.round((currentPos.z + deltaZ) * 1000) / 1000
-    ];
-  }
-
-  return null;
 }
 

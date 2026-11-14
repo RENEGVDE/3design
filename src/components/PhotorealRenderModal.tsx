@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from './ui/dialog';
+import { Slider } from './ui/slider';
 
 export interface PhotorealRenderModalProps {
   isOpen: boolean;
@@ -181,89 +182,31 @@ export default function PhotorealRenderModal({
         {/* Main Body: Responsive Split Layout */}
         <div className="flex flex-1 flex-wrap overflow-y-auto">
           {/* Left Column: Photo Preview Viewport */}
-          <div
-            style={{
-              flex: '1 1 560px',
-              minHeight: '320px',
-              background: '#070a12',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '16px',
-              position: 'relative',
-              borderRight: '1px solid rgba(255, 255, 255, 0.07)'
-            }}
-          >
-            <div
-              style={{
-                width: '100%',
-                maxHeight: '64dvh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                borderRadius: '12px',
-                overflow: 'hidden',
-                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.65)',
-                border: '1px solid rgba(255, 255, 255, 0.1)'
-              }}
-            >
+          <div className="flex-[1_1_560px] min-h-[320px] bg-[#070a12] flex flex-col items-center justify-center p-4 relative border-r border-white/[0.07]">
+            <div className="w-full max-h-[64dvh] flex items-center justify-center relative rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.65)] border border-white/10">
               <canvas
                 ref={previewCanvasRef}
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '62dvh',
-                  width: 'auto',
-                  height: 'auto',
-                  display: 'block',
-                  objectFit: 'contain'
-                }}
+                className="max-w-full max-h-[62dvh] w-auto h-auto block object-contain"
               />
 
               {/* Live Render Progress Overlay */}
               {isRendering && progress && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'rgba(7, 10, 18, 0.65)',
-                    backdropFilter: 'blur(4px)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '12px',
-                    padding: '24px'
-                  }}
-                >
-                  <div style={{ fontSize: '28px' }}>✨</div>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>
+                <div className="absolute inset-0 bg-[#070a12]/65 backdrop-blur-sm flex flex-col items-center justify-center gap-3 p-6">
+                  <div className="text-[28px]">✨</div>
+                  <div className="text-sm font-bold text-slate-50">
                     {isRo
                       ? `Se randează imaginea fotorealistă... ${progress.percent}%`
                       : `Rendering photorealistic image... ${progress.percent}%`}
                   </div>
-                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                  <div className="text-xs text-slate-400">
                     {isRo
                       ? `Pasul ${progress.pass} din ${progress.total} (Acumulare umbre moi & anti-aliasing)`
                       : `Pass ${progress.pass} of ${progress.total} (Soft shadows & SSAA)`}
                   </div>
-                  <div
-                    style={{
-                      width: '260px',
-                      height: '8px',
-                      borderRadius: '999px',
-                      background: 'rgba(255,255,255,0.12)',
-                      overflow: 'hidden'
-                    }}
-                  >
+                  <div className="w-[260px] h-2 rounded-full bg-white/12 overflow-hidden">
                     <div
-                      style={{
-                        width: `${progress.percent}%`,
-                        height: '100%',
-                        background: 'linear-gradient(90deg, #f59e0b, #ec4899)',
-                        transition: 'width 0.15s ease'
-                      }}
+                      className="h-full bg-gradient-to-r from-amber-500 to-pink-500 transition-[width] duration-150"
+                      style={{ width: `${progress.percent}%` }}
                     />
                   </div>
                 </div>
@@ -271,37 +214,17 @@ export default function PhotorealRenderModal({
             </div>
 
             {/* Bottom Action Bar under Preview */}
-            <div
-              style={{
-                width: '100%',
-                marginTop: '14px',
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '10px'
-              }}
-            >
-              <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+            <div className="w-full mt-3.5 flex flex-wrap items-center justify-between gap-2.5">
+              <div className="text-[11.5px] text-slate-400">
                 📐 {renderSettings.width} × {renderSettings.height} px • {renderSettings.samples} samples Ray-Shadow
               </div>
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   disabled={isRendering}
                   onClick={() => startRenderPass(renderSettings)}
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #f59e0b, #ec4899)',
-                    color: '#ffffff',
-                    fontSize: '12.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 15px rgba(245, 158, 11, 0.35)'
-                  }}
+                  className="px-4 py-2.5 rounded-[10px] border-none bg-gradient-to-br from-amber-500 to-pink-500 text-white text-[12.5px] font-bold cursor-pointer shadow-[0_4px_15px_rgba(245,158,11,0.35)] hover:brightness-110 disabled:opacity-50 transition"
                 >
                   🎬 {isRo ? 'Randează la Calitate Maximă' : isRu ? 'Рендер в макс. качестве' : 'Render Full Quality'}
                 </button>
@@ -310,16 +233,7 @@ export default function PhotorealRenderModal({
                   type="button"
                   disabled={isRendering || !rawBuffer}
                   onClick={() => handleDownloadImage('png')}
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(34, 197, 94, 0.45)',
-                    background: 'rgba(34, 197, 94, 0.16)',
-                    color: '#86efac',
-                    fontSize: '12.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
+                  className="px-3.5 py-2.5 rounded-[10px] border border-emerald-500/45 bg-emerald-500/15 text-emerald-300 text-[12.5px] font-bold cursor-pointer hover:bg-emerald-500/25 disabled:opacity-45 transition"
                 >
                   📥 {isRo ? 'Descarcă PNG' : 'Download PNG'}
                 </button>
@@ -328,16 +242,7 @@ export default function PhotorealRenderModal({
                   type="button"
                   disabled={isRendering || !rawBuffer}
                   onClick={() => handleDownloadImage('jpeg')}
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(56, 189, 248, 0.45)',
-                    background: 'rgba(56, 189, 248, 0.16)',
-                    color: '#7dd3fc',
-                    fontSize: '12.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
+                  className="px-3.5 py-2.5 rounded-[10px] border border-sky-400/45 bg-sky-400/15 text-sky-300 text-[12.5px] font-bold cursor-pointer hover:bg-sky-400/25 disabled:opacity-45 transition"
                 >
                   📥 {isRo ? 'Descarcă JPG' : 'Download JPG'}
                 </button>
@@ -346,23 +251,13 @@ export default function PhotorealRenderModal({
           </div>
 
           {/* Right Column: Studio Controls */}
-          <div
-            style={{
-              flex: '1 1 340px',
-              maxWidth: '420px',
-              padding: '18px',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px'
-            }}
-          >
+          <div className="flex-[1_1_340px] max-w-[420px] p-[18px] overflow-y-auto flex flex-col gap-4">
             {/* 1. Atmosphere Preset */}
             <div>
-              <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#cbd5e1', marginBottom: '7px' }}>
+              <div className="text-[11.5px] font-bold text-slate-300 mb-[7px]">
                 ☀️ {isRo ? '1. ILUMINARE & ATMOSFERĂ STUDIO' : '1. LIGHTING & ATMOSPHERE'}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+              <div className="grid grid-cols-2 gap-1.5">
                 {(
                   [
                     {
@@ -382,42 +277,33 @@ export default function PhotorealRenderModal({
                       label: isRo ? '🌙 Seară Showroom' : '🌙 Luxury Evening'
                     }
                   ] as { id: RenderAtmospherePreset; label: string }[]
-                ).map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    disabled={isRendering}
-                    onClick={() => updateRenderSetting('atmosphere', item.id, true)}
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: '9px',
-                      border:
-                        renderSettings.atmosphere === item.id
-                          ? '1px solid #f59e0b'
-                          : '1px solid rgba(255,255,255,0.1)',
-                      background:
-                        renderSettings.atmosphere === item.id
-                          ? 'rgba(245, 158, 11, 0.2)'
-                          : 'rgba(255,255,255,0.04)',
-                      color: renderSettings.atmosphere === item.id ? '#fde68a' : '#cbd5e1',
-                      fontSize: '11.5px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      textAlign: 'left'
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+                ).map((item) => {
+                  const active = renderSettings.atmosphere === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      disabled={isRendering}
+                      onClick={() => updateRenderSetting('atmosphere', item.id, true)}
+                      className={`px-2.5 py-2 rounded-[9px] border text-[11.5px] font-semibold cursor-pointer text-left transition ${
+                        active
+                          ? 'border-amber-500 bg-amber-500/20 text-amber-200'
+                          : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* 2. Backdrop & Floor */}
             <div>
-              <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#cbd5e1', marginBottom: '7px' }}>
+              <div className="text-[11.5px] font-bold text-slate-300 mb-[7px]">
                 🏛️ {isRo ? '2. AMBIENT CAMERĂ & PODEA' : '2. ROOM & FLOOR BACKDROP'}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+              <div className="grid grid-cols-2 gap-1.5">
                 {(
                   [
                     {
@@ -437,42 +323,33 @@ export default function PhotorealRenderModal({
                       label: isRo ? '🧱 Scena Actuală' : '🧱 Current Scene'
                     }
                   ] as { id: RenderBackdropMode; label: string }[]
-                ).map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    disabled={isRendering}
-                    onClick={() => updateRenderSetting('backdrop', item.id, true)}
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: '9px',
-                      border:
-                        renderSettings.backdrop === item.id
-                          ? '1px solid #38bdf8'
-                          : '1px solid rgba(255,255,255,0.1)',
-                      background:
-                        renderSettings.backdrop === item.id
-                          ? 'rgba(56, 189, 248, 0.18)'
-                          : 'rgba(255,255,255,0.04)',
-                      color: renderSettings.backdrop === item.id ? '#7dd3fc' : '#cbd5e1',
-                      fontSize: '11.5px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      textAlign: 'left'
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+                ).map((item) => {
+                  const active = renderSettings.backdrop === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      disabled={isRendering}
+                      onClick={() => updateRenderSetting('backdrop', item.id, true)}
+                      className={`px-2.5 py-2 rounded-[9px] border text-[11.5px] font-semibold cursor-pointer text-left transition ${
+                        active
+                          ? 'border-sky-400 bg-sky-400/18 text-sky-300'
+                          : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* 3. Resolution & Samples */}
             <div>
-              <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#cbd5e1', marginBottom: '7px' }}>
+              <div className="text-[11.5px] font-bold text-slate-300 mb-[7px]">
                 📐 {isRo ? '3. REZOLUȚIE & CALITATE UMBRE (SAMPLES)' : '3. RESOLUTION & SAMPLES'}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '8px' }}>
+              <div className="grid grid-cols-3 gap-1.5 mb-2">
                 {[
                   { label: 'Full HD 1080p', w: 1920, h: 1080 },
                   { label: '2K QHD', w: 2560, h: 1440 },
@@ -488,16 +365,11 @@ export default function PhotorealRenderModal({
                         const next = { ...renderSettings, width: res.w, height: res.h };
                         setRenderSettings(next);
                       }}
-                      style={{
-                        padding: '7px 6px',
-                        borderRadius: '8px',
-                        border: active ? '1px solid #a855f7' : '1px solid rgba(255,255,255,0.1)',
-                        background: active ? 'rgba(168, 85, 247, 0.22)' : 'rgba(255,255,255,0.04)',
-                        color: active ? '#e9d5ff' : '#cbd5e1',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
+                      className={`px-1.5 py-[7px] rounded-lg border text-[11px] font-semibold cursor-pointer transition ${
+                        active
+                          ? 'border-purple-500 bg-purple-500/22 text-purple-200'
+                          : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]'
+                      }`}
                     >
                       {res.label}
                     </button>
@@ -505,7 +377,7 @@ export default function PhotorealRenderModal({
                 })}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+              <div className="grid grid-cols-3 gap-1.5">
                 {[
                   { label: isRo ? '⚡ Rapid (12x)' : '⚡ Fast (12x)', s: 12 },
                   { label: isRo ? '✨ Studio (24x)' : '✨ Studio (24x)', s: 24 },
@@ -518,16 +390,11 @@ export default function PhotorealRenderModal({
                       type="button"
                       disabled={isRendering}
                       onClick={() => updateRenderSetting('samples', q.s, false)}
-                      style={{
-                        padding: '7px 6px',
-                        borderRadius: '8px',
-                        border: active ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
-                        background: active ? 'rgba(245, 158, 11, 0.22)' : 'rgba(255,255,255,0.04)',
-                        color: active ? '#fde68a' : '#cbd5e1',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
+                      className={`px-1.5 py-[7px] rounded-lg border text-[11px] font-semibold cursor-pointer transition ${
+                        active
+                          ? 'border-amber-500 bg-amber-500/22 text-amber-200'
+                          : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]'
+                      }`}
                     >
                       {q.label}
                     </button>
@@ -536,150 +403,96 @@ export default function PhotorealRenderModal({
               </div>
             </div>
 
-            {/* 4. Live Photographic Post-Processing Sliders */}
-            <div
-              style={{
-                padding: '12px',
-                borderRadius: '12px',
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#f8fafc' }}>
+            {/* 4. Live Photographic Post-Processing Sliders (Radix UI) */}
+            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] flex flex-col gap-2.5">
+              <div className="flex justify-between items-center">
+                <span className="text-[11.5px] font-bold text-slate-50">
                   🎚️ {isRo ? 'REGLAJE FOTO LIVE (INSTANT)' : 'LIVE PHOTO GRADING'}
                 </span>
                 <button
                   type="button"
                   onClick={() => setPostSettings(DEFAULT_POST_PROCESS)}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#38bdf8',
-                    fontSize: '11px',
-                    cursor: 'pointer'
-                  }}
+                  className="bg-transparent border-none text-sky-400 text-[11px] cursor-pointer hover:underline"
                 >
                   Reset
                 </button>
               </div>
 
-              {/* Exposure */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#cbd5e1' }}>
-                  <span>☀️ {isRo ? 'Expunere (Luminozitate)' : 'Exposure'}</span>
-                  <span>{Math.round(postSettings.exposure * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min={0.65}
-                  max={1.5}
-                  step={0.02}
-                  value={postSettings.exposure}
-                  onChange={(e) =>
-                    setPostSettings((p) => ({ ...p, exposure: parseFloat(e.target.value) }))
+              {(
+                [
+                  {
+                    key: 'exposure',
+                    label: `☀️ ${isRo ? 'Expunere (Luminozitate)' : 'Exposure'}`,
+                    min: 0.65,
+                    max: 1.5,
+                    step: 0.02,
+                    display: `${Math.round(postSettings.exposure * 100)}%`
+                  },
+                  {
+                    key: 'contrast',
+                    label: `🌗 ${isRo ? 'Contrast Filmic' : 'Filmic Contrast'}`,
+                    min: 0.85,
+                    max: 1.45,
+                    step: 0.02,
+                    display: `${Math.round(postSettings.contrast * 100)}%`
+                  },
+                  {
+                    key: 'warmth',
+                    label: `🌡️ ${isRo ? 'Balans de Alb (Rece ↔ Cald)' : 'Warmth Balance'}`,
+                    min: -35,
+                    max: 35,
+                    step: 1,
+                    display: postSettings.warmth > 0 ? `+${postSettings.warmth}` : `${postSettings.warmth}`
+                  },
+                  {
+                    key: 'saturation',
+                    label: `🎨 ${isRo ? 'Saturație Culori & Texturi' : 'Saturation'}`,
+                    min: 0.6,
+                    max: 1.45,
+                    step: 0.02,
+                    display: `${Math.round(postSettings.saturation * 100)}%`
+                  },
+                  {
+                    key: 'bloom',
+                    label: `✨ ${isRo ? 'Glow Lumină (Specular Bloom)' : 'Highlight Bloom'}`,
+                    min: 0,
+                    max: 0.85,
+                    step: 0.02,
+                    display: `${Math.round(postSettings.bloom * 100)}%`
+                  },
+                  {
+                    key: 'vignette',
+                    label: `📷 ${isRo ? 'Vignetare Obiectiv Foto' : 'Lens Vignette'}`,
+                    min: 0,
+                    max: 0.75,
+                    step: 0.02,
+                    display: `${Math.round(postSettings.vignette * 100)}%`
                   }
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              {/* Contrast */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#cbd5e1' }}>
-                  <span>🌗 {isRo ? 'Contrast Filmic' : 'Filmic Contrast'}</span>
-                  <span>{Math.round(postSettings.contrast * 100)}%</span>
+                ] as {
+                  key: keyof PostProcessSettings;
+                  label: string;
+                  min: number;
+                  max: number;
+                  step: number;
+                  display: string;
+                }[]
+              ).map((s) => (
+                <div key={s.key} className="space-y-1">
+                  <div className="flex justify-between text-[11px] text-slate-300">
+                    <span>{s.label}</span>
+                    <span>{s.display}</span>
+                  </div>
+                  <Slider
+                    min={s.min}
+                    max={s.max}
+                    step={s.step}
+                    value={[postSettings[s.key]]}
+                    onValueChange={([v]) =>
+                      setPostSettings((p) => ({ ...p, [s.key]: v }))
+                    }
+                  />
                 </div>
-                <input
-                  type="range"
-                  min={0.85}
-                  max={1.45}
-                  step={0.02}
-                  value={postSettings.contrast}
-                  onChange={(e) =>
-                    setPostSettings((p) => ({ ...p, contrast: parseFloat(e.target.value) }))
-                  }
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              {/* Warmth */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#cbd5e1' }}>
-                  <span>🌡️ {isRo ? 'Balans de Alb (Rece ↔ Cald)' : 'Warmth Balance'}</span>
-                  <span>{postSettings.warmth > 0 ? `+${postSettings.warmth}` : postSettings.warmth}</span>
-                </div>
-                <input
-                  type="range"
-                  min={-35}
-                  max={35}
-                  step={1}
-                  value={postSettings.warmth}
-                  onChange={(e) =>
-                    setPostSettings((p) => ({ ...p, warmth: parseInt(e.target.value, 10) }))
-                  }
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              {/* Saturation */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#cbd5e1' }}>
-                  <span>🎨 {isRo ? 'Saturație Culori & Texturi' : 'Saturation'}</span>
-                  <span>{Math.round(postSettings.saturation * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min={0.6}
-                  max={1.45}
-                  step={0.02}
-                  value={postSettings.saturation}
-                  onChange={(e) =>
-                    setPostSettings((p) => ({ ...p, saturation: parseFloat(e.target.value) }))
-                  }
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              {/* Specular Bloom */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#cbd5e1' }}>
-                  <span>✨ {isRo ? 'Glow Lumină (Specular Bloom)' : 'Highlight Bloom'}</span>
-                  <span>{Math.round(postSettings.bloom * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={0.85}
-                  step={0.02}
-                  value={postSettings.bloom}
-                  onChange={(e) =>
-                    setPostSettings((p) => ({ ...p, bloom: parseFloat(e.target.value) }))
-                  }
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              {/* Vignette */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#cbd5e1' }}>
-                  <span>📷 {isRo ? 'Vignetare Obiectiv Foto' : 'Lens Vignette'}</span>
-                  <span>{Math.round(postSettings.vignette * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={0.75}
-                  step={0.02}
-                  value={postSettings.vignette}
-                  onChange={(e) =>
-                    setPostSettings((p) => ({ ...p, vignette: parseFloat(e.target.value) }))
-                  }
-                  style={{ width: '100%' }}
-                />
-              </div>
+              ))}
             </div>
           </div>
         </div>
