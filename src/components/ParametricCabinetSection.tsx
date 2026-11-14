@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Slider } from './ui/slider';
 import {
   CABINET_ARCHETYPES,
   buildParametricCabinetHierarchy,
@@ -150,8 +151,8 @@ export default function ParametricCabinetSection({
   };
 
   return (
-    <div className="side-section" id="parametric-cabinet-studio">
-      <div className="section-title">
+    <div className="flex flex-col gap-3" id="parametric-cabinet-studio">
+      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
         <span>📐</span>
         <span>
           {isRo
@@ -162,7 +163,7 @@ export default function ParametricCabinetSection({
         </span>
       </div>
 
-      <div className="section-subtitle">
+      <div className="text-[11px] leading-relaxed text-slate-400">
         {isRo
           ? 'Configurează și adaugă corpuri modulare de bucătărie cu uși și sertare interactive, fără cunoștințe CAD.'
           : isRu
@@ -171,21 +172,14 @@ export default function ParametricCabinetSection({
       </div>
 
       {/* Archetype Selector Badges */}
-      <div className="control-group" style={{ marginTop: '10px' }}>
-        <label className="input-label">
+      <div>
+        <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400">
           {isRo ? '1. Alege Tipul de Corp:' : isRu ? '1. Выберите тип корпуса:' : '1. Choose Cabinet Type:'}
         </label>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '6px',
-            marginTop: '6px'
-          }}
-        >
+        <div className="mt-1.5 grid grid-cols-3 gap-1.5">
           {CABINET_ARCHETYPES.map((arch) => {
             const isSelected = arch.id === archetypeId;
-            const labels = {
+            const labels: Record<string, string> = {
               base_single_door: isRo ? 'Bază 1 Ușă' : isRu ? 'Низ 1Дв' : 'Base 1D',
               base_double_door: isRo ? 'Bază 2 Uși' : isRu ? 'Низ 2Дв' : 'Base 2D',
               base_drawers_3: isRo ? '3 Sertare' : isRu ? '3 Ящика' : '3 Drawers',
@@ -196,7 +190,7 @@ export default function ParametricCabinetSection({
               tall_column: isRo ? 'Coloană' : isRu ? 'Пенал' : 'Tall Unit',
               open_shelf: isRo ? 'Raft Deschis' : isRu ? 'Полка' : 'Open Shelf'
             };
-            const icons = {
+            const icons: Record<string, string> = {
               base_single_door: '🗄️',
               base_double_door: '🚪',
               base_drawers_3: '🗃️',
@@ -211,19 +205,15 @@ export default function ParametricCabinetSection({
             return (
               <button
                 key={arch.id}
+                type="button"
                 onClick={() => handleSelectArchetype(arch)}
-                className={`btn-pill ${isSelected ? 'active' : ''}`}
-                style={{
-                  fontSize: '11px',
-                  padding: '6px 4px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '2px',
-                  lineHeight: '1.2'
-                }}
+                className={`flex flex-col items-center gap-0.5 rounded-lg border px-1 py-1.5 text-[11px] leading-tight transition-colors cursor-pointer ${
+                  isSelected
+                    ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
+                    : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                }`}
               >
-                <span style={{ fontSize: '14px' }}>{icons[arch.id] || '📦'}</span>
+                <span className="text-sm">{icons[arch.id] || '📦'}</span>
                 <span>{labels[arch.id] || arch.id}</span>
               </button>
             );
@@ -232,117 +222,84 @@ export default function ParametricCabinetSection({
       </div>
 
       {/* Name Input */}
-      <div className="control-group" style={{ marginTop: '10px' }}>
-        <label className="input-label">
+      <div>
+        <label className="mb-1 block text-[11px] font-semibold text-slate-400">
           {isRo ? 'Nume Corp:' : isRu ? 'Название корпуса:' : 'Cabinet Name:'}
         </label>
         <input
           type="text"
           value={cabinetName}
           onChange={(e) => setCabinetName(e.target.value)}
-          className="search-input"
-          style={{ width: '100%', marginTop: '4px' }}
+          className="w-full rounded-lg border border-white/15 bg-slate-950/75 px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-sky-400"
         />
       </div>
 
-      {/* Dimension Sliders */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '8px',
-          marginTop: '10px'
-        }}
-      >
+      {/* Dimension Inputs */}
+      <div className="grid grid-cols-3 gap-2">
         <div>
-          <label className="input-label" style={{ fontSize: '11px' }}>
+          <label className="mb-1 block text-[11px] font-medium text-slate-400">
             {isRo ? 'Lățime' : isRu ? 'Ширина' : 'Width'}
           </label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div className="flex items-center gap-1">
             <input
               type="number"
               min="20"
               max="150"
               value={widthCm}
               onChange={(e) => setWidthCm(Number(e.target.value))}
-              style={{
-                width: '100%',
-                padding: '4px 6px',
-                borderRadius: '6px',
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                color: '#fff',
-                fontSize: '12px'
-              }}
+              className="w-full rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
             />
-            <span style={{ fontSize: '10px', color: '#94a3b8' }}>cm</span>
+            <span className="text-[10px] text-slate-400">cm</span>
           </div>
         </div>
 
         <div>
-          <label className="input-label" style={{ fontSize: '11px' }}>
+          <label className="mb-1 block text-[11px] font-medium text-slate-400">
             {isRo ? 'Înălțime' : isRu ? 'Высота' : 'Height'}
           </label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div className="flex items-center gap-1">
             <input
               type="number"
               min="30"
               max="260"
               value={heightCm}
               onChange={(e) => setHeightCm(Number(e.target.value))}
-              style={{
-                width: '100%',
-                padding: '4px 6px',
-                borderRadius: '6px',
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                color: '#fff',
-                fontSize: '12px'
-              }}
+              className="w-full rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
             />
-            <span style={{ fontSize: '10px', color: '#94a3b8' }}>cm</span>
+            <span className="text-[10px] text-slate-400">cm</span>
           </div>
         </div>
 
         <div>
-          <label className="input-label" style={{ fontSize: '11px' }}>
+          <label className="mb-1 block text-[11px] font-medium text-slate-400">
             {isRo ? 'Adâncime' : isRu ? 'Глубина' : 'Depth'}
           </label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div className="flex items-center gap-1">
             <input
               type="number"
               min="20"
               max="90"
               value={depthCm}
               onChange={(e) => setDepthCm(Number(e.target.value))}
-              style={{
-                width: '100%',
-                padding: '4px 6px',
-                borderRadius: '6px',
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                color: '#fff',
-                fontSize: '12px'
-              }}
+              className="w-full rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
             />
-            <span style={{ fontSize: '10px', color: '#94a3b8' }}>cm</span>
+            <span className="text-[10px] text-slate-400">cm</span>
           </div>
         </div>
       </div>
 
       {/* Quick Standard Sizes */}
-      <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
+      <div className="flex flex-wrap gap-1">
         {[30, 40, 45, 50, 60, 80, 90].map((sz) => (
           <button
             key={sz}
+            type="button"
             onClick={() => setWidthCm(sz)}
-            className="btn-pill"
-            style={{
-              padding: '2px 6px',
-              fontSize: '10px',
-              opacity: widthCm === sz ? 1 : 0.65,
-              borderColor: widthCm === sz ? '#38bdf8' : 'rgba(255,255,255,0.1)'
-            }}
+            className={`rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors cursor-pointer ${
+              widthCm === sz
+                ? 'border-sky-400 bg-sky-500/20 text-sky-300'
+                : 'border-white/10 bg-white/5 text-slate-400 hover:text-slate-200'
+            }`}
           >
             {sz}cm
           </button>
@@ -350,63 +307,44 @@ export default function ParametricCabinetSection({
       </div>
 
       {/* Shelves & Plinth */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '8px',
-          marginTop: '10px'
-        }}
-      >
-        <div>
-          <label className="input-label" style={{ fontSize: '11px' }}>
-            {isRo ? 'Număr Polițe:' : isRu ? 'Полок:' : 'Shelves:'} {shelvesCount}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] text-slate-300">
+            {isRo ? 'Număr Polițe:' : isRu ? 'Полок:' : 'Shelves:'}{' '}
+            <strong className="text-sky-400">{shelvesCount}</strong>
           </label>
-          <input
-            type="range"
-            min="0"
-            max="5"
-            step="1"
-            value={shelvesCount}
-            onChange={(e) => setShelvesCount(Number(e.target.value))}
-            style={{ width: '100%', accentColor: '#38bdf8' }}
+          <Slider
+            min={0}
+            max={5}
+            step={1}
+            value={[shelvesCount]}
+            onValueChange={(vals) => setShelvesCount(vals[0] ?? 0)}
           />
         </div>
 
-        <div>
-          <label className="input-label" style={{ fontSize: '11px' }}>
-            {isRo ? 'Soclu / Plintă:' : isRu ? 'Цоколь:' : 'Plinth:'} {plinthHeightCm}cm
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] text-slate-300">
+            {isRo ? 'Soclu / Plintă:' : isRu ? 'Цоколь:' : 'Plinth:'}{' '}
+            <strong className="text-sky-400">{plinthHeightCm}cm</strong>
           </label>
-          <input
-            type="range"
-            min="0"
-            max="15"
-            step="5"
-            value={plinthHeightCm}
-            onChange={(e) => setPlinthHeightCm(Number(e.target.value))}
-            style={{ width: '100%', accentColor: '#38bdf8' }}
+          <Slider
+            min={0}
+            max={15}
+            step={5}
+            value={[plinthHeightCm]}
+            onValueChange={(vals) => setPlinthHeightCm(vals[0] ?? 0)}
           />
         </div>
       </div>
 
       {/* Add Button */}
       <button
-        className="btn-primary"
+        type="button"
         onClick={handleAddCabinet}
         disabled={generating}
-        style={{
-          width: '100%',
-          marginTop: '12px',
-          padding: '10px',
-          fontSize: '13px',
-          fontWeight: 600,
-          background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-          color: '#ffffff',
-          borderRadius: '8px',
-          border: 'none',
-          boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)',
-          cursor: generating ? 'wait' : 'pointer'
-        }}
+        className={`mt-1 w-full rounded-lg bg-gradient-to-br from-sky-600 to-sky-700 p-2.5 text-[13px] font-semibold text-white shadow-[0_4px_12px_rgba(2,132,199,0.35)] hover:brightness-110 transition ${
+          generating ? 'cursor-wait opacity-70' : 'cursor-pointer'
+        }`}
       >
         {generating
           ? (isRo ? '⏳ Se generează...' : isRu ? '⏳ Генерация...' : '⏳ Generating...')
@@ -414,40 +352,16 @@ export default function ParametricCabinetSection({
       </button>
 
       {/* Production & Workshop Export Tools */}
-      <div
-        style={{
-          marginTop: '14px',
-          padding: '10px',
-          background: 'rgba(255,255,255,0.03)',
-          borderRadius: '8px',
-          border: '1px solid rgba(255,255,255,0.08)'
-        }}
-      >
-        <div
-          style={{
-            fontSize: '11px',
-            fontWeight: 600,
-            color: '#38bdf8',
-            marginBottom: '8px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em'
-          }}
-        >
+      <div className="mt-1 rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-sky-400">
           {isRo ? 'Producție & Export Atelier (CAD / CNC)' : isRu ? 'Экспорт для производства' : 'Production & Workshop Export'}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div className="flex flex-col gap-1.5">
           <button
-            className="btn-secondary"
+            type="button"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
             onClick={handleExportAllCuttingLists}
-            style={{
-              padding: '7px 10px',
-              fontSize: '11px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px'
-            }}
           >
             <span>📐</span>
             <span>
@@ -461,16 +375,9 @@ export default function ParametricCabinetSection({
 
           {onCaptureScreenshot && (
             <button
-              className="btn-secondary"
+              type="button"
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={onCaptureScreenshot}
-              style={{
-                padding: '7px 10px',
-                fontSize: '11px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
-              }}
             >
               <span>📸</span>
               <span>

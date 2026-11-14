@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { Slider } from './ui/slider';
+import { Switch } from './ui/switch';
 import {
   RoomConfig,
   ArchitecturalOpening,
@@ -109,8 +111,8 @@ export default function ArchitecturalRoomSection({
   };
 
   return (
-    <div className="side-section" id="architectural-room-studio">
-      <div className="section-title">
+    <div className="flex flex-col gap-3.5" id="architectural-room-studio">
+      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
         <span>🏠</span>
         <span>
           {isRo
@@ -121,7 +123,7 @@ export default function ArchitecturalRoomSection({
         </span>
       </div>
 
-      <div className="section-subtitle">
+      <div className="text-[11px] leading-relaxed text-slate-400">
         {isRo
           ? 'Proiectează spațiul arhitectural de la 0: dimensiuni pereți, goluri uși/ferestre, parchet, gresie și schiță 2D a locuinței.'
           : isRu
@@ -133,8 +135,7 @@ export default function ArchitecturalRoomSection({
       {onOpen2DPlanView && (
         <button
           type="button"
-          className="btn-primary"
-          style={{ width: '100%', marginBottom: '14px', padding: '10px' }}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 p-2.5 text-xs font-bold text-slate-950 shadow-sm hover:brightness-110 transition cursor-pointer"
           onClick={onOpen2DPlanView}
         >
           <span>📐</span>
@@ -143,25 +144,31 @@ export default function ArchitecturalRoomSection({
       )}
 
       {/* 3D Space & Walls Visibility Toggles */}
-      <div style={{ marginBottom: '14px', background: 'rgba(30, 41, 59, 0.5)', padding: '10px', borderRadius: '8px', border: '1px solid #334155' }}>
-        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase' }}>
+      <div className="rounded-lg border border-slate-700/80 bg-slate-800/50 p-2.5">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
           {isRo ? 'Vizibilitate Spațiu 3D:' : isRu ? 'Отображение в 3D:' : '3D Space Visibility:'}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            className={`btn-pill ${roomConfig.showWalls ? 'active' : ''}`}
+            className={`flex items-center justify-center gap-1.5 rounded-md border px-2.5 py-2 text-xs font-medium transition-colors cursor-pointer ${
+              roomConfig.showWalls
+                ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
+                : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+            }`}
             onClick={() => updateConfig({ showWalls: !roomConfig.showWalls })}
-            style={{ padding: '8px 10px', borderRadius: '6px', textAlign: 'center' }}
           >
             <span>🧱</span>
             <span>{roomConfig.showWalls ? (isRo ? 'Pereți 3D: ON' : 'Walls 3D: ON') : (isRo ? 'Pereți 3D: OFF' : 'Walls 3D: OFF')}</span>
           </button>
           <button
             type="button"
-            className={`btn-pill ${roomConfig.showFloor ? 'active' : ''}`}
+            className={`flex items-center justify-center gap-1.5 rounded-md border px-2.5 py-2 text-xs font-medium transition-colors cursor-pointer ${
+              roomConfig.showFloor
+                ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
+                : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+            }`}
             onClick={() => updateConfig({ showFloor: !roomConfig.showFloor })}
-            style={{ padding: '8px 10px', borderRadius: '6px', textAlign: 'center' }}
           >
             <span>🪵</span>
             <span>{roomConfig.showFloor ? (isRo ? 'Pardoseală: ON' : 'Floor: ON') : (isRo ? 'Pardoseală: OFF' : 'Floor: OFF')}</span>
@@ -170,17 +177,16 @@ export default function ArchitecturalRoomSection({
       </div>
 
       {/* Quick Presets */}
-      <div style={{ marginBottom: '14px' }}>
-        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', marginBottom: '6px', textTransform: 'uppercase' }}>
+      <div>
+        <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
           {isRo ? 'Șabloane Rapide Dimensiuni:' : isRu ? 'Быстрые шаблоны комнат:' : 'Quick Room Presets:'}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+        <div className="grid grid-cols-2 gap-1.5">
           {ROOM_PRESETS.map((p, idx) => (
             <button
               key={idx}
               type="button"
-              className="btn-pill"
-              style={{ padding: '6px 8px', textAlign: 'left', fontSize: '0.72rem' }}
+              className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-left text-[11px] font-semibold text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={() =>
                 updateConfig({
                   widthCm: p.widthCm,
@@ -189,137 +195,127 @@ export default function ArchitecturalRoomSection({
                 })
               }
             >
-              <div style={{ fontWeight: 600, color: '#e2e8f0' }}>{isRo ? p.nameRo : isRu ? p.nameRu : p.nameEn}</div>
+              {isRo ? p.nameRo : isRu ? p.nameRu : p.nameEn}
             </button>
           ))}
         </div>
       </div>
 
       {/* Room Dimensions */}
-      <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>
+      <div className="flex flex-col gap-3">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
           {isRo ? '1. Dimensiuni Încăpere (cm):' : isRu ? '1. Размеры комнаты (см):' : '1. Room Dimensions (cm):'}
         </div>
 
-        <div className="slider-row">
-          <div className="slider-header">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between text-xs text-slate-300">
             <span>{isRo ? 'Lățime Cameră (Axa X):' : 'Room Width (X):'}</span>
-            <strong style={{ color: '#38bdf8' }}>{roomConfig.widthCm} cm ({(roomConfig.widthCm / 100).toFixed(2)} m)</strong>
+            <strong className="font-mono text-sky-400">{roomConfig.widthCm} cm ({(roomConfig.widthCm / 100).toFixed(2)} m)</strong>
           </div>
-          <input
-            type="range"
-            min="200"
-            max="1200"
-            step="10"
-            value={roomConfig.widthCm}
-            onChange={(e) => updateConfig({ widthCm: Number(e.target.value) })}
-            className="styled-slider"
+          <Slider
+            min={200}
+            max={1200}
+            step={10}
+            value={[roomConfig.widthCm]}
+            onValueChange={(vals) => updateConfig({ widthCm: vals[0] ?? 200 })}
           />
         </div>
 
-        <div className="slider-row">
-          <div className="slider-header">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between text-xs text-slate-300">
             <span>{isRo ? 'Lungime Cameră (Axa Z):' : 'Room Length (Z):'}</span>
-            <strong style={{ color: '#38bdf8' }}>{roomConfig.lengthCm} cm ({(roomConfig.lengthCm / 100).toFixed(2)} m)</strong>
+            <strong className="font-mono text-sky-400">{roomConfig.lengthCm} cm ({(roomConfig.lengthCm / 100).toFixed(2)} m)</strong>
           </div>
-          <input
-            type="range"
-            min="200"
-            max="1500"
-            step="10"
-            value={roomConfig.lengthCm}
-            onChange={(e) => updateConfig({ lengthCm: Number(e.target.value) })}
-            className="styled-slider"
+          <Slider
+            min={200}
+            max={1500}
+            step={10}
+            value={[roomConfig.lengthCm]}
+            onValueChange={(vals) => updateConfig({ lengthCm: vals[0] ?? 200 })}
           />
         </div>
 
-        <div className="slider-row">
-          <div className="slider-header">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between text-xs text-slate-300">
             <span>{isRo ? 'Înălțime Tavan (Axa Y):' : 'Ceiling Height (Y):'}</span>
-            <strong style={{ color: '#38bdf8' }}>{roomConfig.heightCm} cm ({(roomConfig.heightCm / 100).toFixed(2)} m)</strong>
+            <strong className="font-mono text-sky-400">{roomConfig.heightCm} cm ({(roomConfig.heightCm / 100).toFixed(2)} m)</strong>
           </div>
-          <input
-            type="range"
-            min="220"
-            max="450"
-            step="5"
-            value={roomConfig.heightCm}
-            onChange={(e) => updateConfig({ heightCm: Number(e.target.value) })}
-            className="styled-slider"
+          <Slider
+            min={220}
+            max={450}
+            step={5}
+            value={[roomConfig.heightCm]}
+            onValueChange={(vals) => updateConfig({ heightCm: vals[0] ?? 220 })}
           />
         </div>
 
-        <div className="slider-row">
-          <div className="slider-header">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between text-xs text-slate-300">
             <span>{isRo ? 'Grosime Pereți:' : 'Wall Thickness:'}</span>
-            <strong style={{ color: '#38bdf8' }}>{roomConfig.wallThicknessCm} cm</strong>
+            <strong className="font-mono text-sky-400">{roomConfig.wallThicknessCm} cm</strong>
           </div>
-          <input
-            type="range"
-            min="10"
-            max="40"
-            step="5"
-            value={roomConfig.wallThicknessCm}
-            onChange={(e) => updateConfig({ wallThicknessCm: Number(e.target.value) })}
-            className="styled-slider"
+          <Slider
+            min={10}
+            max={40}
+            step={5}
+            value={[roomConfig.wallThicknessCm]}
+            onValueChange={(vals) => updateConfig({ wallThicknessCm: vals[0] ?? 10 })}
           />
         </div>
       </div>
 
       {/* Surface Finishes: Flooring & Wall Color */}
-      <div style={{ marginBottom: '16px' }}>
-        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase' }}>
+      <div>
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
           {isRo ? '2. Finisaj Pardoseală:' : isRu ? '2. Напольное покрытие:' : '2. Flooring Material:'}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+        <div className="grid grid-cols-2 gap-1.5">
           {FLOOR_FINISHES.map((f) => {
             const active = roomConfig.floorFinish === f.id;
             return (
               <button
                 key={f.id}
                 type="button"
-                className={`btn-pill ${active ? 'active' : ''}`}
-                style={{ padding: '8px 10px', textAlign: 'left', borderRadius: '8px' }}
+                className={`rounded-lg border px-2.5 py-2 text-left text-xs font-semibold transition-colors cursor-pointer ${
+                  active
+                    ? 'border-sky-400/60 bg-sky-500/15 text-sky-400'
+                    : 'border-white/10 bg-white/5 text-slate-100 hover:bg-white/10'
+                }`}
                 onClick={() => updateConfig({ floorFinish: f.id as any })}
               >
-                <div style={{ fontSize: '0.76rem', fontWeight: 600, color: active ? '#38bdf8' : '#f1f5f9' }}>
-                  {isRo ? f.nameRo : isRu ? f.nameRu : f.nameEn}
-                </div>
+                {isRo ? f.nameRo : isRu ? f.nameRu : f.nameEn}
               </button>
             );
           })}
         </div>
 
         {/* Baseboard Toggle */}
-        <label className="toggle-label-box" style={{ marginTop: '10px' }}>
-          <input
-            type="checkbox"
-            checked={roomConfig.showBaseboards !== false}
-            onChange={(e) => updateConfig({ showBaseboards: e.target.checked })}
-          />
+        <label className="mt-2.5 flex cursor-pointer items-center justify-between rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-xs text-slate-200">
           <span>{isRo ? 'Plintă Perimetrală Pardoseală (80mm)' : 'Floor Baseboard (80mm)'}</span>
+          <Switch
+            checked={roomConfig.showBaseboards !== false}
+            onCheckedChange={(checked) => updateConfig({ showBaseboards: checked })}
+          />
         </label>
       </div>
 
       {/* Wall Paint Color */}
-      <div style={{ marginBottom: '16px' }}>
-        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase' }}>
+      <div>
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
           {isRo ? '3. Culoare Lavabilă Pereți:' : isRu ? '3. Цвет стен:' : '3. Wall Paint Color:'}
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div className="flex items-center gap-2">
           {WALL_COLORS.map((c) => (
             <button
               key={c.hex}
               type="button"
               onClick={() => updateConfig({ wallColor: c.hex })}
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                backgroundColor: c.hex,
-                border: roomConfig.wallColor === c.hex ? '3px solid #38bdf8' : '2px solid #475569',
-                cursor: 'pointer'
-              }}
+              className={`h-8 w-8 rounded-full transition-transform hover:scale-105 cursor-pointer ${
+                roomConfig.wallColor === c.hex
+                  ? 'border-[3px] border-sky-400'
+                  : 'border-2 border-slate-600'
+              }`}
+              style={{ backgroundColor: c.hex }}
               title={c.name}
             />
           ))}
@@ -327,31 +323,29 @@ export default function ArchitecturalRoomSection({
             type="color"
             value={roomConfig.wallColor}
             onChange={(e) => updateConfig({ wallColor: e.target.value })}
-            style={{ width: '36px', height: '36px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: 'transparent' }}
+            className="h-9 w-9 cursor-pointer rounded-md border-0 bg-transparent"
             title="Custom Wall Color"
           />
         </div>
       </div>
 
       {/* Openings Manager (Doors & Windows) */}
-      <div style={{ marginBottom: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
             🚪 {isRo ? `Goluri Uși & Ferestre (${(roomConfig.openings || []).length})` : `Openings (${(roomConfig.openings || []).length})`}
           </div>
-          <div style={{ display: 'flex', gap: '4px' }}>
+          <div className="flex gap-1">
             <button
               type="button"
-              className="btn-secondary"
-              style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+              className="rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={handleAddDoor}
             >
               ➕ {isRo ? 'Ușă' : 'Door'}
             </button>
             <button
               type="button"
-              className="btn-secondary"
-              style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+              className="rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={handleAddWindow}
             >
               ➕ {isRo ? 'Fereastră' : 'Window'}
@@ -362,33 +356,24 @@ export default function ArchitecturalRoomSection({
         {(roomConfig.openings || []).map((op, idx) => (
           <div
             key={op.id || idx}
-            style={{
-              background: 'rgba(15, 23, 42, 0.6)',
-              border: '1px solid #334155',
-              borderRadius: '6px',
-              padding: '8px 10px',
-              marginBottom: '6px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px'
-            }}
+            className="mb-1.5 flex flex-col gap-1.5 rounded-md border border-slate-700/80 bg-slate-900/60 px-2.5 py-2"
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#f8fafc' }}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-50">
                 {op.type === 'door' ? '🚪 Ușă' : '🪟 Fereastră'} #{idx + 1} ({op.wallSide})
               </span>
               <button
                 type="button"
                 onClick={() => handleRemoveOpening(op.id)}
-                style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem' }}
+                className="rounded px-1 text-xs text-red-400 hover:bg-red-500/15 cursor-pointer"
                 title="Remove Opening"
               >
                 ✕
               </button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', fontSize: '0.7rem' }}>
+            <div className="grid grid-cols-3 gap-1.5 text-[11px]">
               <div>
-                <label style={{ color: '#94a3b8', display: 'block' }}>Perete:</label>
+                <label className="mb-0.5 block text-slate-400">Perete:</label>
                 <select
                   value={op.wallSide}
                   onChange={(e) => {
@@ -396,8 +381,7 @@ export default function ArchitecturalRoomSection({
                     ops[idx].wallSide = e.target.value as any;
                     updateConfig({ openings: ops });
                   }}
-                  className="param-input"
-                  style={{ fontSize: '0.7rem', padding: '2px 4px' }}
+                  className="w-full rounded border border-white/15 bg-slate-950/75 px-1.5 py-0.5 text-[11px] text-slate-100 outline-none focus:border-sky-400"
                 >
                   <option value="front">Frontal</option>
                   <option value="back">Spate</option>
@@ -406,7 +390,7 @@ export default function ArchitecturalRoomSection({
                 </select>
               </div>
               <div>
-                <label style={{ color: '#94a3b8', display: 'block' }}>Distanță (cm):</label>
+                <label className="mb-0.5 block text-slate-400">Distanță (cm):</label>
                 <input
                   type="number"
                   value={op.distanceCm}
@@ -415,12 +399,11 @@ export default function ArchitecturalRoomSection({
                     ops[idx].distanceCm = Number(e.target.value);
                     updateConfig({ openings: ops });
                   }}
-                  className="param-input"
-                  style={{ fontSize: '0.7rem', padding: '2px 4px' }}
+                  className="w-full rounded border border-white/15 bg-slate-950/75 px-1.5 py-0.5 text-[11px] text-slate-100 outline-none focus:border-sky-400"
                 />
               </div>
               <div>
-                <label style={{ color: '#94a3b8', display: 'block' }}>Lățime (cm):</label>
+                <label className="mb-0.5 block text-slate-400">Lățime (cm):</label>
                 <input
                   type="number"
                   value={op.widthCm}
@@ -429,8 +412,7 @@ export default function ArchitecturalRoomSection({
                     ops[idx].widthCm = Number(e.target.value);
                     updateConfig({ openings: ops });
                   }}
-                  className="param-input"
-                  style={{ fontSize: '0.7rem', padding: '2px 4px' }}
+                  className="w-full rounded border border-white/15 bg-slate-950/75 px-1.5 py-0.5 text-[11px] text-slate-100 outline-none focus:border-sky-400"
                 />
               </div>
             </div>

@@ -45,8 +45,8 @@ export default function ApplianceCatalogSection({
   };
 
   return (
-    <div className="side-section" id="appliance-catalog-studio">
-      <div className="section-title">
+    <div className="flex flex-col gap-3" id="appliance-catalog-studio">
+      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
         <span>🍳</span>
         <span>
           {isRo
@@ -57,7 +57,7 @@ export default function ApplianceCatalogSection({
         </span>
       </div>
 
-      <div className="section-subtitle">
+      <div className="text-[11px] leading-relaxed text-slate-400">
         {isRo
           ? 'Catalog complet de electrocasnice încorporabile cu geometrie CAD 3D, cote de nișă și racorduri tehnice (electricitate & sanitare).'
           : isRu
@@ -66,63 +66,61 @@ export default function ApplianceCatalogSection({
       </div>
 
       {/* Category Filter Pills */}
-      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '6px', marginBottom: '12px' }}>
+      <div className="flex gap-1.5 overflow-x-auto pb-1.5">
         {[
           { id: 'all', label: isRo ? 'Toate' : isRu ? 'Все' : 'All' },
           { id: 'cooking', label: isRo ? 'Gătit' : isRu ? 'Приготовление' : 'Cooking' },
           { id: 'cleaning', label: isRo ? 'Spălare' : isRu ? 'Мойки & Посуда' : 'Cleaning' },
           { id: 'cooling', label: isRo ? 'Frigidere' : isRu ? 'Холод' : 'Cooling' },
           { id: 'ventilation', label: isRo ? 'Hote' : isRu ? 'Вытяжки' : 'Ventilation' }
-        ].map((cat) => (
-          <button
-            key={cat.id}
-            type="button"
-            className={`btn-pill ${activeCategory === cat.id ? 'active' : ''}`}
-            style={{ fontSize: '0.72rem', padding: '5px 10px', whiteSpace: 'nowrap' }}
-            onClick={() => setActiveCategory(cat.id as any)}
-          >
-            {cat.label}
-          </button>
-        ))}
+        ].map((cat) => {
+          const isActive = activeCategory === cat.id;
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-1 text-[11.5px] font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                isActive
+                  ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
+                  : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+              }`}
+              onClick={() => setActiveCategory(cat.id as any)}
+            >
+              {cat.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Catalog Grid */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+      <div className="flex flex-col gap-2.5 mb-2">
         {filteredCatalog.map((item) => {
           const currentFinish = selectedFinishes[item.type] || item.finishes[0] || 'Standard';
           return (
             <div
               key={item.type}
-              style={{
-                background: 'rgba(15, 23, 42, 0.65)',
-                border: '1px solid #334155',
-                borderRadius: '8px',
-                padding: '10px 12px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
-              }}
+              className="flex flex-col gap-2 rounded-lg border border-slate-700/80 bg-slate-900/65 px-3 py-2.5"
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div className="flex items-start justify-between gap-2">
                 <div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc' }}>
+                  <div className="text-[13px] font-bold text-slate-50">
                     {isRo ? item.nameRo : isRu ? item.nameRu : item.nameEn}
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>
+                  <div className="mt-0.5 text-[11px] text-slate-400">
                     Cote aparat: {item.defaultDimensions.width}×{item.defaultDimensions.depth}×{item.defaultDimensions.height} mm
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: '#38bdf8' }}>
+                  <div className="text-[11px] text-sky-400">
                     Nișă necesară: {item.nicheDimensions.width}×{item.nicheDimensions.depth}×{item.nicheDimensions.height} mm
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
+                <div className="flex shrink-0 flex-wrap justify-end gap-1 text-right">
                   {item.powerKw > 0 && (
-                    <span style={{ fontSize: '0.7rem', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                    <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[11px] font-semibold text-red-400">
                       ⚡ {item.powerKw} kW
                     </span>
                   )}
                   {item.waterSupply && (
-                    <span style={{ fontSize: '0.7rem', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', padding: '2px 6px', borderRadius: '4px', marginLeft: '4px', fontWeight: 600 }}>
+                    <span className="rounded bg-sky-500/20 px-1.5 py-0.5 text-[11px] font-semibold text-sky-400">
                       💧 Apă
                     </span>
                   )}
@@ -130,13 +128,12 @@ export default function ApplianceCatalogSection({
               </div>
 
               {/* Finishes and Add button */}
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div className="flex items-center gap-2">
                 {item.finishes.length > 1 && (
                   <select
                     value={currentFinish}
                     onChange={(e) => handleFinishChange(item.type, e.target.value)}
-                    className="param-input"
-                    style={{ fontSize: '0.72rem', flex: 1, padding: '4px 6px' }}
+                    className="flex-1 rounded-md border border-white/10 bg-slate-950/70 px-2 py-1 text-[11.5px] text-slate-100 outline-none focus:border-sky-400"
                   >
                     {item.finishes.map((f) => (
                       <option key={f} value={f}>
@@ -148,8 +145,7 @@ export default function ApplianceCatalogSection({
 
                 <button
                   type="button"
-                  className="btn-primary"
-                  style={{ padding: '6px 12px', fontSize: '0.74rem', marginLeft: 'auto' }}
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 px-3 py-1.5 text-[11.5px] font-semibold text-slate-950 shadow-sm hover:brightness-110 transition cursor-pointer"
                   onClick={() => onAddAppliance(item, currentFinish)}
                 >
                   <span>➕</span>
@@ -162,42 +158,37 @@ export default function ApplianceCatalogSection({
       </div>
 
       {/* Installed Appliances in Project */}
-      <div className="bom-metrics-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f8fafc' }}>
+      <div className="rounded-xl border border-white/10 bg-slate-900/60 p-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <span className="text-xs font-bold text-slate-50">
             ⚡ {isRo ? `Electrocasnice în Proiect (${appliances.length})` : `Appliances in Scene (${appliances.length})`}
           </span>
-          <span style={{ fontSize: '0.72rem', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', padding: '2px 6px', borderRadius: '4px' }}>
+          <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-medium text-amber-300">
             Consum Total: {totalPowerKw} kW
           </span>
         </div>
 
         {appliances.length === 0 ? (
-          <div style={{ fontSize: '0.72rem', color: '#64748b', fontStyle: 'italic', padding: '6px 0' }}>
+          <div className="py-1.5 text-[11.5px] italic text-slate-500">
             {isRo ? 'Niciun aparat electrocasnic adăugat în scenă încă.' : 'No appliances added to the scene yet.'}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+          <div className="flex max-h-[180px] flex-col gap-1.5 overflow-y-auto pr-0.5">
             {appliances.map((app) => {
               const isSelected = selectedApplianceId === app.id;
               return (
                 <div
                   key={app.id}
                   onClick={() => onSelectAppliance(app.id)}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(30, 41, 59, 0.6)',
-                    border: isSelected ? '1px solid #38bdf8' : '1px solid #334155',
-                    borderRadius: '6px',
-                    padding: '6px 8px',
-                    cursor: 'pointer'
-                  }}
+                  className={`flex cursor-pointer items-center justify-between rounded-md border px-2 py-1.5 transition-colors ${
+                    isSelected
+                      ? 'border-sky-400 bg-sky-500/20'
+                      : 'border-slate-700/80 bg-slate-800/60 hover:border-slate-600'
+                  }`}
                 >
                   <div>
-                    <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#f8fafc' }}>{app.name}</div>
-                    <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>
+                    <div className="text-xs font-semibold text-slate-50">{app.name}</div>
+                    <div className="text-[10.5px] text-slate-400">
                       {app.finish} • {app.powerKw > 0 ? `${app.powerKw} kW` : 'Instalație'}
                     </div>
                   </div>
@@ -207,7 +198,7 @@ export default function ApplianceCatalogSection({
                       e.stopPropagation();
                       onDeleteAppliance(app.id);
                     }}
-                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', padding: '2px 6px' }}
+                    className="rounded px-1.5 py-0.5 text-xs text-red-400 hover:bg-red-500/15 hover:text-red-300 transition-colors cursor-pointer"
                     title="Remove Appliance"
                   >
                     ✕

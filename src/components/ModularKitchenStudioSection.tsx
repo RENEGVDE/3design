@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { Slider } from './ui/slider';
+import { Switch } from './ui/switch';
 import {
   KITCHEN_LAYOUT_TYPES,
   buildModularKitchenComposition
@@ -148,8 +150,8 @@ export default function ModularKitchenStudioSection({
   };
 
   return (
-    <div className="side-section" id="modular-kitchen-studio">
-      <div className="section-title">
+    <div className="flex flex-col gap-3.5" id="modular-kitchen-studio">
+      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
         <span>🏛️</span>
         <span>
           {isRo
@@ -160,7 +162,7 @@ export default function ModularKitchenStudioSection({
         </span>
       </div>
 
-      <div className="section-subtitle">
+      <div className="text-[11px] leading-relaxed text-slate-400">
         {isRo
           ? 'Proiectează bucătării complete de orice formă (L-Colț, Peninsulă, Liniară, Formă de U) cu blat continuu, electrocasnice și listă tehnică de panouri.'
           : isRu
@@ -169,32 +171,28 @@ export default function ModularKitchenStudioSection({
       </div>
 
       {/* Layout Selection */}
-      <div style={{ marginBottom: '14px' }}>
-        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase' }}>
+      <div>
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
           {isRo ? '1. Configurație Spațială:' : isRu ? '1. Конфигурация помещения:' : '1. Spatial Layout:'}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <div className="grid grid-cols-2 gap-2">
           {KITCHEN_LAYOUT_TYPES.map((t) => {
             const isSelected = layoutType === t.id;
             return (
               <button
                 key={t.id}
                 type="button"
-                className={`btn-pill ${isSelected ? 'active' : ''}`}
-                style={{
-                  padding: '8px 10px',
-                  textAlign: 'left',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2px',
-                  borderRadius: '8px'
-                }}
+                className={`flex flex-col gap-0.5 rounded-lg border px-2.5 py-2 text-left transition-colors cursor-pointer ${
+                  isSelected
+                    ? 'border-sky-400/60 bg-sky-500/15'
+                    : 'border-white/10 bg-white/5 hover:bg-white/10'
+                }`}
                 onClick={() => setLayoutType(t.id)}
               >
-                <strong style={{ fontSize: '0.8rem', color: isSelected ? '#38bdf8' : '#f8fafc' }}>
+                <strong className={`text-[13px] ${isSelected ? 'text-sky-400' : 'text-slate-50'}`}>
                   {isRo ? t.nameRo : isRu ? t.nameRu : t.nameEn}
                 </strong>
-                <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                <span className="text-[11px] text-slate-400">
                   {t.hasPeninsula ? (isRo ? 'Cu Peninsulă / Bar' : 'With Peninsula') : (isRo ? 'Standard de Perete' : 'Wall Standard')}
                 </span>
               </button>
@@ -204,163 +202,138 @@ export default function ModularKitchenStudioSection({
       </div>
 
       {/* Parametric Dimension Sliders */}
-      <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>
+      <div className="flex flex-col gap-3">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
           {isRo ? '2. Dimensiuni Perete & Înălțime:' : isRu ? '2. Размеры стен и потолка:' : '2. Wall Dimensions & Ceiling:'}
         </div>
 
         {/* Main Wall Width */}
-        <div className="slider-row">
-          <div className="slider-header">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between text-xs text-slate-300">
             <span>{isRo ? 'Perete Principal (Lățime):' : isRu ? 'Основная стена (Длина):' : 'Main Wall Width:'}</span>
-            <strong style={{ color: '#38bdf8' }}>{mainWallWidthCm} cm</strong>
+            <strong className="font-mono text-sky-400">{mainWallWidthCm} cm</strong>
           </div>
-          <input
-            type="range"
-            min="200"
-            max="600"
-            step="10"
-            value={mainWallWidthCm}
-            onChange={(e) => setMainWallWidthCm(Number(e.target.value))}
-            className="styled-slider"
+          <Slider
+            min={200}
+            max={600}
+            step={10}
+            value={[mainWallWidthCm]}
+            onValueChange={(vals) => setMainWallWidthCm(vals[0] ?? 200)}
           />
         </div>
 
         {/* Return Wall Depth (for L and U) */}
         {(layoutType === 'l_corner' || layoutType === 'l_peninsula' || layoutType === 'u_shape') && (
-          <div className="slider-row">
-            <div className="slider-header">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between text-xs text-slate-300">
               <span>{isRo ? 'Perete Secundar / Colț (Adâncime):' : isRu ? 'Угловая стена (Глубина):' : 'Return Wall Depth:'}</span>
-              <strong style={{ color: '#38bdf8' }}>{returnWallDepthCm} cm</strong>
+              <strong className="font-mono text-sky-400">{returnWallDepthCm} cm</strong>
             </div>
-            <input
-              type="range"
-              min="120"
-              max="400"
-              step="10"
-              value={returnWallDepthCm}
-              onChange={(e) => setReturnWallDepthCm(Number(e.target.value))}
-              className="styled-slider"
+            <Slider
+              min={120}
+              max={400}
+              step={10}
+              value={[returnWallDepthCm]}
+              onValueChange={(vals) => setReturnWallDepthCm(vals[0] ?? 120)}
             />
           </div>
         )}
 
         {/* Peninsula Length (for peninsula layouts) */}
         {(layoutType === 'l_peninsula' || layoutType === 'u_shape') && (
-          <div className="slider-row">
-            <div className="slider-header">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between text-xs text-slate-300">
               <span>{isRo ? 'Lungime Peninsulă / Masă Bar:' : isRu ? 'Длина полуострова / стойки:' : 'Peninsula Length:'}</span>
-              <strong style={{ color: '#38bdf8' }}>{peninsulaLengthCm} cm</strong>
+              <strong className="font-mono text-sky-400">{peninsulaLengthCm} cm</strong>
             </div>
-            <input
-              type="range"
-              min="120"
-              max="300"
-              step="10"
-              value={peninsulaLengthCm}
-              onChange={(e) => setPeninsulaLengthCm(Number(e.target.value))}
-              className="styled-slider"
+            <Slider
+              min={120}
+              max={300}
+              step={10}
+              value={[peninsulaLengthCm]}
+              onValueChange={(vals) => setPeninsulaLengthCm(vals[0] ?? 120)}
             />
           </div>
         )}
 
         {/* Room Height */}
-        <div className="slider-row">
-          <div className="slider-header">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between text-xs text-slate-300">
             <span>{isRo ? 'Înălțime Încăpere (Tavan):' : isRu ? 'Высота потолка:' : 'Ceiling Height:'}</span>
-            <strong style={{ color: '#38bdf8' }}>{roomHeightCm} cm</strong>
+            <strong className="font-mono text-sky-400">{roomHeightCm} cm</strong>
           </div>
-          <input
-            type="range"
-            min="220"
-            max="320"
-            step="5"
-            value={roomHeightCm}
-            onChange={(e) => setRoomHeightCm(Number(e.target.value))}
-            className="styled-slider"
+          <Slider
+            min={220}
+            max={320}
+            step={5}
+            value={[roomHeightCm]}
+            onValueChange={(vals) => setRoomHeightCm(vals[0] ?? 220)}
           />
         </div>
       </div>
 
       {/* Module Inclusions Checkboxes */}
-      <div style={{ marginBottom: '16px' }}>
-        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase' }}>
+      <div>
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
           {isRo ? '3. Echipare Coloane & Dotări:' : isRu ? '3. Комплектация пеналов:' : '3. Modules & Features:'}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-          <label className="toggle-label-box">
-            <input
-              type="checkbox"
-              checked={includeOvenCol}
-              onChange={(e) => setIncludeOvenCol(e.target.checked)}
-            />
+        <div className="grid grid-cols-2 gap-2">
+          <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-900/60 px-2.5 py-2 text-xs text-slate-200">
             <span>{isRo ? 'Coloană Cuptor' : isRu ? 'Пенал с духовкой' : 'Oven Tall Unit'}</span>
+            <Switch checked={includeOvenCol} onCheckedChange={setIncludeOvenCol} />
           </label>
-          <label className="toggle-label-box">
-            <input
-              type="checkbox"
-              checked={includeFridgeCol}
-              onChange={(e) => setIncludeFridgeCol(e.target.checked)}
-            />
+          <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-900/60 px-2.5 py-2 text-xs text-slate-200">
             <span>{isRo ? 'Coloană Frigider' : isRu ? 'Пенал холодильника' : 'Fridge Column'}</span>
+            <Switch checked={includeFridgeCol} onCheckedChange={setIncludeFridgeCol} />
           </label>
-          <label className="toggle-label-box">
-            <input
-              type="checkbox"
-              checked={includeDishwasher}
-              onChange={(e) => setIncludeDishwasher(e.target.checked)}
-            />
+          <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-900/60 px-2.5 py-2 text-xs text-slate-200">
             <span>{isRo ? 'Mașină Spălat Vase' : isRu ? 'Посудомойка' : 'Dishwasher'}</span>
+            <Switch checked={includeDishwasher} onCheckedChange={setIncludeDishwasher} />
           </label>
           {(layoutType === 'l_peninsula' || layoutType === 'u_shape') && (
-            <label className="toggle-label-box">
-              <input
-                type="checkbox"
-                checked={includePeninsula}
-                onChange={(e) => setIncludePeninsula(e.target.checked)}
-              />
+            <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-900/60 px-2.5 py-2 text-xs text-slate-200">
               <span>{isRo ? 'Activează Peninsulă' : isRu ? 'Полуостров' : 'Peninsula'}</span>
+              <Switch checked={includePeninsula} onCheckedChange={setIncludePeninsula} />
             </label>
           )}
         </div>
       </div>
 
       {/* Engineering BOM Metrics Banner */}
-      <div className="bom-metrics-card" style={{ marginBottom: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f8fafc' }}>
+      <div className="rounded-xl border border-white/10 bg-slate-900/60 p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-50">
             📊 {isRo ? 'Consum Materiale Proiect:' : isRu ? 'Расход материалов:' : 'BOM Consumption:'}
           </span>
-          <span style={{ fontSize: '0.72rem', background: 'rgba(56,189,248,0.2)', color: '#38bdf8', padding: '2px 6px', borderRadius: '4px' }}>
+          <span className="rounded bg-sky-500/20 px-1.5 py-0.5 text-[11px] font-medium text-sky-400">
             {bomSummary.totalParts} {isRo ? 'piese' : 'repere'}
           </span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.74rem' }}>
+        <div className="grid grid-cols-2 gap-2 text-xs">
           <div>
-            <span style={{ color: '#94a3b8' }}>{isRo ? 'Carcasă PAL:' : 'Carcass PAL:'}</span>{' '}
-            <strong style={{ color: '#e2e8f0' }}>{bomSummary.carcassSqM} m²</strong>
+            <span className="text-slate-400">{isRo ? 'Carcasă PAL:' : 'Carcass PAL:'}</span>{' '}
+            <strong className="text-slate-200">{bomSummary.carcassSqM} m²</strong>
           </div>
           <div>
-            <span style={{ color: '#94a3b8' }}>{isRo ? 'Fațade MDF:' : 'Facades MDF:'}</span>{' '}
-            <strong style={{ color: '#e2e8f0' }}>{bomSummary.facadeSqM} m²</strong>
+            <span className="text-slate-400">{isRo ? 'Fațade MDF:' : 'Facades MDF:'}</span>{' '}
+            <strong className="text-slate-200">{bomSummary.facadeSqM} m²</strong>
           </div>
           <div>
-            <span style={{ color: '#94a3b8' }}>{isRo ? 'Blat Termo:' : 'Worktop:'}</span>{' '}
-            <strong style={{ color: '#e2e8f0' }}>{bomSummary.countertopLinM} ml</strong>
+            <span className="text-slate-400">{isRo ? 'Blat Termo:' : 'Worktop:'}</span>{' '}
+            <strong className="text-slate-200">{bomSummary.countertopLinM} ml</strong>
           </div>
           <div>
-            <span style={{ color: '#94a3b8' }}>{isRo ? 'Cant ABS:' : 'Edge ABS:'}</span>{' '}
-            <strong style={{ color: '#e2e8f0' }}>{bomSummary.edgeBandingLinM} ml</strong>
+            <span className="text-slate-400">{isRo ? 'Cant ABS:' : 'Edge ABS:'}</span>{' '}
+            <strong className="text-slate-200">{bomSummary.edgeBandingLinM} ml</strong>
           </div>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div className="flex flex-col gap-2">
         <button
           type="button"
-          className="btn-primary"
-          style={{ width: '100%', padding: '12px' }}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 p-3 text-xs font-bold text-slate-950 shadow-sm hover:brightness-110 disabled:opacity-50 transition cursor-pointer"
           onClick={handleGenerateKitchen}
           disabled={generating}
         >
@@ -372,10 +345,10 @@ export default function ModularKitchenStudioSection({
           </span>
         </button>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            className="btn-secondary"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
             onClick={handleDownloadCsv}
             title={isRo ? 'Descarcă fișier CSV cu toate panourile pentru utilaje debitare' : 'Download CSV Cutting List'}
           >
@@ -384,7 +357,7 @@ export default function ModularKitchenStudioSection({
           </button>
           <button
             type="button"
-            className="btn-secondary"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
             onClick={() => setShowPanelInspector(!showPanelInspector)}
           >
             <span>{showPanelInspector ? '▲' : '📋'}</span>
@@ -395,38 +368,28 @@ export default function ModularKitchenStudioSection({
 
       {/* Expanded Panel Inspector List */}
       {showPanelInspector && (
-        <div
-          style={{
-            marginTop: '12px',
-            background: 'rgba(15, 23, 42, 0.75)',
-            border: '1px solid #334155',
-            borderRadius: '8px',
-            padding: '10px',
-            maxHeight: '260px',
-            overflowY: 'auto'
-          }}
-        >
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#38bdf8', marginBottom: '6px' }}>
+        <div className="mt-1 max-h-[260px] overflow-y-auto rounded-lg border border-slate-700 bg-slate-900/75 p-2.5">
+          <div className="mb-1.5 text-xs font-semibold text-sky-400">
             {isRo ? 'Specificație Detaliată Piese Mobilă:' : 'Detailed Parts Specification:'}
           </div>
-          <table style={{ width: '100%', fontSize: '0.68rem', borderCollapse: 'collapse', color: '#cbd5e1' }}>
+          <table className="w-full border-collapse text-[11px] text-slate-300">
             <thead>
-              <tr style={{ borderBottom: '1px solid #475569', textAlign: 'left', color: '#94a3b8' }}>
-                <th style={{ padding: '4px' }}>Corp</th>
-                <th style={{ padding: '4px' }}>Piesă</th>
-                <th style={{ padding: '4px' }}>Dimensiune</th>
-                <th style={{ padding: '4px' }}>Buc</th>
+              <tr className="border-b border-slate-600 text-left text-slate-400">
+                <th className="p-1">Corp</th>
+                <th className="p-1">Piesă</th>
+                <th className="p-1">Dimensiune</th>
+                <th className="p-1 text-center">Buc</th>
               </tr>
             </thead>
             <tbody>
               {currentComposition.panelCuttingList.map((p: any, idx: number) => (
-                <tr key={idx} style={{ borderBottom: '1px solid #1e293b' }}>
-                  <td style={{ padding: '4px', color: '#94a3b8' }}>{p.cabinet}</td>
-                  <td style={{ padding: '4px' }}>{p.partName}</td>
-                  <td style={{ padding: '4px', fontFamily: 'monospace', color: '#38bdf8' }}>
+                <tr key={idx} className="border-b border-slate-800">
+                  <td className="p-1 text-slate-400">{p.cabinet}</td>
+                  <td className="p-1">{p.partName}</td>
+                  <td className="p-1 font-mono text-sky-400">
                     {p.lengthMm}×{p.widthMm}
                   </td>
-                  <td style={{ padding: '4px', textAlign: 'center' }}>{p.qty}</td>
+                  <td className="p-1 text-center">{p.qty}</td>
                 </tr>
               ))}
             </tbody>

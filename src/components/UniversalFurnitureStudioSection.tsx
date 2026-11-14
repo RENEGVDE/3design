@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { Slider } from './ui/slider';
+import { Switch } from './ui/switch';
 import {
   UNIVERSAL_FURNITURE_TYPES,
   buildUniversalFurniture
@@ -167,8 +169,8 @@ export default function UniversalFurnitureStudioSection({
   };
 
   return (
-    <div className="side-section" id="universal-furniture-studio">
-      <div className="section-title">
+    <div className="flex flex-col gap-3" id="universal-furniture-studio">
+      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
         <span>🛋️</span>
         <span>
           {isRo
@@ -179,7 +181,7 @@ export default function UniversalFurnitureStudioSection({
         </span>
       </div>
 
-      <div className="section-subtitle">
+      <div className="text-[11px] leading-relaxed text-slate-400">
         {isRo
           ? 'Proiectează orice tip de mobilier: dressinguri culisante, comode TV, biblioteci, birouri, mobilier dormitor & baie de orice formă și dimensiune.'
           : isRu
@@ -188,30 +190,25 @@ export default function UniversalFurnitureStudioSection({
       </div>
 
       {/* 1. Category Selector */}
-      <div className="control-group" style={{ marginTop: '12px' }}>
-        <label className="input-label">
+      <div>
+        <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400">
           {isRo ? '1. Tip & Destinație Mobilier:' : isRu ? '1. Назначение и тип мебели:' : '1. Furniture Destination & Type:'}
         </label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '6px' }}>
+        <div className="mt-1.5 grid grid-cols-3 gap-1.5">
           {UNIVERSAL_FURNITURE_TYPES.map((t) => {
             const isSel = t.id === furnitureTypeId;
             return (
               <button
                 key={t.id}
+                type="button"
                 onClick={() => handleSelectType(t)}
-                className={`btn-pill ${isSel ? 'active' : ''}`}
-                style={{
-                  fontSize: '10px',
-                  padding: '7px 4px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '3px',
-                  textAlign: 'center',
-                  lineHeight: '1.2'
-                }}
+                className={`flex flex-col items-center gap-1 rounded-lg border px-1 py-2 text-center text-[10px] leading-tight transition-colors cursor-pointer ${
+                  isSel
+                    ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
+                    : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                }`}
               >
-                <span style={{ fontSize: '15px' }}>{t.nameRo.slice(0, 2)}</span>
+                <span className="text-[15px]">{t.nameRo.slice(0, 2)}</span>
                 <span>{isRo ? t.nameRo.slice(3) : isRu ? t.nameRu.slice(3) : t.nameEn.slice(3)}</span>
               </button>
             );
@@ -220,39 +217,30 @@ export default function UniversalFurnitureStudioSection({
       </div>
 
       {/* 2. Furniture Name */}
-      <div className="control-group" style={{ marginTop: '10px' }}>
-        <label className="input-label">
+      <div>
+        <label className="mb-1 block text-[11px] font-semibold text-slate-400">
           {isRo ? 'Nume Proiect:' : isRu ? 'Название изделия:' : 'Item Name:'}
         </label>
         <input
           type="text"
           value={furnitureName}
           onChange={(e) => setFurnitureName(e.target.value)}
-          className="search-input"
-          style={{ width: '100%', marginTop: '4px' }}
+          className="w-full rounded-lg border border-white/15 bg-slate-950/75 px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-sky-400"
         />
       </div>
 
       {/* 3. Parametric Dimensions (cm) */}
-      <div
-        style={{
-          marginTop: '12px',
-          padding: '10px',
-          background: 'rgba(255, 255, 255, 0.03)',
-          borderRadius: '8px',
-          border: '1px solid rgba(255, 255, 255, 0.08)'
-        }}
-      >
-        <div style={{ fontSize: '11px', fontWeight: 600, color: '#38bdf8', marginBottom: '8px' }}>
+      <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
+        <div className="mb-2 text-[11px] font-semibold text-sky-400">
           {isRo ? '2. Dimensiuni Gabarit (cm):' : isRu ? '2. Габаритные размеры (см):' : '2. Dimensions (cm):'}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+        <div className="grid grid-cols-3 gap-2">
           <div>
-            <label className="input-label" style={{ fontSize: '10px' }}>
+            <label className="mb-1 block text-[10px] text-slate-400">
               {isRo ? 'Lățime (X):' : isRu ? 'Ширина (X):' : 'Width (X):'}
             </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div className="flex items-center gap-1">
               <input
                 type="number"
                 min="30"
@@ -260,25 +248,17 @@ export default function UniversalFurnitureStudioSection({
                 step="5"
                 value={widthCm}
                 onChange={(e) => setWidthCm(Number(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '4px 6px',
-                  borderRadius: '6px',
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  color: '#fff',
-                  fontSize: '12px'
-                }}
+                className="w-full rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
               />
-              <span style={{ fontSize: '10px', color: '#94a3b8' }}>cm</span>
+              <span className="text-[10px] text-slate-400">cm</span>
             </div>
           </div>
 
           <div>
-            <label className="input-label" style={{ fontSize: '10px' }}>
+            <label className="mb-1 block text-[10px] text-slate-400">
               {isRo ? 'Înălțime (Y):' : isRu ? 'Высота (Y):' : 'Height (Y):'}
             </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div className="flex items-center gap-1">
               <input
                 type="number"
                 min="30"
@@ -286,25 +266,17 @@ export default function UniversalFurnitureStudioSection({
                 step="5"
                 value={heightCm}
                 onChange={(e) => setHeightCm(Number(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '4px 6px',
-                  borderRadius: '6px',
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  color: '#fff',
-                  fontSize: '12px'
-                }}
+                className="w-full rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
               />
-              <span style={{ fontSize: '10px', color: '#94a3b8' }}>cm</span>
+              <span className="text-[10px] text-slate-400">cm</span>
             </div>
           </div>
 
           <div>
-            <label className="input-label" style={{ fontSize: '10px' }}>
+            <label className="mb-1 block text-[10px] text-slate-400">
               {isRo ? 'Adâncime (Z):' : isRu ? 'Глубина (Z):' : 'Depth (Z):'}
             </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div className="flex items-center gap-1">
               <input
                 type="number"
                 min="20"
@@ -312,61 +284,51 @@ export default function UniversalFurnitureStudioSection({
                 step="5"
                 value={depthCm}
                 onChange={(e) => setDepthCm(Number(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '4px 6px',
-                  borderRadius: '6px',
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  color: '#fff',
-                  fontSize: '12px'
-                }}
+                className="w-full rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
               />
-              <span style={{ fontSize: '10px', color: '#94a3b8' }}>cm</span>
+              <span className="text-[10px] text-slate-400">cm</span>
             </div>
           </div>
         </div>
 
         {/* Compartimentare & Polițe */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '10px' }}>
-          <div>
-            <label className="input-label" style={{ fontSize: '10px' }}>
-              {isRo ? 'Compartimente Verticale:' : isRu ? 'Вертикальных секций:' : 'Vertical Sections:'} {sectionsCount}
+        <div className="mt-2.5 grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] text-slate-300">
+              {isRo ? 'Compartimente Verticale:' : isRu ? 'Вертикальных секций:' : 'Vertical Sections:'}{' '}
+              <strong className="text-sky-400">{sectionsCount}</strong>
             </label>
-            <input
-              type="range"
-              min="1"
-              max="5"
-              step="1"
-              value={sectionsCount}
-              onChange={(e) => setSectionsCount(Number(e.target.value))}
-              style={{ width: '100%', accentColor: '#38bdf8' }}
+            <Slider
+              min={1}
+              max={5}
+              step={1}
+              value={[sectionsCount]}
+              onValueChange={(vals) => setSectionsCount(vals[0] ?? 1)}
             />
           </div>
 
-          <div>
-            <label className="input-label" style={{ fontSize: '10px' }}>
-              {isRo ? 'Polițe pe Compartiment:' : isRu ? 'Полок в секции:' : 'Shelves per section:'} {shelvesPerSection}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] text-slate-300">
+              {isRo ? 'Polițe pe Compartiment:' : isRu ? 'Полок в секции:' : 'Shelves per section:'}{' '}
+              <strong className="text-sky-400">{shelvesPerSection}</strong>
             </label>
-            <input
-              type="range"
-              min="0"
-              max="8"
-              step="1"
-              value={shelvesPerSection}
-              onChange={(e) => setShelvesPerSection(Number(e.target.value))}
-              style={{ width: '100%', accentColor: '#38bdf8' }}
+            <Slider
+              min={0}
+              max={8}
+              step={1}
+              value={[shelvesPerSection]}
+              onValueChange={(vals) => setShelvesPerSection(vals[0] ?? 0)}
             />
           </div>
         </div>
       </div>
 
       {/* 4. Facade & Functional Equipment */}
-      <div style={{ marginTop: '12px' }}>
-        <label className="input-label" style={{ fontSize: '11px', marginBottom: '6px', display: 'block' }}>
+      <div>
+        <label className="mb-1.5 block text-[11px] font-semibold text-slate-300">
           {isRo ? '3. Tip Închidere & Funcțiuni:' : isRu ? '3. Фасады и наполнение:' : '3. Facade Style & Features:'}
         </label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
+        <div className="grid grid-cols-4 gap-1">
           {[
             { id: 'sliding', ro: 'Culisant', ru: 'Купе', en: 'Sliding' },
             { id: 'doors', ro: 'Batant', ru: 'Распашной', en: 'Hinged' },
@@ -375,21 +337,25 @@ export default function UniversalFurnitureStudioSection({
           ].map((fst) => (
             <button
               key={fst.id}
+              type="button"
               onClick={() => setFacadeStyle(fst.id)}
-              className={`btn-pill ${facadeStyle === fst.id ? 'active' : ''}`}
-              style={{ fontSize: '10px', padding: '6px 2px' }}
+              className={`rounded-md border px-1 py-1.5 text-[10px] font-medium transition-colors cursor-pointer ${
+                facadeStyle === fst.id
+                  ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
+                  : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+              }`}
             >
               {isRo ? fst.ro : isRu ? fst.ru : fst.en}
             </button>
           ))}
         </div>
 
-                {/* Feronerie: Mânere & Butoni */}
-        <div style={{ marginTop: '10px' }}>
-          <label className="input-label" style={{ fontSize: '10px', marginBottom: '4px', display: 'block' }}>
+        {/* Feronerie: Mânere & Butoni */}
+        <div className="mt-2.5">
+          <label className="mb-1 block text-[10px] font-medium text-slate-400">
             {isRo ? 'Mânere & Feronerie Fațadă:' : isRu ? 'Ручки и фурнитура фасадов:' : 'Handles & Hardware:'}
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+          <div className="grid grid-cols-3 gap-1">
             {[
               { id: 'bar_black', ro: 'Bară Negru', ru: 'Черная рейка', en: 'Black Bar' },
               { id: 'bar_gold', ro: 'Bară Auriu', ru: 'Золотая рейка', en: 'Gold Bar' },
@@ -400,9 +366,13 @@ export default function UniversalFurnitureStudioSection({
             ].map((h) => (
               <button
                 key={h.id}
+                type="button"
                 onClick={() => setHandleType(h.id)}
-                className={`btn-pill ${handleType === h.id ? 'active' : ''}`}
-                style={{ fontSize: '9px', padding: '5px 2px' }}
+                className={`rounded-md border px-1 py-1 text-[9.5px] font-medium transition-colors cursor-pointer ${
+                  handleType === h.id
+                    ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
+                    : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                }`}
               >
                 {isRo ? h.ro : isRu ? h.ru : h.en}
               </button>
@@ -411,11 +381,11 @@ export default function UniversalFurnitureStudioSection({
         </div>
 
         {/* Bază: Picioare & Soclu */}
-        <div style={{ marginTop: '10px' }}>
-          <label className="input-label" style={{ fontSize: '10px', marginBottom: '4px', display: 'block' }}>
+        <div className="mt-2.5">
+          <label className="mb-1 block text-[10px] font-medium text-slate-400">
             {isRo ? 'Bază & Suport:' : isRu ? 'Опора и цоколь:' : 'Base & Legs:'}
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
+          <div className="grid grid-cols-4 gap-1">
             {[
               { id: 'plinth', ro: 'Soclu PAL', ru: 'Цоколь ЛДСП', en: 'Plinth' },
               { id: 'legs_black', ro: 'Picioare Negre', ru: 'Ножки Черные', en: 'Black Legs' },
@@ -424,9 +394,13 @@ export default function UniversalFurnitureStudioSection({
             ].map((lg) => (
               <button
                 key={lg.id}
+                type="button"
                 onClick={() => setLegType(lg.id)}
-                className={`btn-pill ${legType === lg.id ? 'active' : ''}`}
-                style={{ fontSize: '9px', padding: '5px 2px' }}
+                className={`rounded-md border px-1 py-1 text-[9.5px] font-medium transition-colors cursor-pointer ${
+                  legType === lg.id
+                    ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
+                    : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                }`}
               >
                 {isRo ? lg.ro : isRu ? lg.ru : lg.en}
               </button>
@@ -435,51 +409,27 @@ export default function UniversalFurnitureStudioSection({
         </div>
 
         {/* Optiuni Aditionale: Bara Haine & LED Ambient */}
-        <div style={{ display: 'flex', gap: '12px', marginTop: '10px', flexWrap: 'wrap' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#cbd5e1', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={hasClothesRail}
-              onChange={(e) => setHasClothesRail(e.target.checked)}
-              style={{ accentColor: '#38bdf8' }}
-            />
+        <div className="mt-2.5 grid grid-cols-2 gap-2">
+          <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-900/60 px-2.5 py-1.5 text-[11px] text-slate-200">
             <span>👔 {isRo ? 'Bară Haine' : isRu ? 'Штанга одежды' : 'Clothes Rail'}</span>
+            <Switch checked={hasClothesRail} onCheckedChange={setHasClothesRail} />
           </label>
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#cbd5e1', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={hasLedGlow}
-              onChange={(e) => setHasLedGlow(e.target.checked)}
-              style={{ accentColor: '#38bdf8' }}
-            />
-            <span>💡 {isRo ? 'Bandă LED Ambient' : isRu ? 'LED подсветка' : 'Ambient LED'}</span>
+          <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-900/60 px-2.5 py-1.5 text-[11px] text-slate-200">
+            <span>💡 {isRo ? 'Bandă LED' : isRu ? 'LED подсветка' : 'Ambient LED'}</span>
+            <Switch checked={hasLedGlow} onCheckedChange={setHasLedGlow} />
           </label>
         </div>
       </div>
 
       {/* 5. Generate Button */}
       <button
-        className="btn-primary"
+        type="button"
         onClick={handleGenerateFurniture}
         disabled={generating}
-        style={{
-          width: '100%',
-          marginTop: '14px',
-          padding: '12px',
-          fontSize: '13px',
-          fontWeight: 700,
-          background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-          color: '#ffffff',
-          borderRadius: '8px',
-          border: 'none',
-          boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)',
-          cursor: generating ? 'wait' : 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px'
-        }}
+        className={`flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-sky-600 to-sky-700 p-3 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(2,132,199,0.4)] hover:brightness-110 transition ${
+          generating ? 'cursor-wait opacity-70' : 'cursor-pointer'
+        }`}
       >
         <span>🛋️</span>
         <span>
@@ -490,54 +440,36 @@ export default function UniversalFurnitureStudioSection({
       </button>
 
       {/* 6. Live BOM & Panel Table */}
-      <div style={{ marginTop: '12px' }}>
+      <div>
         <button
+          type="button"
           onClick={() => setShowPanelTable((v) => !v)}
-          className="btn-secondary"
-          style={{
-            width: '100%',
-            padding: '7px 10px',
-            fontSize: '11px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: 'rgba(255,255,255,0.03)'
-          }}
+          className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-2 text-[11px] font-medium text-slate-200 hover:bg-white/[0.07] transition-colors cursor-pointer"
         >
           <span>📋 {isRo ? `Panouri & Debitări CAD (${bomMetrics.totalParts} repere)` : isRu ? `Деталировка CAD (${bomMetrics.totalParts} шт)` : `CAD Parts List (${bomMetrics.totalParts} pcs)`}</span>
           <span>{showPanelTable ? '▲' : '▼'}</span>
         </button>
 
         {showPanelTable && (
-          <div
-            style={{
-              maxHeight: '260px',
-              overflowY: 'auto',
-              background: '#0d1117',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '6px',
-              marginTop: '6px',
-              fontSize: '10px'
-            }}
-          >
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <div className="mt-1.5 max-h-[260px] overflow-y-auto rounded-md border border-white/10 bg-[#0d1117] text-[10px]">
+            <table className="w-full border-collapse text-left">
               <thead>
-                <tr style={{ background: 'rgba(255,255,255,0.06)', color: '#94a3b8', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                  <th style={{ padding: '4px 6px' }}>Denumire Piesă</th>
-                  <th style={{ padding: '4px 6px' }}>L (mm)</th>
-                  <th style={{ padding: '4px 6px' }}>W (mm)</th>
-                  <th style={{ padding: '4px 6px' }}>T</th>
-                  <th style={{ padding: '4px 6px' }}>Cant</th>
+                <tr className="border-b border-white/10 bg-white/[0.06] text-slate-400">
+                  <th className="px-1.5 py-1">Denumire Piesă</th>
+                  <th className="px-1.5 py-1">L (mm)</th>
+                  <th className="px-1.5 py-1">W (mm)</th>
+                  <th className="px-1.5 py-1">T</th>
+                  <th className="px-1.5 py-1">Cant</th>
                 </tr>
               </thead>
               <tbody>
                 {currentComposition.panelCuttingList.map((p, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', color: '#cbd5e1' }}>
-                    <td style={{ padding: '4px 6px', color: '#38bdf8' }}>{p.partName}</td>
-                    <td style={{ padding: '4px 6px', fontWeight: 600 }}>{p.lengthMm}</td>
-                    <td style={{ padding: '4px 6px', fontWeight: 600 }}>{p.widthMm}</td>
-                    <td style={{ padding: '4px 6px' }}>{p.thicknessMm}</td>
-                    <td style={{ padding: '4px 6px', color: '#94a3b8' }}>{p.edgeBanding}</td>
+                  <tr key={idx} className="border-b border-white/[0.04] text-slate-300">
+                    <td className="px-1.5 py-1 text-sky-400">{p.partName}</td>
+                    <td className="px-1.5 py-1 font-semibold">{p.lengthMm}</td>
+                    <td className="px-1.5 py-1 font-semibold">{p.widthMm}</td>
+                    <td className="px-1.5 py-1">{p.thicknessMm}</td>
+                    <td className="px-1.5 py-1 text-slate-400">{p.edgeBanding}</td>
                   </tr>
                 ))}
               </tbody>
@@ -547,19 +479,11 @@ export default function UniversalFurnitureStudioSection({
       </div>
 
       {/* 7. Export CSV & PNG */}
-      <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
+      <div className="flex gap-1.5">
         <button
-          className="btn-secondary"
+          type="button"
+          className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/15 bg-white/5 px-1.5 py-2 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
           onClick={handleDownloadCsv}
-          style={{
-            flex: 1,
-            padding: '8px 6px',
-            fontSize: '11px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '4px'
-          }}
         >
           <span>📐</span>
           <span>{isRo ? 'Descarcă CSV Debitare' : isRu ? 'Раскрой (CSV)' : 'Cutting CSV'}</span>
@@ -567,17 +491,9 @@ export default function UniversalFurnitureStudioSection({
 
         {onCaptureScreenshot && (
           <button
-            className="btn-secondary"
+            type="button"
+            className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/15 bg-white/5 px-1.5 py-2 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
             onClick={onCaptureScreenshot}
-            style={{
-              flex: 1,
-              padding: '8px 6px',
-              fontSize: '11px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '4px'
-            }}
           >
             <span>📸</span>
             <span>{isRo ? 'Poză HD' : isRu ? 'Рендер' : 'HD Render'}</span>

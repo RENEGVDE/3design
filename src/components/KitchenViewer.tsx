@@ -4921,7 +4921,7 @@ export default function KitchenViewer() {
     <TooltipProvider delayDuration={250}>
       <div id="loader" className={loading ? '' : 'hidden'}>
         <div className="spinner" />
-        <div style={{ fontWeight: 600, letterSpacing: '0.03em' }}>
+        <div className="font-semibold tracking-wider">
           Se încarcă modelul 3D al bucătăriei...
         </div>
       </div>
@@ -4992,49 +4992,25 @@ export default function KitchenViewer() {
 
       {/* 3D Tape Measure Floating HUD */}
       {dimsEnabled && dimMode === 'tape' && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '58px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 100,
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(28, 12, 18, 0.96))',
-            border: '1px solid rgba(244, 63, 94, 0.55)',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(244, 63, 94, 0.2)',
-            backdropFilter: 'blur(12px)',
-            borderRadius: '12px',
-            padding: '8px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            maxWidth: '92vw',
-            animation: 'fadeIn 0.2s ease-out',
-            color: '#f8fafc'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.1rem' }}>🎯</span>
+        <div className="fixed top-[58px] left-1/2 z-[100] flex max-w-[92vw] -translate-x-1/2 items-center gap-3 rounded-xl border border-rose-500/55 bg-gradient-to-br from-slate-900/95 to-[#1c0c12]/95 px-4 py-2 text-slate-50 shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_20px_rgba(244,63,94,0.2)] backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🎯</span>
             <div>
-              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fda4af', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div className="flex items-center gap-1.5 text-[13px] font-bold text-rose-300">
                 <span>{lang === 'ro' ? 'Ruletă 3D' : lang === 'ru' ? 'Рулетка 3D' : '3D Tape Measure'}</span>
                 <span
-                  style={{
-                    background: tapeHasPointA ? '#f43f5e' : 'rgba(244, 63, 94, 0.2)',
-                    color: tapeHasPointA ? '#fff' : '#fda4af',
-                    border: '1px solid rgba(244, 63, 94, 0.4)',
-                    padding: '1px 6px',
-                    borderRadius: '8px',
-                    fontSize: '0.64rem',
-                    fontWeight: 700
-                  }}
+                  className={`rounded-lg border px-1.5 py-0.5 text-[10px] font-bold ${
+                    tapeHasPointA
+                      ? 'border-rose-400/40 bg-rose-500 text-white'
+                      : 'border-rose-400/40 bg-rose-500/20 text-rose-300'
+                  }`}
                 >
                   {tapeHasPointA
                     ? (lang === 'ro' ? 'PAS 2: CLICK PE AL 2-LEA PUNCT' : 'STEP 2: CLICK 2ND POINT')
                     : (lang === 'ro' ? 'PAS 1: CLICK PE PRIMUL PUNCT' : 'STEP 1: CLICK 1ST POINT')}
                 </span>
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#cbd5e1' }}>
+              <div className="text-[11px] text-slate-300">
                 {tapeHasPointA
                   ? (lang === 'ro' ? 'Apasă pe suprafața țintă pentru a calcula distanța' : 'Click destination surface to compute distance')
                   : (lang === 'ro' ? 'Apasă pe orice colț, cant sau punct de pe mobilă/perete/podea' : 'Click on any edge, point or surface on furniture/wall/floor')}
@@ -5043,39 +5019,21 @@ export default function KitchenViewer() {
           </div>
 
           {tapeMeasurement && (
-            <div
-              style={{
-                background: 'rgba(244, 63, 94, 0.15)',
-                border: '1px solid rgba(244, 63, 94, 0.4)',
-                borderRadius: '8px',
-                padding: '4px 10px',
-                display: 'flex',
-                flexDirection: 'column',
-                lineHeight: 1.2
-              }}
-            >
-              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#ffe4e6' }}>
+            <div className="flex flex-col rounded-lg border border-rose-500/40 bg-rose-500/15 px-2.5 py-1 leading-tight">
+              <div className="text-[13px] font-extrabold text-rose-100">
                 📏 {tapeMeasurement.labelStr}
               </div>
-              <div style={{ fontSize: '0.65rem', color: '#fda4af', fontWeight: 500 }}>
+              <div className="text-[10.5px] font-medium text-rose-300">
                 ΔX: {fmtCm(tapeMeasurement.dxCm)} · ΔY: {fmtCm(tapeMeasurement.dyCm)} · ΔZ: {fmtCm(tapeMeasurement.dzCm)} cm
               </div>
             </div>
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={handleClearTape}
-              style={{
-                background: 'rgba(255, 255, 255, 0.1)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: '#f1f5f9',
-                padding: '4px 8px',
-                borderRadius: '8px',
-                fontSize: '0.7rem',
-                cursor: 'pointer'
-              }}
+              className="rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-[11px] text-slate-100 hover:bg-white/20 transition-colors cursor-pointer"
               title="Resetează măsurătorile de pe scenă"
             >
               🔄 {lang === 'ro' ? 'Reset' : 'Clear'}
@@ -5087,16 +5045,7 @@ export default function KitchenViewer() {
                 setDimsEnabled(false);
                 handleClearTape();
               }}
-              style={{
-                background: 'rgba(244, 63, 94, 0.25)',
-                border: '1px solid rgba(244, 63, 94, 0.6)',
-                color: '#fecdd3',
-                padding: '4px 8px',
-                borderRadius: '8px',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
+              className="rounded-lg border border-rose-500/60 bg-rose-500/25 px-2 py-1 text-[11px] font-bold text-rose-200 hover:bg-rose-500/35 transition-colors cursor-pointer"
               title="Ieși din modul ruletă"
             >
               ✕ {lang === 'ro' ? 'Închide' : 'Close'}
@@ -5107,45 +5056,17 @@ export default function KitchenViewer() {
 
       {/* Shared Client Presentation Top Notification Bar */}
       {isSharedReadOnly && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '56px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 100,
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))',
-            border: '1px solid rgba(56, 189, 248, 0.45)',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.15)',
-            backdropFilter: 'blur(10px)',
-            borderRadius: '12px',
-            padding: '7px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            maxWidth: '92vw',
-            animation: 'fadeIn 0.3s ease-out'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.05rem' }}>👁️</span>
+        <div className="fixed top-[56px] left-1/2 z-[100] flex max-w-[92vw] -translate-x-1/2 items-center gap-3 rounded-xl border border-sky-400/45 bg-gradient-to-br from-slate-900/95 to-slate-800/95 px-4 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(56,189,248,0.15)] backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <span className="text-base">👁️</span>
             <div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div className="flex items-center gap-1.5 text-[13px] font-bold text-slate-50">
                 <span>{sharedMeta?.projectName || 'Prezentare 3D Interactivă'}</span>
-                <span
-                  style={{
-                    background: 'rgba(34, 197, 94, 0.2)',
-                    color: '#4ade80',
-                    border: '1px solid rgba(34, 197, 94, 0.4)',
-                    padding: '1px 6px',
-                    borderRadius: '8px',
-                    fontSize: '0.64rem'
-                  }}
-                >
+                <span className="rounded-lg border border-emerald-400/40 bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-400">
                   MOD CLIENT (DOAR VIZUALIZARE)
                 </span>
               </div>
-              <div style={{ fontSize: '0.69rem', color: '#94a3b8' }}>
+              <div className="text-[11px] text-slate-400">
                 {sharedMeta?.authorName ? `Pregătit de: ${sharedMeta.authorName} • ` : ''}
                 {lang === 'ro'
                   ? 'Apasă pe uși sau sertare pentru deschidere • Rotește și mărește liber'
@@ -5157,17 +5078,7 @@ export default function KitchenViewer() {
           <button
             type="button"
             onClick={() => setShareModalOpen(true)}
-            style={{
-              background: 'rgba(56, 189, 248, 0.15)',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
-              color: '#7dd3fc',
-              padding: '4px 10px',
-              borderRadius: '8px',
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
+            className="whitespace-nowrap rounded-lg border border-sky-400/40 bg-sky-500/15 px-2.5 py-1 text-[11.5px] font-semibold text-sky-300 hover:bg-sky-500/25 transition-colors cursor-pointer"
           >
             🔗 {lang === 'ro' ? 'Trimite mai departe' : 'Share link'}
           </button>
@@ -5176,22 +5087,9 @@ export default function KitchenViewer() {
 
       {/* Loading overlay during remote share sync */}
       {sharedLoadingProgress && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 10000,
-            background: 'rgba(15, 23, 42, 0.88)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '12px'
-          }}
-        >
+        <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center gap-3 bg-slate-900/90 backdrop-blur-md">
           <div className="spinner" />
-          <div style={{ color: '#38bdf8', fontWeight: 700, fontSize: '0.95rem' }}>
+          <div className="text-[15px] font-bold text-sky-400">
             {sharedLoadingProgress}
           </div>
         </div>
@@ -5325,25 +5223,40 @@ export default function KitchenViewer() {
           )}
 
           {activeStudioTab === 'furniture' && (
-            <div>
+            <div className="flex flex-col gap-3">
               {/* Furniture Sub-navigation Pill Switcher */}
-              <div className="furniture-subnav">
+              <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-white/10 bg-black/25 p-1">
                 <button
-                  className={`subnav-btn ${furnitureSubTab === 'universal' ? 'active' : ''}`}
+                  type="button"
+                  className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                    furnitureSubTab === 'universal'
+                      ? 'bg-amber-500/20 text-amber-300 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
                   onClick={() => setFurnitureSubTab('universal')}
                 >
                   <span>🌟</span>
                   <span>{dict.subUniversal}</span>
                 </button>
                 <button
-                  className={`subnav-btn ${furnitureSubTab === 'kitchen' ? 'active' : ''}`}
+                  type="button"
+                  className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                    furnitureSubTab === 'kitchen'
+                      ? 'bg-amber-500/20 text-amber-300 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
                   onClick={() => setFurnitureSubTab('kitchen')}
                 >
                   <span>🍳</span>
                   <span>{dict.subKitchen}</span>
                 </button>
                 <button
-                  className={`subnav-btn ${furnitureSubTab === 'single' ? 'active' : ''}`}
+                  type="button"
+                  className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                    furnitureSubTab === 'single'
+                      ? 'bg-amber-500/20 text-amber-300 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
                   onClick={() => setFurnitureSubTab('single')}
                 >
                   <span>🧱</span>
@@ -5514,9 +5427,9 @@ export default function KitchenViewer() {
 
       {/* 2D Architectural Floor Plan Overlay */}
       {is2DPlanMode && (
-        <div className="floorplan-2d-overlay">
-          <div className="floorplan-header">
-            <div className="floorplan-title">
+        <div className="fixed inset-0 z-[2000] flex flex-col bg-slate-950/95 backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-white/10 bg-slate-900/90 px-5 py-3">
+            <div className="flex items-center gap-2 text-sm font-bold text-slate-100">
               <span>📐</span>
               <strong>
                 {lang === 'ro'
@@ -5526,10 +5439,10 @@ export default function KitchenViewer() {
                   : '2D Architectural Floor Plan'}
               </strong>
             </div>
-            <div className="floorplan-actions">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="btn-secondary"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
                 onClick={handleDownload2DPlanPng}
                 title="Descarcă Schiță Plan PNG"
               >
@@ -5538,7 +5451,7 @@ export default function KitchenViewer() {
               </button>
               <button
                 type="button"
-                className="btn-primary"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 px-3 py-1.5 text-xs font-bold text-slate-950 hover:brightness-110 transition cursor-pointer"
                 onClick={() => setIs2DPlanMode(false)}
               >
                 <span>🏛️</span>
@@ -5546,12 +5459,12 @@ export default function KitchenViewer() {
               </button>
             </div>
           </div>
-          <div className="floorplan-canvas-container">
+          <div className="flex flex-1 items-center justify-center overflow-auto p-4">
             <canvas
               ref={planCanvasRef}
               width={1600}
               height={1200}
-              className="floorplan-canvas"
+              className="max-h-full max-w-full rounded-xl border border-white/10 bg-[#0b1120] shadow-2xl"
             />
           </div>
         </div>
@@ -5565,43 +5478,21 @@ export default function KitchenViewer() {
         const hasMech = qSp.mechType && qSp.mechType !== 'none';
 
         return (
-          <div className="mobile-part-quickbar">
-            <span
-              style={{
-                background: 'rgba(212, 163, 89, 0.25)',
-                color: '#fbbf24',
-                padding: '2px 6px',
-                borderRadius: '5px',
-                fontWeight: 700,
-                fontSize: '0.68rem',
-                whiteSpace: 'nowrap'
-              }}
-            >
+          <div className="fixed bottom-[64px] left-1/2 z-[150] flex max-w-[95vw] -translate-x-1/2 items-center gap-1.5 rounded-xl border border-white/15 bg-slate-900/95 px-2.5 py-1.5 shadow-2xl backdrop-blur-md">
+            <span className="whitespace-nowrap rounded bg-amber-500/25 px-1.5 py-0.5 text-[11px] font-bold text-amber-400">
               #{selectedSubPart.subIdx + 1}
             </span>
-            <span
-              style={{
-                fontSize: '0.73rem',
-                fontWeight: 600,
-                color: '#f8fafc',
-                maxWidth: '120px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}
-            >
+            <span className="max-w-[120px] truncate text-xs font-semibold text-slate-50">
               {qSp.name}
             </span>
             {hasMech && (
               <button
                 type="button"
-                className="light-chip"
-                style={{
-                  borderColor: qSp.isOpen ? '#34d399' : 'rgba(56,189,248,0.5)',
-                  color: qSp.isOpen ? '#34d399' : '#7dd3fc',
-                  whiteSpace: 'nowrap',
-                  padding: '4px 8px'
-                }}
+                className={`whitespace-nowrap rounded-md border px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
+                  qSp.isOpen
+                    ? 'border-emerald-400 bg-emerald-500/15 text-emerald-400'
+                    : 'border-sky-400/50 bg-sky-500/15 text-sky-300'
+                }`}
                 onClick={() =>
                   handleToggleGlbSubMeshOpen(
                     selectedSubPart.modelId,
@@ -5614,14 +5505,7 @@ export default function KitchenViewer() {
             )}
             <button
               type="button"
-              className="light-chip"
-              style={{
-                background: 'rgba(212, 163, 89, 0.2)',
-                borderColor: 'rgba(212, 163, 89, 0.5)',
-                color: '#fef08a',
-                whiteSpace: 'nowrap',
-                padding: '4px 8px'
-              }}
+              className="whitespace-nowrap rounded-md border border-amber-400/50 bg-amber-500/20 px-2 py-1 text-[11px] font-medium text-amber-200 hover:bg-amber-500/30 transition-colors cursor-pointer"
               onClick={() =>
                 setPartContextMenu({
                   x: Math.max(16, window.innerWidth / 2 - 175),
@@ -5635,8 +5519,7 @@ export default function KitchenViewer() {
             </button>
             <button
               type="button"
-              className="light-chip"
-              style={{ whiteSpace: 'nowrap', padding: '4px 7px' }}
+              className="whitespace-nowrap rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-[11px] hover:bg-white/10 transition-colors cursor-pointer"
               onClick={() =>
                 handlePaintGlbSubMeshWithActiveMat(
                   selectedSubPart.modelId,
@@ -5649,8 +5532,7 @@ export default function KitchenViewer() {
             </button>
             <button
               type="button"
-              className="light-chip"
-              style={{ padding: '4px 7px', color: '#94a3b8' }}
+              className="rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-[11px] text-slate-400 hover:text-white transition-colors cursor-pointer"
               onClick={() => setSelectedSubPart(null)}
             >
               ✕
@@ -5726,7 +5608,7 @@ export default function KitchenViewer() {
 
         return (
           <div
-            className="part-context-menu-card"
+            className="fixed z-[250] flex w-[345px] max-w-[94vw] flex-col gap-2.5 rounded-xl border border-white/15 bg-slate-950/95 p-3 text-slate-100 shadow-2xl backdrop-blur-xl"
             onContextMenu={(e) => e.preventDefault()}
             style={{
               left: `${leftPx}px`,
@@ -5734,27 +5616,9 @@ export default function KitchenViewer() {
             }}
           >
             {/* Header */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '6px',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                paddingBottom: '7px'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
-                <span
-                  style={{
-                    background: 'rgba(212, 163, 89, 0.25)',
-                    color: '#fbbf24',
-                    padding: '2px 6px',
-                    borderRadius: '5px',
-                    fontWeight: 700,
-                    fontSize: '0.68rem'
-                  }}
-                >
+            <div className="flex items-center justify-between gap-1.5 border-b border-white/10 pb-2">
+              <div className="flex flex-1 items-center gap-1.5">
+                <span className="rounded bg-amber-500/25 px-1.5 py-0.5 text-[11px] font-bold text-amber-400">
                   #{partContextMenu.subIdx + 1}
                 </span>
                 <input
@@ -5767,48 +5631,21 @@ export default function KitchenViewer() {
                       { name: e.target.value }
                     )
                   }
-                  style={{
-                    background: 'rgba(0,0,0,0.35)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    color: '#fff',
-                    borderRadius: '5px',
-                    padding: '3px 6px',
-                    fontSize: '0.74rem',
-                    fontWeight: 600,
-                    width: '100%'
-                  }}
+                  className="w-full rounded border border-white/15 bg-black/35 px-1.5 py-0.5 text-xs font-semibold text-white outline-none focus:border-sky-400"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => setPartContextMenu(null)}
-                style={{
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  color: '#cbd5e1',
-                  borderRadius: '6px',
-                  width: '24px',
-                  height: '24px',
-                  cursor: 'pointer',
-                  fontWeight: 700
-                }}
+                className="flex h-6 w-6 items-center justify-center rounded-md border border-white/15 bg-white/10 text-xs font-bold text-slate-300 hover:bg-white/20 cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             {/* 1. Mechanism Type Selector */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: '0.68rem',
-                  color: '#94a3b8',
-                  fontWeight: 600
-                }}
-              >
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400">
                 <span>⚙️ TIP PIESĂ & MECANISM DESCHIDERE</span>
                 {hasMech && (
                   <button
@@ -5819,18 +5656,11 @@ export default function KitchenViewer() {
                         partContextMenu.subIdx
                       )
                     }
-                    style={{
-                      background: ctxSp.isOpen
-                        ? 'rgba(52, 211, 153, 0.22)'
-                        : 'rgba(56, 189, 248, 0.22)',
-                      border: '1px solid rgba(56, 189, 248, 0.5)',
-                      color: ctxSp.isOpen ? '#34d399' : '#bae6fd',
-                      borderRadius: '5px',
-                      padding: '2px 7px',
-                      fontSize: '0.67rem',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
+                    className={`rounded border border-sky-400/50 px-2 py-0.5 text-[10.5px] font-bold cursor-pointer ${
+                      ctxSp.isOpen
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-sky-500/20 text-sky-200'
+                    }`}
                   >
                     {ctxSp.isOpen ? '🔓 Închide Acum' : '🔓 Testează Deschiderea'}
                   </button>
@@ -5846,19 +5676,11 @@ export default function KitchenViewer() {
                     e.target.value
                   )
                 }
-                style={{
-                  width: '100%',
-                  background: 'rgba(0,0,0,0.55)',
-                  border: hasMech
-                    ? '1px solid rgba(56, 189, 248, 0.6)'
-                    : '1px solid rgba(255,255,255,0.18)',
-                  color: hasMech ? '#7dd3fc' : '#e2e8f0',
-                  borderRadius: '6px',
-                  padding: '5px 8px',
-                  fontSize: '0.73rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
+                className={`w-full cursor-pointer rounded-md border bg-black/55 px-2 py-1 text-xs font-semibold outline-none ${
+                  hasMech
+                    ? 'border-sky-400/60 text-sky-300'
+                    : 'border-white/20 text-slate-200'
+                }`}
               >
                 <option value="none">{dict.mech_none}</option>
                 <option value="door_left">{dict.mech_door_left}</option>
@@ -5871,17 +5693,8 @@ export default function KitchenViewer() {
             </div>
 
             {/* 2. Dimensions X, Y, Z in mm */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: '0.68rem',
-                  color: '#94a3b8',
-                  fontWeight: 600
-                }}
-              >
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400">
                 <span>📐 DIMENSIUNI PIESĂ (MM)</span>
                 <button
                   type="button"
@@ -5893,26 +5706,14 @@ export default function KitchenViewer() {
                       false
                     )
                   }
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#fbbf24',
-                    fontSize: '0.65rem',
-                    cursor: 'pointer'
-                  }}
+                  className="text-[10.5px] text-amber-400 hover:underline cursor-pointer"
                 >
                   ↺ Reset ({Math.round(baseXMm)}×{Math.round(baseYMm)}×{Math.round(baseZMm)})
                 </button>
               </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '5px'
-                }}
-              >
+              <div className="grid grid-cols-3 gap-1.5">
                 <div>
-                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>Lățime X (mm)</div>
+                  <div className="text-[10px] text-slate-300">Lățime X (mm)</div>
                   <input
                     type="number"
                     min="2"
@@ -5924,25 +5725,14 @@ export default function KitchenViewer() {
                       handleUpdateGlbSubPartTransform(
                         partContextMenu.modelId,
                         partContextMenu.subIdx,
-                        {
-                          customScale: [val / baseXMm, curScale[1], curScale[2]]
-                        }
+                        { customScale: [val / baseXMm, curScale[1], curScale[2]] }
                       );
                     }}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(0,0,0,0.45)',
-                      border: '1px solid rgba(251,191,36,0.4)',
-                      color: '#fbbf24',
-                      borderRadius: '5px',
-                      padding: '4px 6px',
-                      fontWeight: 700,
-                      fontSize: '0.73rem'
-                    }}
+                    className="w-full rounded border border-amber-400/40 bg-black/45 px-1.5 py-1 text-xs font-bold text-amber-400 outline-none focus:border-amber-400"
                   />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>Înălțime Y (mm)</div>
+                  <div className="text-[10px] text-slate-300">Înălțime Y (mm)</div>
                   <input
                     type="number"
                     min="2"
@@ -5954,25 +5744,14 @@ export default function KitchenViewer() {
                       handleUpdateGlbSubPartTransform(
                         partContextMenu.modelId,
                         partContextMenu.subIdx,
-                        {
-                          customScale: [curScale[0], val / baseYMm, curScale[2]]
-                        }
+                        { customScale: [curScale[0], val / baseYMm, curScale[2]] }
                       );
                     }}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(0,0,0,0.45)',
-                      border: '1px solid rgba(52,211,153,0.4)',
-                      color: '#34d399',
-                      borderRadius: '5px',
-                      padding: '4px 6px',
-                      fontWeight: 700,
-                      fontSize: '0.73rem'
-                    }}
+                    className="w-full rounded border border-emerald-400/40 bg-black/45 px-1.5 py-1 text-xs font-bold text-emerald-400 outline-none focus:border-emerald-400"
                   />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>Adâncime Z (mm)</div>
+                  <div className="text-[10px] text-slate-300">Adâncime Z (mm)</div>
                   <input
                     type="number"
                     min="2"
@@ -5984,38 +5763,18 @@ export default function KitchenViewer() {
                       handleUpdateGlbSubPartTransform(
                         partContextMenu.modelId,
                         partContextMenu.subIdx,
-                        {
-                          customScale: [curScale[0], curScale[1], val / baseZMm]
-                        }
+                        { customScale: [curScale[0], curScale[1], val / baseZMm] }
                       );
                     }}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(0,0,0,0.45)',
-                      border: '1px solid rgba(56,189,248,0.4)',
-                      color: '#38bdf8',
-                      borderRadius: '5px',
-                      padding: '4px 6px',
-                      fontWeight: 700,
-                      fontSize: '0.73rem'
-                    }}
+                    className="w-full rounded border border-sky-400/40 bg-black/45 px-1.5 py-1 text-xs font-bold text-sky-400 outline-none focus:border-sky-400"
                   />
                 </div>
               </div>
             </div>
 
             {/* 3. Position Offset (ΔX, ΔY, ΔZ in mm) & Rotation */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: '0.68rem',
-                  color: '#94a3b8',
-                  fontWeight: 600
-                }}
-              >
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400">
                 <span>✥ POZIȚIE (ΔMM) & ROTIRE (°)</span>
                 <button
                   type="button"
@@ -6027,26 +5786,14 @@ export default function KitchenViewer() {
                       false
                     )
                   }
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#fbbf24',
-                    fontSize: '0.65rem',
-                    cursor: 'pointer'
-                  }}
+                  className="text-[10.5px] text-amber-400 hover:underline cursor-pointer"
                 >
                   ↺ Reset Poziție
                 </button>
               </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '5px'
-                }}
-              >
+              <div className="grid grid-cols-3 gap-1.5">
                 <div>
-                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>ΔX St/Dr (mm)</div>
+                  <div className="text-[10px] text-slate-300">ΔX St/Dr (mm)</div>
                   <input
                     type="number"
                     step="5"
@@ -6059,19 +5806,11 @@ export default function KitchenViewer() {
                         { customOffset: [val / 1000, curOff[1], curOff[2]] }
                       );
                     }}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(0,0,0,0.45)',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      color: '#fff',
-                      borderRadius: '5px',
-                      padding: '4px 6px',
-                      fontSize: '0.72rem'
-                    }}
+                    className="w-full rounded border border-white/20 bg-black/45 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
                   />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>ΔY Sus/Jos (mm)</div>
+                  <div className="text-[10px] text-slate-300">ΔY Sus/Jos (mm)</div>
                   <input
                     type="number"
                     step="5"
@@ -6084,19 +5823,11 @@ export default function KitchenViewer() {
                         { customOffset: [curOff[0], val / 1000, curOff[2]] }
                       );
                     }}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(0,0,0,0.45)',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      color: '#fff',
-                      borderRadius: '5px',
-                      padding: '4px 6px',
-                      fontSize: '0.72rem'
-                    }}
+                    className="w-full rounded border border-white/20 bg-black/45 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
                   />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>ΔZ Sp/Față (mm)</div>
+                  <div className="text-[10px] text-slate-300">ΔZ Sp/Față (mm)</div>
                   <input
                     type="number"
                     step="5"
@@ -6109,29 +5840,14 @@ export default function KitchenViewer() {
                         { customOffset: [curOff[0], curOff[1], val / 1000] }
                       );
                     }}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(0,0,0,0.45)',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      color: '#fff',
-                      borderRadius: '5px',
-                      padding: '4px 6px',
-                      fontSize: '0.72rem'
-                    }}
+                    className="w-full rounded border border-white/20 bg-black/45 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
                   />
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '5px',
-                  marginTop: '2px'
-                }}
-              >
+              <div className="mt-0.5 grid grid-cols-3 gap-1.5">
                 <div>
-                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>Rot X (°)</div>
+                  <div className="text-[10px] text-slate-300">Rot X (°)</div>
                   <input
                     type="number"
                     step="15"
@@ -6144,19 +5860,11 @@ export default function KitchenViewer() {
                         { customRotDeg: [val, curRot[1], curRot[2]] }
                       );
                     }}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(0,0,0,0.45)',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      color: '#cbd5e1',
-                      borderRadius: '5px',
-                      padding: '3px 6px',
-                      fontSize: '0.71rem'
-                    }}
+                    className="w-full rounded border border-white/20 bg-black/45 px-1.5 py-0.5 text-[11px] text-slate-300 outline-none focus:border-sky-400"
                   />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>Rot Y (°)</div>
+                  <div className="text-[10px] text-slate-300">Rot Y (°)</div>
                   <input
                     type="number"
                     step="15"
@@ -6169,19 +5877,11 @@ export default function KitchenViewer() {
                         { customRotDeg: [curRot[0], val, curRot[2]] }
                       );
                     }}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(0,0,0,0.45)',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      color: '#cbd5e1',
-                      borderRadius: '5px',
-                      padding: '3px 6px',
-                      fontSize: '0.71rem'
-                    }}
+                    className="w-full rounded border border-white/20 bg-black/45 px-1.5 py-0.5 text-[11px] text-slate-300 outline-none focus:border-sky-400"
                   />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.63rem', color: '#cbd5e1' }}>Rot Z (°)</div>
+                  <div className="text-[10px] text-slate-300">Rot Z (°)</div>
                   <input
                     type="number"
                     step="15"
@@ -6194,26 +5894,17 @@ export default function KitchenViewer() {
                         { customRotDeg: [curRot[0], curRot[1], val] }
                       );
                     }}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(0,0,0,0.45)',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      color: '#cbd5e1',
-                      borderRadius: '5px',
-                      padding: '3px 6px',
-                      fontSize: '0.71rem'
-                    }}
+                    className="w-full rounded border border-white/20 bg-black/45 px-1.5 py-0.5 text-[11px] text-slate-300 outline-none focus:border-sky-400"
                   />
                 </div>
               </div>
             </div>
 
             {/* 4. Material & Color Actions */}
-            <div style={{ display: 'flex', gap: '5px' }}>
+            <div className="flex gap-1.5">
               <button
                 type="button"
-                className="light-chip"
-                style={{ flex: 1, justifyContent: 'center', padding: '5px' }}
+                className="flex-1 rounded-md border border-white/15 bg-white/5 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
                 onClick={() =>
                   handlePaintGlbSubMeshWithActiveMat(
                     partContextMenu.modelId,
@@ -6224,19 +5915,14 @@ export default function KitchenViewer() {
                 🖌️ Aplică Material Activ
               </button>
               <label
-                className="light-chip"
-                style={{
-                  cursor: 'pointer',
-                  padding: '5px 10px',
-                  justifyContent: 'center'
-                }}
+                className="inline-flex cursor-pointer items-center justify-center rounded-md border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors"
                 title="Schimbă culoarea acestei piese"
               >
                 🎨 Culoare
                 <input
                   type="color"
                   value={ctxSp.colorHex || '#e5e7eb'}
-                  style={{ width: 0, height: 0, opacity: 0 }}
+                  className="h-0 w-0 opacity-0"
                   onChange={(e) =>
                     handleColorGlbSubMesh(
                       partContextMenu.modelId,
@@ -6249,29 +5935,14 @@ export default function KitchenViewer() {
             </div>
 
             {/* 5. Add New Parts / Extend Furniture */}
-            <div
-              style={{
-                borderTop: '1px solid rgba(255,255,255,0.1)',
-                paddingTop: '7px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '5px'
-              }}
-            >
-              <div style={{ fontSize: '0.67rem', color: '#94a3b8', fontWeight: 600 }}>
+            <div className="flex flex-col gap-1 border-t border-white/10 pt-2">
+              <div className="text-[10.5px] font-semibold text-slate-400">
                 ➕ EXTINDE MOBILIERUL (ADAUGĂ PIESĂ NOUĂ)
               </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '4px'
-                }}
-              >
+              <div className="grid grid-cols-2 gap-1">
                 <button
                   type="button"
-                  className="light-chip"
-                  style={{ fontSize: '0.67rem', justifyContent: 'center' }}
+                  className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
                   onClick={() =>
                     handleAddPartToGlbModel(
                       partContextMenu.modelId,
@@ -6290,8 +5961,7 @@ export default function KitchenViewer() {
                 </button>
                 <button
                   type="button"
-                  className="light-chip"
-                  style={{ fontSize: '0.67rem', justifyContent: 'center' }}
+                  className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
                   onClick={() =>
                     handleAddPartToGlbModel(
                       partContextMenu.modelId,
@@ -6310,8 +5980,7 @@ export default function KitchenViewer() {
                 </button>
                 <button
                   type="button"
-                  className="light-chip"
-                  style={{ fontSize: '0.67rem', justifyContent: 'center' }}
+                  className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
                   onClick={() =>
                     handleAddPartToGlbModel(
                       partContextMenu.modelId,
@@ -6330,8 +5999,7 @@ export default function KitchenViewer() {
                 </button>
                 <button
                   type="button"
-                  className="light-chip"
-                  style={{ fontSize: '0.67rem', justifyContent: 'center' }}
+                  className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
                   onClick={() =>
                     handleAddPartToGlbModel(
                       partContextMenu.modelId,
@@ -6352,25 +6020,10 @@ export default function KitchenViewer() {
             </div>
 
             {/* 6. Duplicate & Delete Part */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '6px',
-                borderTop: '1px solid rgba(255,255,255,0.1)',
-                paddingTop: '7px'
-              }}
-            >
+            <div className="grid grid-cols-2 gap-1.5 border-t border-white/10 pt-2">
               <button
                 type="button"
-                className="light-chip"
-                style={{
-                  justifyContent: 'center',
-                  padding: '6px',
-                  fontWeight: 600,
-                  color: '#fde68a',
-                  borderColor: 'rgba(251, 191, 36, 0.4)'
-                }}
+                className="rounded-md border border-amber-400/40 bg-amber-500/10 py-1.5 text-xs font-semibold text-amber-200 hover:bg-amber-500/20 transition-colors cursor-pointer"
                 onClick={() =>
                   handleDuplicateGlbSubPart(
                     partContextMenu.modelId,
@@ -6382,15 +6035,7 @@ export default function KitchenViewer() {
               </button>
               <button
                 type="button"
-                className="light-chip"
-                style={{
-                  justifyContent: 'center',
-                  padding: '6px',
-                  fontWeight: 600,
-                  color: '#fda4af',
-                  background: 'rgba(244, 63, 94, 0.16)',
-                  borderColor: 'rgba(244, 63, 94, 0.45)'
-                }}
+                className="rounded-md border border-rose-500/45 bg-rose-500/15 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/25 transition-colors cursor-pointer"
                 onClick={() =>
                   handleDeleteGlbSubPart(
                     partContextMenu.modelId,

@@ -3,6 +3,7 @@
 import React, { useRef } from 'react';
 import { I18N } from '../i18n/translations';
 import { FINISH_MODES } from '../utils/textures';
+import { Slider } from './ui/slider';
 
 export default function MaterialStudioSection({
   lang,
@@ -61,15 +62,16 @@ export default function MaterialStudioSection({
   };
 
   return (
-    <div className="panel-section">
-      <div className="section-title">
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
         <span>🎨 {dict.customStudioTitle}</span>
       </div>
 
-      <div className="studio-box">
-        <div className="upload-row">
+      <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-slate-900/50 p-3">
+        <div className="grid grid-cols-2 gap-2">
           <button
-            className="upload-btn"
+            type="button"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-amber-400/35 bg-amber-500/15 px-2.5 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/25 transition-colors cursor-pointer"
             onClick={() => fileInputRef.current && fileInputRef.current.click()}
           >
             <span>📸</span>
@@ -77,8 +79,8 @@ export default function MaterialStudioSection({
           </button>
 
           <button
-            className="btn-pill"
-            style={{ justifyContent: 'center' }}
+            type="button"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
             onClick={() => colorInputRef.current && colorInputRef.current.click()}
           >
             <span>🎨</span>
@@ -90,22 +92,22 @@ export default function MaterialStudioSection({
             type="file"
             accept="image/*"
             multiple
-            style={{ display: 'none' }}
+            className="hidden"
             onChange={handleFileChange}
           />
           <input
             ref={colorInputRef}
             type="color"
             defaultValue="#c8a986"
-            style={{ display: 'none' }}
+            className="hidden"
             onChange={handleColorChange}
           />
         </div>
 
-        <div className="upload-row">
+        <div className="grid grid-cols-2 gap-2">
           <button
-            className="btn-pill"
-            style={{ justifyContent: 'center' }}
+            type="button"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
             onClick={onResetFurnitureToWhite}
           >
             <span>🔄</span>
@@ -113,8 +115,8 @@ export default function MaterialStudioSection({
           </button>
 
           <button
-            className="btn-pill"
-            style={{ justifyContent: 'center', borderColor: 'rgba(244,63,94,0.35)', color: '#fda4af' }}
+            type="button"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-rose-500/35 bg-rose-500/10 px-2.5 py-1.5 text-xs font-medium text-rose-300 hover:bg-rose-500/20 transition-colors cursor-pointer"
             onClick={onDeleteAllMaterials}
           >
             <span>🗑️</span>
@@ -122,67 +124,68 @@ export default function MaterialStudioSection({
           </button>
         </div>
 
-        <div className="custom-mat-grid">
+        <div className="grid grid-cols-3 gap-2">
           {materials.length === 0 ? (
-            <div
-              style={{
-                gridColumn: '1 / -1',
-                fontSize: '0.73rem',
-                color: 'var(--text-muted)',
-                textAlign: 'center',
-                padding: '10px 6px'
-              }}
-            >
+            <div className="col-span-full py-2.5 px-1.5 text-center text-[11.5px] text-slate-400">
               {dict.emptyMatHint}
             </div>
           ) : (
-            materials.map((mat) => (
-              <div
-                key={mat.id}
-                className={`custom-mat-card ${mat.id === activeMatId ? 'selected' : ''}`}
-                title={mat.name}
-                onClick={() => onSelectMaterial(mat.id)}
-              >
+            materials.map((mat) => {
+              const isSelected = mat.id === activeMatId;
+              return (
                 <div
-                  className="custom-mat-thumb"
-                  style={{ background: mat.thumbCss }}
-                />
-                <div className="custom-mat-name">{mat.name}</div>
-                <button
-                  className="del-mat"
-                  title="Șterge materialul"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteMaterial(mat.id);
-                  }}
+                  key={mat.id}
+                  className={`group relative flex cursor-pointer flex-col items-center gap-1 rounded-lg border p-1.5 transition-all ${
+                    isSelected
+                      ? 'border-amber-400 bg-amber-500/15 shadow-[0_0_12px_rgba(212,163,89,0.2)]'
+                      : 'border-white/10 bg-slate-950/60 hover:border-white/25'
+                  }`}
+                  title={mat.name}
+                  onClick={() => onSelectMaterial(mat.id)}
                 >
-                  ×
-                </button>
-              </div>
-            ))
+                  <div
+                    className="h-9 w-full rounded border border-white/15"
+                    style={{ background: mat.thumbCss }}
+                  />
+                  <div className="w-full truncate text-center text-[10.5px] font-medium text-slate-200">
+                    {mat.name}
+                  </div>
+                  <button
+                    type="button"
+                    className="absolute -right-1.5 -top-1.5 hidden h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[10px] font-bold text-white shadow group-hover:flex cursor-pointer"
+                    title="Șterge materialul"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteMaterial(mat.id);
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
 
-        <div className="studio-controls">
-          <div className="studio-slider-row">
+        <div className="flex flex-col gap-2 rounded-lg border border-white/10 bg-black/25 p-2.5">
+          <div className="flex items-center justify-between text-xs text-slate-300">
             <span>{dict.grainScaleLbl}</span>
-            <span className="val">{activeMat ? `${activeMat.scale.toFixed(1)}x` : '1.0x'}</span>
+            <span className="font-mono font-semibold text-amber-300">
+              {activeMat ? `${activeMat.scale.toFixed(1)}x` : '1.0x'}
+            </span>
           </div>
-          <input
-            type="range"
-            className="studio-range"
-            min="0.3"
-            max="3.0"
-            step="0.1"
-            value={activeMat ? activeMat.scale : 1.0}
+          <Slider
+            min={0.3}
+            max={3.0}
+            step={0.1}
+            value={[activeMat ? activeMat.scale : 1.0]}
             disabled={!activeMat}
-            onChange={(e) =>
-              onUpdateActiveMaterialProp('scale', parseFloat(e.target.value) || 1.0)
-            }
+            onValueChange={(vals) => onUpdateActiveMaterialProp('scale', vals[0] ?? 1.0)}
           />
-          <div className="studio-opts-row">
+          <div className="grid grid-cols-2 gap-1.5 pt-1">
             <button
-              className="btn-pill"
+              type="button"
+              className="inline-flex items-center justify-center rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 disabled:opacity-40 transition-colors cursor-pointer"
               disabled={!activeMat}
               onClick={() =>
                 onUpdateActiveMaterialProp('rotate90', activeMat ? !activeMat.rotate90 : false)
@@ -194,7 +197,8 @@ export default function MaterialStudioSection({
             </button>
 
             <button
-              className="btn-pill"
+              type="button"
+              className="inline-flex items-center justify-center rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 disabled:opacity-40 transition-colors cursor-pointer"
               disabled={!activeMat}
               onClick={() =>
                 onUpdateActiveMaterialProp(
@@ -209,23 +213,26 @@ export default function MaterialStudioSection({
         </div>
 
         <button
-          className={`btn-pill ${paintModeActive ? 'active-paint' : ''}`}
-          style={{ width: '100%', justifyContent: 'center', padding: '9px 10px' }}
+          type="button"
+          className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border px-2.5 py-2 text-xs font-semibold transition-colors cursor-pointer ${
+            paintModeActive
+              ? 'border-purple-400 bg-purple-500/25 text-purple-200 shadow-[0_0_16px_rgba(168,85,247,0.3)]'
+              : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+          }`}
           onClick={onTogglePaintMode}
         >
           <span>🖌️</span>
           <span>{paintModeActive ? dict.paintModeActiveBtn : dict.paintModeBtn}</span>
         </button>
 
-        <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <div style={{ fontSize: '0.73rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+        <div className="mt-1 flex flex-col gap-1.5">
+          <div className="text-[11.5px] font-semibold text-slate-400">
             {isRo ? 'Aplicare Finisaj Activ pe Mobilier:' : isRu ? 'Применить активный материал:' : 'Apply Active Material to Furniture:'}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+          <div className="grid grid-cols-2 gap-1.5">
             <button
               type="button"
-              className="btn-pill"
-              style={{ justifyContent: 'center', fontSize: '0.74rem', padding: '7px 4px' }}
+              className="inline-flex items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 px-1.5 py-1.5 text-[11.5px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
               title={isRo ? 'Aplică finisajul pe corpul CAD selectat în scenă' : 'Apply to selected model'}
               onClick={onApplyToSelectedModel}
             >
@@ -234,8 +241,7 @@ export default function MaterialStudioSection({
             </button>
             <button
               type="button"
-              className="btn-pill"
-              style={{ justifyContent: 'center', fontSize: '0.74rem', padding: '7px 4px' }}
+              className="inline-flex items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 px-1.5 py-1.5 text-[11.5px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
               title={isRo ? 'Aplică finisajul pe toate corpurile de mobilier din scenă' : 'Apply to all models in scene'}
               onClick={onApplyToAllModels}
             >

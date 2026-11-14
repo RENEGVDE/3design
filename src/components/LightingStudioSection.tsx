@@ -27,8 +27,8 @@ export default function LightingStudioSection({
   }
 
   return (
-    <div className="panel-section space-y-3">
-      <div className="section-title flex items-center gap-2">
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
         <Sun className="h-4 w-4 text-amber-400" />
         <span>{dict.lightStudioTitle}</span>
       </div>
@@ -50,7 +50,7 @@ export default function LightingStudioSection({
           <div className="grid grid-cols-3 gap-1.5 pt-1">
             <button
               type="button"
-              className="light-chip"
+              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={() => onChangeLightState({ kelvin: 2900 })}
             >
               <span>🌅</span>
@@ -58,7 +58,7 @@ export default function LightingStudioSection({
             </button>
             <button
               type="button"
-              className="light-chip"
+              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={() => onChangeLightState({ kelvin: 4000 })}
             >
               <span>☀️</span>
@@ -66,7 +66,7 @@ export default function LightingStudioSection({
             </button>
             <button
               type="button"
-              className="light-chip"
+              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={() => onChangeLightState({ kelvin: 6000 })}
             >
               <span>❄️</span>
@@ -107,11 +107,11 @@ export default function LightingStudioSection({
 
         {/* Light Position Presets */}
         <div className="space-y-1.5 pt-1">
-          <div className="zone-title">{dict.lightPointTitle}</div>
-          <div className="light-pos-grid">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{dict.lightPointTitle}</div>
+          <div className="grid grid-cols-2 gap-1.5">
             <button
               type="button"
-              className="light-chip"
+              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={() => onChangeLightState(LIGHT_POS_PRESETS.front_right)}
             >
               <span>↘️</span>
@@ -119,7 +119,7 @@ export default function LightingStudioSection({
             </button>
             <button
               type="button"
-              className="light-chip"
+              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={() => onChangeLightState(LIGHT_POS_PRESETS.front_left)}
             >
               <span>↙️</span>
@@ -127,7 +127,7 @@ export default function LightingStudioSection({
             </button>
             <button
               type="button"
-              className="light-chip"
+              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={() => onChangeLightState(LIGHT_POS_PRESETS.ceiling)}
             >
               <span>⬆️</span>
@@ -135,7 +135,7 @@ export default function LightingStudioSection({
             </button>
             <button
               type="button"
-              className="light-chip"
+              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={() => onChangeLightState(LIGHT_POS_PRESETS.window)}
             >
               <span>🪟</span>
@@ -143,7 +143,7 @@ export default function LightingStudioSection({
             </button>
             <button
               type="button"
-              className="light-chip"
+              className="col-span-2 inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={() => onChangeLightState(LIGHT_POS_PRESETS.low_dramatic)}
             >
               <span>🌇</span>

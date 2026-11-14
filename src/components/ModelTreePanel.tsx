@@ -1,7 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { I18N } from '../i18n/translations';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from './ui/dialog';
 
 export interface ModelTreePanelProps {
   lang?: string;
@@ -73,22 +79,21 @@ export default function ModelTreePanel({
   };
 
   return (
-    <div className="cad-tree-container">
+    <div className="flex flex-col gap-3">
       {/* Quick Add Custom Panel Action */}
-      <div className="cad-toolbar-card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+      <div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2.5">
         <div>
-          <strong style={{ fontSize: '0.8rem', color: '#f8fafc', display: 'block' }}>
+          <strong className="block text-[13px] font-bold text-slate-50">
             {isRo ? 'Corpuri & Piese CAD' : isRu ? 'Модули и детали CAD' : 'CAD Modules & Panels'}
           </strong>
-          <small style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+          <small className="text-[11px] text-slate-400">
             {importedModels.length} {isRo ? 'corpuri de mobilier în scenă' : 'cabinets in scene'}
           </small>
         </div>
         <button
           type="button"
-          className="cad-btn-primary"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 px-2.5 py-1.5 text-[11.5px] font-semibold text-slate-950 whitespace-nowrap hover:brightness-110 transition cursor-pointer"
           onClick={() => setNewPanelModalOpen(true)}
-          style={{ padding: '5px 10px', fontSize: '0.74rem', whiteSpace: 'nowrap' }}
         >
           <span>➕</span>
           <span>{isRo ? 'Panou Liber' : isRu ? 'Добавить деталь' : 'Add Panel'}</span>
@@ -96,42 +101,52 @@ export default function ModelTreePanel({
       </div>
 
       {/* Hierarchical Model Structural Tree */}
-      <div className="cad-tree-card">
-        <div className="tree-card-header">
-          <span style={{ fontSize: '1rem' }}>🌲</span>
+      <div className="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/50">
+        <div className="flex items-center gap-2 border-b border-white/10 bg-black/25 px-3 py-2 text-xs font-bold text-slate-100">
+          <span className="text-base">🌲</span>
           <strong>{isRo ? 'Arbore Structură Model' : isRu ? 'Структурное дерево модели' : 'Model Structure Tree'}</strong>
         </div>
 
-        <div className="tree-scroll-area">
+        <div className="max-h-[460px] overflow-y-auto p-2 text-xs">
           {/* Root Project Node */}
-          <div className="tree-node root-node">
-            <div className="tree-node-row">
-              <span className="tree-expander" onClick={() => toggleNode('root')}>
+          <div>
+            <div className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-slate-100 hover:bg-white/5">
+              <button
+                type="button"
+                className="w-4 text-center text-[10px] text-slate-400 hover:text-white cursor-pointer"
+                onClick={() => toggleNode('root')}
+              >
                 {expandedNodes.root ? '▼' : '▶'}
+              </button>
+              <span>🏠</span>
+              <span className="truncate font-semibold">
+                {isRo ? 'Proiect Mobilier & Arhitectură' : isRu ? 'Проект интерьера и мебели' : 'Project Furniture & Architecture'}
               </span>
-              <span className="node-icon">🏠</span>
-              <span className="node-label"><strong>{isRo ? 'Proiect Mobilier & Arhitectură' : isRu ? 'Проект интерьера и мебели' : 'Project Furniture & Architecture'}</strong></span>
             </div>
 
             {expandedNodes.root && (
-              <div className="tree-children">
+              <div className="ml-3 flex flex-col gap-1 border-l border-white/10 pl-2 pt-1">
                 {/* 1. Custom Imported & Parametric Furniture Modules Node */}
-                <div className="tree-node">
-                  <div className="tree-node-row">
-                    <span className="tree-expander" onClick={() => toggleNode('furnitureModels')}>
+                <div>
+                  <div className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-slate-200 hover:bg-white/5">
+                    <button
+                      type="button"
+                      className="w-4 text-center text-[10px] text-slate-400 hover:text-white cursor-pointer"
+                      onClick={() => toggleNode('furnitureModels')}
+                    >
                       {expandedNodes.furnitureModels ? '▼' : '▶'}
-                    </span>
-                    <span className="node-icon">📦</span>
-                    <span className="node-label">
-                      <strong>{isRo ? 'Corpuri de Mobilier Parametrice' : isRu ? 'Параметрические модули мебели' : 'Furniture Cabinets'}</strong>
-                      <small style={{ color: '#94a3b8', marginLeft: '6px' }}>({importedModels.length})</small>
+                    </button>
+                    <span>📦</span>
+                    <span className="truncate font-semibold">
+                      {isRo ? 'Corpuri de Mobilier Parametrice' : isRu ? 'Параметрические модули мебели' : 'Furniture Cabinets'}
+                      <small className="ml-1.5 text-slate-400">({importedModels.length})</small>
                     </span>
                   </div>
 
                   {expandedNodes.furnitureModels && (
-                    <div className="tree-children">
+                    <div className="ml-3 flex flex-col gap-1.5 border-l border-white/10 pl-2 pt-1">
                       {importedModels.length === 0 ? (
-                        <div style={{ padding: '6px 12px', fontSize: '0.7rem', color: '#64748b', fontStyle: 'italic' }}>
+                        <div className="px-3 py-1.5 text-[11px] italic text-slate-500">
                           {isRo ? 'Niciun corp creat încă. Adaugă dulapuri, comode, dressinguri sau bucătării modulare.' : isRu ? 'Нет добавленных модулей. Создайте мебель во вкладке CAD.' : 'No custom cabinets yet. Create one in Furniture CAD tab.'}
                         </div>
                       ) : (
@@ -141,21 +156,30 @@ export default function ModelTreePanel({
                           const cuttingList = model.furnitureConfig?.panelCuttingList || model.panelCuttingList || [];
 
                           return (
-                            <div key={model.id || idx} className={`tree-cabinet-block ${isSelected ? 'selected' : ''}`}>
+                            <div
+                              key={model.id || idx}
+                              className={`overflow-hidden rounded-lg border transition-colors ${
+                                isSelected
+                                  ? 'border-sky-400/70 bg-sky-500/15'
+                                  : 'border-white/10 bg-slate-950/60 hover:border-white/20'
+                              }`}
+                            >
                               <div
-                                className="tree-cabinet-header"
+                                className="flex cursor-pointer items-center gap-2 px-2 py-1.5"
                                 onClick={() => onSelectPart && onSelectPart(model.id)}
                               >
-                                <span className="leaf-icon">🛋️</span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div className="cabinet-title">{model.name || `Corp #${idx + 1}`}</div>
-                                  <div className="cabinet-meta">
+                                <span>🛋️</span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate text-xs font-semibold text-slate-100">
+                                    {model.name || `Corp #${idx + 1}`}
+                                  </div>
+                                  <div className="truncate text-[10.5px] text-slate-400">
                                     {model.furnitureConfig?.category || 'Corp Mobilier'} • {cuttingList.length} {isRo ? 'piese' : 'repere'}
                                   </div>
                                 </div>
                                 <button
                                   type="button"
-                                  className="tree-eye-btn"
+                                  className="rounded px-1 py-0.5 text-xs hover:bg-white/10 cursor-pointer"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (onTogglePartVisibility) onTogglePartVisibility(model.id);
@@ -167,13 +191,12 @@ export default function ModelTreePanel({
                                 {onDeleteModel && (
                                   <button
                                     type="button"
-                                    className="tree-eye-btn"
+                                    className="rounded px-1 py-0.5 text-xs text-red-400 hover:bg-red-500/15 cursor-pointer"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       onDeleteModel(model.id);
                                     }}
                                     title={isRo ? 'Șterge corp' : 'Delete'}
-                                    style={{ color: '#f87171' }}
                                   >
                                     ✕
                                   </button>
@@ -182,12 +205,14 @@ export default function ModelTreePanel({
 
                               {/* Sub-panels inside cabinet */}
                               {cuttingList.length > 0 && (
-                                <div className="cabinet-subparts">
+                                <div className="flex flex-col gap-0.5 border-t border-white/10 bg-black/25 px-2 py-1.5">
                                   {cuttingList.map((p: any, pIdx: number) => (
-                                    <div key={pIdx} className="subpart-row">
-                                      <span style={{ color: '#38bdf8' }}>▫</span>
-                                      <span className="subpart-name">{p.partName || p.name}</span>
-                                      <span className="subpart-dims">{p.lengthMm || p.length}×{p.widthMm || p.width} mm</span>
+                                    <div key={pIdx} className="flex items-center gap-1.5 text-[10.5px] text-slate-300">
+                                      <span className="text-sky-400">▫</span>
+                                      <span className="min-w-0 flex-1 truncate">{p.partName || p.name}</span>
+                                      <span className="font-mono text-slate-400">
+                                        {p.lengthMm || p.length}×{p.widthMm || p.width} mm
+                                      </span>
                                     </div>
                                   ))}
                                 </div>
@@ -201,22 +226,26 @@ export default function ModelTreePanel({
                 </div>
 
                 {/* 2. Appliances Node */}
-                <div className="tree-node">
-                  <div className="tree-node-row">
-                    <span className="tree-expander" onClick={() => toggleNode('appliancesNode')}>
+                <div>
+                  <div className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-slate-200 hover:bg-white/5">
+                    <button
+                      type="button"
+                      className="w-4 text-center text-[10px] text-slate-400 hover:text-white cursor-pointer"
+                      onClick={() => toggleNode('appliancesNode')}
+                    >
                       {expandedNodes.appliancesNode ? '▼' : '▶'}
-                    </span>
-                    <span className="node-icon">🍳</span>
-                    <span className="node-label">
-                      <strong>{isRo ? 'Electrocasnice & Dotări Tehnice' : isRu ? 'Встраиваемая техника' : 'Built-in Appliances'}</strong>
-                      <small style={{ color: '#94a3b8', marginLeft: '6px' }}>({appliances.length})</small>
+                    </button>
+                    <span>🍳</span>
+                    <span className="truncate font-semibold">
+                      {isRo ? 'Electrocasnice & Dotări Tehnice' : isRu ? 'Встраиваемая техника' : 'Built-in Appliances'}
+                      <small className="ml-1.5 text-slate-400">({appliances.length})</small>
                     </span>
                   </div>
 
                   {expandedNodes.appliancesNode && (
-                    <div className="tree-children">
+                    <div className="ml-3 flex flex-col gap-1.5 border-l border-white/10 pl-2 pt-1">
                       {appliances.length === 0 ? (
-                        <div style={{ padding: '6px 12px', fontSize: '0.7rem', color: '#64748b', fontStyle: 'italic' }}>
+                        <div className="px-3 py-1.5 text-[11px] italic text-slate-500">
                           {isRo ? 'Niciun aparat electrocasnic adăugat încă. Deschide secțiunea "Tehnică & Dotări".' : isRu ? 'Техника не добавлена.' : 'No appliances added yet.'}
                         </div>
                       ) : (
@@ -224,21 +253,28 @@ export default function ModelTreePanel({
                           const isHidden = hiddenPartIds.has(app.id);
                           const isSelected = selectedPartId === app.id;
                           return (
-                            <div key={app.id || idx} className={`tree-cabinet-block ${isSelected ? 'selected' : ''}`}>
+                            <div
+                              key={app.id || idx}
+                              className={`overflow-hidden rounded-lg border transition-colors ${
+                                isSelected
+                                  ? 'border-sky-400/70 bg-sky-500/15'
+                                  : 'border-white/10 bg-slate-950/60 hover:border-white/20'
+                              }`}
+                            >
                               <div
-                                className="tree-cabinet-header"
+                                className="flex cursor-pointer items-center gap-2 px-2 py-1.5"
                                 onClick={() => onSelectPart && onSelectPart(app.id)}
                               >
-                                <span className="leaf-icon">⚡</span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div className="cabinet-title">{app.name}</div>
-                                  <div className="cabinet-meta">
+                                <span>⚡</span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate text-xs font-semibold text-slate-100">{app.name}</div>
+                                  <div className="truncate text-[10.5px] text-slate-400">
                                     {app.dimensions?.width}×{app.dimensions?.height} mm • {app.powerKw > 0 ? `${app.powerKw} kW` : 'Plumbing'}
                                   </div>
                                 </div>
                                 <button
                                   type="button"
-                                  className="tree-eye-btn"
+                                  className="rounded px-1 py-0.5 text-xs hover:bg-white/10 cursor-pointer"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (onTogglePartVisibility) onTogglePartVisibility(app.id);
@@ -250,13 +286,12 @@ export default function ModelTreePanel({
                                 {onDeleteModel && (
                                   <button
                                     type="button"
-                                    className="tree-eye-btn"
+                                    className="rounded px-1 py-0.5 text-xs text-red-400 hover:bg-red-500/15 cursor-pointer"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       onDeleteModel(app.id);
                                     }}
                                     title={isRo ? 'Șterge aparat' : 'Delete'}
-                                    style={{ color: '#f87171' }}
                                   >
                                     ✕
                                   </button>
@@ -276,115 +311,130 @@ export default function ModelTreePanel({
       </div>
 
       {/* Modal for Creating Custom Free Panel */}
-      {newPanelModalOpen && (
-        <div className="report-modal-backdrop" onClick={() => setNewPanelModalOpen(false)}>
-          <div className="report-modal-window" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="report-header-bar">
-              <div className="report-brand">
-                <span className="report-icon">📐</span>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1rem', color: '#f8fafc' }}>{isRo ? 'Adăugare Panou CAD Liber' : isRu ? 'Создать произвольную деталь' : 'Add Custom Panel'}</h3>
-                  <small style={{ color: '#94a3b8' }}>{isRo ? 'Specifică dimensiunile milimetrice și orientarea' : isRu ? 'Параметры детали в мм' : 'Specify mm dimensions'}</small>
-                </div>
-              </div>
-              <button className="sheet-close-btn" onClick={() => setNewPanelModalOpen(false)}>✕</button>
+      <Dialog open={newPanelModalOpen} onOpenChange={setNewPanelModalOpen}>
+        <DialogContent className="max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <span>📐</span>
+              <span>{isRo ? 'Adăugare Panou CAD Liber' : isRu ? 'Создать произвольную деталь' : 'Add Custom Panel'}</span>
+            </DialogTitle>
+            <DialogDescription>
+              {isRo ? 'Specifică dimensiunile milimetrice și orientarea' : isRu ? 'Параметры детали в мм' : 'Specify mm dimensions'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3 pt-1">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-300">
+                {isRo ? 'Denumire Piesă:' : isRu ? 'Название детали:' : 'Part Name:'}
+              </label>
+              <input
+                type="text"
+                className="w-full rounded-lg border border-white/15 bg-slate-950/75 px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-sky-400"
+                value={newPanelConfig.name}
+                onChange={(e) => setNewPanelConfig({ ...newPanelConfig, name: e.target.value })}
+              />
             </div>
 
-            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label className="param-label">{isRo ? 'Denumire Piesă:' : isRu ? 'Название детали:' : 'Part Name:'}</label>
-                <input
-                  type="text"
-                  className="param-input"
-                  value={newPanelConfig.name}
-                  onChange={(e) => setNewPanelConfig({ ...newPanelConfig, name: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="param-label">{isRo ? 'Orientare Spațială:' : isRu ? 'Ориентация в пространстве:' : 'Orientation:'}</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                  {[
-                    { id: 'horizontal', label: isRo ? 'Orizontal' : isRu ? 'Горизонт' : 'Horizontal' },
-                    { id: 'vertical', label: isRo ? 'Vertical' : isRu ? 'Вертикаль' : 'Vertical' },
-                    { id: 'frontal', label: isRo ? 'Frontal' : isRu ? 'Фронтально' : 'Frontal' }
-                  ].map((o) => (
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-300">
+                {isRo ? 'Orientare Spațială:' : isRu ? 'Ориентация в пространстве:' : 'Orientation:'}
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { id: 'horizontal', label: isRo ? 'Orizontal' : isRu ? 'Горизонт' : 'Horizontal' },
+                  { id: 'vertical', label: isRo ? 'Vertical' : isRu ? 'Вертикаль' : 'Vertical' },
+                  { id: 'frontal', label: isRo ? 'Frontal' : isRu ? 'Фронтально' : 'Frontal' }
+                ].map((o) => {
+                  const isActive = newPanelConfig.orientation === o.id;
+                  return (
                     <button
                       key={o.id}
                       type="button"
-                      className={`btn-pill ${newPanelConfig.orientation === o.id ? 'active' : ''}`}
+                      className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                        isActive
+                          ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
+                          : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                      }`}
                       onClick={() => setNewPanelConfig({ ...newPanelConfig, orientation: o.id })}
                     >
                       {o.label}
                     </button>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label className="param-label">{isRo ? 'Lungime (mm):' : isRu ? 'Длина (мм):' : 'Length (mm):'}</label>
-                  <input
-                    type="number"
-                    className="param-input"
-                    value={newPanelConfig.lengthMm}
-                    onChange={(e) => setNewPanelConfig({ ...newPanelConfig, lengthMm: Number(e.target.value) })}
-                  />
-                </div>
-                <div>
-                  <label className="param-label">{isRo ? 'Lățime (mm):' : isRu ? 'Ширина (мм):' : 'Width (mm):'}</label>
-                  <input
-                    type="number"
-                    className="param-input"
-                    value={newPanelConfig.widthMm}
-                    onChange={(e) => setNewPanelConfig({ ...newPanelConfig, widthMm: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label className="param-label">{isRo ? 'Grosime:' : isRu ? 'Толщина:' : 'Thickness:'}</label>
-                  <select
-                    className="param-input"
-                    value={newPanelConfig.thicknessMm}
-                    onChange={(e) => setNewPanelConfig({ ...newPanelConfig, thicknessMm: Number(e.target.value) })}
-                  >
-                    <option value={18}>18 mm (PAL standard)</option>
-                    <option value={16}>16 mm (PAL subțire)</option>
-                    <option value={10}>10 mm (PAL sertare)</option>
-                    <option value={4}>4 mm (HDF spate)</option>
-                    <option value={38}>38 mm (Blat lucru)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="param-label">{isRo ? 'Finisaj Cant:' : isRu ? 'Кромка:' : 'Edge Banding:'}</label>
-                  <select
-                    className="param-input"
-                    value={newPanelConfig.edgeBanding}
-                    onChange={(e) => setNewPanelConfig({ ...newPanelConfig, edgeBanding: e.target.value })}
-                  >
-                    <option value="Cant ABS 2mm">ABS 2 mm</option>
-                    <option value="Cant ABS 1mm">ABS 1 mm</option>
-                    <option value="Cant ABS 0.4mm">ABS 0.4 mm</option>
-                    <option value="Fără cant">Fără cant</option>
-                  </select>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={handleCreatePanel}
-                style={{ marginTop: '10px' }}
-              >
-                <span>➕</span>
-                <span>{isRo ? 'Generează Panou în Scenă' : isRu ? 'Создать деталь' : 'Generate Panel in Scene'}</span>
-              </button>
             </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-300">
+                  {isRo ? 'Lungime (mm):' : isRu ? 'Длина (мм):' : 'Length (mm):'}
+                </label>
+                <input
+                  type="number"
+                  className="w-full rounded-lg border border-white/15 bg-slate-950/75 px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-sky-400"
+                  value={newPanelConfig.lengthMm}
+                  onChange={(e) => setNewPanelConfig({ ...newPanelConfig, lengthMm: Number(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-300">
+                  {isRo ? 'Lățime (mm):' : isRu ? 'Ширина (мм):' : 'Width (mm):'}
+                </label>
+                <input
+                  type="number"
+                  className="w-full rounded-lg border border-white/15 bg-slate-950/75 px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-sky-400"
+                  value={newPanelConfig.widthMm}
+                  onChange={(e) => setNewPanelConfig({ ...newPanelConfig, widthMm: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-300">
+                  {isRo ? 'Grosime:' : isRu ? 'Толщина:' : 'Thickness:'}
+                </label>
+                <select
+                  className="w-full rounded-lg border border-white/15 bg-slate-950/75 px-2.5 py-1.5 text-xs text-slate-100 outline-none focus:border-sky-400"
+                  value={newPanelConfig.thicknessMm}
+                  onChange={(e) => setNewPanelConfig({ ...newPanelConfig, thicknessMm: Number(e.target.value) })}
+                >
+                  <option value={18}>18 mm (PAL standard)</option>
+                  <option value={16}>16 mm (PAL subțire)</option>
+                  <option value={10}>10 mm (PAL sertare)</option>
+                  <option value={4}>4 mm (HDF spate)</option>
+                  <option value={38}>38 mm (Blat lucru)</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-300">
+                  {isRo ? 'Finisaj Cant:' : isRu ? 'Кромка:' : 'Edge Banding:'}
+                </label>
+                <select
+                  className="w-full rounded-lg border border-white/15 bg-slate-950/75 px-2.5 py-1.5 text-xs text-slate-100 outline-none focus:border-sky-400"
+                  value={newPanelConfig.edgeBanding}
+                  onChange={(e) => setNewPanelConfig({ ...newPanelConfig, edgeBanding: e.target.value })}
+                >
+                  <option value="Cant ABS 2mm">ABS 2 mm</option>
+                  <option value="Cant ABS 1mm">ABS 1 mm</option>
+                  <option value="Cant ABS 0.4mm">ABS 0.4 mm</option>
+                  <option value="Fără cant">Fără cant</option>
+                </select>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 px-3 py-2 text-xs font-bold text-slate-950 hover:brightness-110 transition cursor-pointer"
+              onClick={handleCreatePanel}
+            >
+              <span>➕</span>
+              <span>{isRo ? 'Generează Panou în Scenă' : isRu ? 'Создать деталь' : 'Generate Panel in Scene'}</span>
+            </button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
