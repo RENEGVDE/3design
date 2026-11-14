@@ -1,15 +1,6 @@
 import * as THREE from 'three';
 
 /**
- * Calculates Axis-Aligned Bounding Box (AABB) in world coordinates for a model entry
- */
-export function getModelAABB(modelEntry) {
-  if (!modelEntry || !modelEntry.wrapperGroup) return null;
-  const box = new THREE.Box3().setFromObject(modelEntry.wrapperGroup);
-  return box;
-}
-
-/**
  * Computes magnetic snapping for a moving model against all other models in the scene
  * @param {string} movingModelId - ID of the model currently being moved
  * @param {Array} importedModels - List of all model records

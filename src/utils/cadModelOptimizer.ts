@@ -236,57 +236,6 @@ export function updateModelBoundingStructure(wrapperGroup: THREE.Group): THREE.B
 }
 
 /**
- * Fast Hierarchical Raycasting:
- * Pre-filters meshes by testing the model's outer bounding box first.
- * If the ray does NOT hit the model's outer box, returns [] in < 0.001 ms!
- * If it hits, tests candidate meshes directly.
- */
-export function raycastModelHierarchical(
-  raycaster: THREE.Raycaster,
-  wrapperGroup: THREE.Group,
-  candidateMeshes: THREE.Mesh[]
-): THREE.Intersection[] {
-  if (!wrapperGroup || !candidateMeshes || candidateMeshes.length === 0) return [];
-
-  // Level 1: Outer Model Bounding Box Check (costs < 0.001 ms)
-  let worldBox: THREE.Box3 = wrapperGroup.userData.worldBox;
-  if (!worldBox) {
-    worldBox = updateModelBoundingStructure(wrapperGroup);
-  }
-
-  const testOuterBox =
-    wrapperGroup.userData._expandedWorldBox ||
-    (wrapperGroup.userData._expandedWorldBox = worldBox
-      .clone()
-      .expandByScalar(2.0));
-
-  // Fast box test using raycaster ray
-  if (!raycaster.ray.intersectsBox(testOuterBox)) {
-    return []; // Pointer is nowhere near this model! Skip all child meshes & triangles!
-  }
-
-  // Level 2: Test all visible candidate meshes (Three.js tests boundingSphere internally in < 0.02ms)
-  const closeMeshes: THREE.Mesh[] = [];
-  for (let i = 0; i < candidateMeshes.length; i++) {
-    const mesh = candidateMeshes[i];
-    if (mesh.visible) {
-      closeMeshes.push(mesh);
-    }
-  }
-
-  if (closeMeshes.length === 0) return [];
-
-  // Level 3: Accurate triangle intersection ONLY for qualifying meshes
-  const hits: THREE.Intersection[] = [];
-  for (const m of closeMeshes) {
-    m.raycast(raycaster, hits);
-  }
-
-  hits.sort((a, b) => a.distance - b.distance);
-  return hits;
-}
-
-/**
  * Converts and merges static furniture submeshes sharing the same material
  * into unified Three.js BufferGeometries.
  * - Interactive mechanisms (doors, flaps, drawers) remain independent!

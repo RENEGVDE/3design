@@ -65,7 +65,6 @@ import {
 } from '../utils/architecturalRoom';
 import {
   buildAppliance3DModel,
-  APPLIANCE_CATALOG,
   ApplianceDefinition,
   ApplianceInstance
 } from '../utils/applianceCatalog';
@@ -81,7 +80,7 @@ import {
   setActiveCloudProjectMeta,
   loadPublicSharedProject
 } from '../utils/firebaseCloud';
-import { calculateMagneticSnap, alignModelDirectly } from '../utils/magneticSnapping';
+import { calculateMagneticSnap } from '../utils/magneticSnapping';
 import {
   downloadGlbExport,
   downloadB3DExport,
@@ -113,31 +112,6 @@ const INITIAL_LIGHT_STATE = {
   distM: 4.5
 };
 
-async function decompressGzipBase64(b64) {
-  if (!b64) return null;
-  const binStr = atob(b64);
-  const len = binStr.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) bytes[i] = binStr.charCodeAt(i);
-  if (typeof DecompressionStream !== 'undefined') {
-    const ds = new DecompressionStream('gzip');
-    const writer = ds.writable.getWriter();
-    writer.write(bytes);
-    writer.close();
-    const resp = new Response(ds.readable);
-    return await resp.arrayBuffer();
-  }
-  return bytes.buffer;
-}
-
-function decodeBase64(b64, TypedArr) {
-  if (!b64) return new TypedArr(0);
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new TypedArr(bytes.buffer);
-}
-
 function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
@@ -151,7 +125,6 @@ export default function KitchenViewer() {
   const [panelOpen, setPanelOpen] = useState(true);
   const [mobileSheetFull, setMobileSheetFull] = useState(false);
   const sheetTouchStartYRef = useRef<number | null>(null);
-  const [partsMeta, setPartsMeta] = useState({});
 
   const [materials, setMaterials] = useState([INITIAL_WHITE_MAT]);
   const [activeMatId, setActiveMatId] = useState('mat_default_white');
@@ -163,13 +136,11 @@ export default function KitchenViewer() {
   const [gizmoMode, setGizmoMode] = useState<string | null>(null);
   const [placeOnSurfaceMode, setPlaceOnSurfaceMode] = useState(false);
 
-  const [xrayActive, setXrayActive] = useState(false);
-  const [roomWallsActive, setRoomWallsActive] = useState(false);
+  const xrayActive = false;
   const [autoRotate, setAutoRotate] = useState(false);
 
   const [dimsEnabled, setDimsEnabled] = useState(false);
   const [dimMode, setDimMode] = useState('all');
-  const [activeDimInfo, setActiveDimInfo] = useState(null);
   const [tapeHasPointA, setTapeHasPointA] = useState(false);
   const [tapeMeasurement, setTapeMeasurement] = useState(null);
 
@@ -334,22 +305,7 @@ export default function KitchenViewer() {
     is2DPlanMode
   ]);
 
-  const syncPartsMetaToReact = useCallback(() => {
-    const ctx = sceneRef.current;
-    if (!ctx) return;
-    const nextMeta = {};
-    for (const spec of ctx.payload.specs) {
-      const item = ctx.interactiveMap[spec.id];
-      if (item) {
-        nextMeta[spec.id] = {
-          isOpen: item.isOpen,
-          assignedMatId: item.assignedMatId,
-          dimsCm: item.dimsCm
-        };
-      }
-    }
-    setPartsMeta(nextMeta);
-  }, []);
+  const syncPartsMetaToReact = useCallback(() => {}, []);
 
   const persistWorkspace = useCallback((overrides: any = {}) => {
     const ctx = sceneRef.current;
@@ -361,8 +317,6 @@ export default function KitchenViewer() {
     const curLight = overrides.lightState ?? stateRef.current.lightState;
     const curImported =
       overrides.importedModels ?? stateRef.current.importedModels;
-    const curRoom = overrides.roomConfig ?? stateRef.current.roomConfig;
-    const curApps = overrides.appliances ?? stateRef.current.appliances;
 
     const serializedMats = curMats.map((m) => ({
       id: m.id,
@@ -560,22 +514,11 @@ export default function KitchenViewer() {
     if (!stateRef.current.dimsEnabled || stateRef.current.dimMode === 'tape')
       return;
 
-    const item = renderPartDimensions3D({
+    renderPartDimensions3D({
       partId,
       interactiveMap: ctx.interactiveMap,
       partDimsGroup: ctx.partDimsGroup
     });
-
-    if (item) {
-      setActiveDimInfo({
-        title: getSpecTitle(item.spec, stateRef.current.lang),
-        w: item.dimsCm.w,
-        h: item.dimsCm.h,
-        d: item.dimsCm.d
-      });
-    } else {
-      setActiveDimInfo(null);
-    }
   }, []);
 
   // Helper to mount a parsed .GLB model into the 3D scene and register its meshes
@@ -1080,7 +1023,6 @@ export default function KitchenViewer() {
 
     async function initScene() {
       const payload = { specs: [], batches: [] };
-      const rawBuffer = null;
       if (disposed) return;
 
       const container = canvasContainerRef.current;
@@ -3844,24 +3786,6 @@ export default function KitchenViewer() {
     pushHistoryRef.current?.('Proprietate Material', prop === 'scale');
   };
 
-  const handlePaintPart = (partId) => {
-    const ctx = sceneRef.current;
-    const activeMat =
-      materials.find((m) => m.id === activeMatId) || materials[0] || null;
-    if (!ctx || !activeMat || !ctx.interactiveMap[partId]) return;
-
-    const item = ctx.interactiveMap[partId];
-    item.assignedMatId = activeMat.id;
-    const targets = item.facadeMeshes.length ? item.facadeMeshes : item.meshes;
-    for (const m of targets) {
-      applyMatEntryToMesh(m, activeMat, xrayActive);
-    }
-    syncPartsMetaToReact();
-    persistWorkspace();
-    pushHistoryRef.current?.('Vopsire ' + getSpecTitle(item.spec, lang));
-    showToast(`🎨 ${getSpecTitle(item.spec, lang)} → ${activeMat.name}`);
-  };
-
   const handleApplyMatToSelectedModel = useCallback(() => {
     const activeMat = materials.find((m) => m.id === activeMatId) || materials[0];
     if (!activeMat || !selectedGlbId) {
@@ -3922,13 +3846,6 @@ export default function KitchenViewer() {
   const handleChangeLang = (nextLang) => {
     setLang(nextLang);
     persistWorkspace({ lang: nextLang });
-  };
-
-  const handleHoverPart = (partId) => {
-    const ctx = sceneRef.current;
-    if (!ctx) return;
-    if (ctx.setHoveredGroup3D) ctx.setHoveredGroup3D(partId);
-    if (dimsEnabled) update3DDimensionsDisplay(partId || ctx.selectedPartId);
   };
 
   const dict = I18N[lang] || I18N.ro;
@@ -4336,27 +4253,6 @@ export default function KitchenViewer() {
       alert('Eroare la încărcarea fișierului: ' + err.message);
     }
   }, [persistWorkspace, showToast]);
-
-  const handleToggleRoomWalls = useCallback(() => {
-    setRoomWallsActive((prev) => {
-      const next = !prev;
-      if (sceneRef.current?.roomWallsGroup) {
-        sceneRef.current.roomWallsGroup.visible = next;
-      }
-      if (sceneRef.current?.roomRoot) {
-        sceneRef.current.roomRoot.visible = next;
-      }
-      if (sceneRef.current) {
-        sceneRef.current.needsShadowUpdate = true;
-      }
-      showToast(
-        next
-          ? (lang === 'ro' ? '🧱 Pereți cameră: ACTIVAT' : lang === 'ru' ? '🧱 Стены комнаты: ВКЛ' : '🧱 Room walls: ON')
-          : (lang === 'ro' ? '🧱 Pereți cameră: DEZACTIVAT' : lang === 'ru' ? '🧱 Стены комнаты: ВЫКЛ' : '🧱 Room walls: OFF')
-      );
-      return next;
-    });
-  }, [lang, showToast]);
 
   const handleExportFullSceneGlb = useCallback(async () => {
     const ctx = sceneRef.current;
@@ -4919,22 +4815,40 @@ export default function KitchenViewer() {
 
   return (
     <TooltipProvider delayDuration={250}>
-      <div id="loader" className={loading ? '' : 'hidden'}>
-        <div className="spinner" />
+      <div
+        id="loader"
+        className={`fixed inset-0 bg-[#111317] z-[100] flex flex-col items-center justify-center gap-3.5 transition-opacity duration-300 print:hidden ${
+          loading ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="w-[42px] h-[42px] rounded-full border-[3px] border-[#d4a359]/20 border-t-[var(--accent)] animate-spin" />
         <div className="font-semibold tracking-wider">
           Se încarcă modelul 3D al bucătăriei...
         </div>
       </div>
 
-      <div id="canvas-container" ref={canvasContainerRef} />
+      <div
+        id="canvas-container"
+        ref={canvasContainerRef}
+        className="fixed inset-0 w-full h-full z-[1] touch-none print:hidden"
+      />
 
-      <div id="tooltip" ref={tooltipRef}>
-        <div className="tt-title" ref={ttTitleRef} />
-        <div className="tt-dims" ref={ttDimsRef} style={{ display: 'none' }} />
-        <div className="tt-sub" ref={ttSubRef} />
+      <div
+        id="tooltip"
+        ref={tooltipRef}
+        className="fixed pointer-events-none z-30 bg-[#0f1116]/94 border border-[var(--accent)] text-white px-[11px] py-[7px] rounded-[9px] text-[0.76rem] font-semibold shadow-[0_8px_20px_rgba(0,0,0,0.5)] opacity-0 [&.visible]:opacity-100 -translate-x-1/2 -translate-y-[130%] transition-opacity duration-100 whitespace-nowrap print:hidden"
+      >
+        <div ref={ttTitleRef} />
+        <div className="text-[0.71rem] text-sky-400 font-mono mt-0.5" ref={ttDimsRef} style={{ display: 'none' }} />
+        <div className="text-[0.66rem] text-[var(--accent)] block mt-0.5" ref={ttSubRef} />
       </div>
 
-      <div id="mobile-toast" className={toastMsg ? 'show' : ''}>
+      <div
+        id="mobile-toast"
+        className={`fixed top-[calc(74px+var(--safe-top))] left-1/2 -translate-x-1/2 bg-[#0f1116]/92 border border-[var(--accent)] text-white px-3.5 py-[7px] rounded-full text-[0.78rem] font-semibold z-[28] pointer-events-none transition-all duration-200 shadow-[0_8px_24px_rgba(0,0,0,0.45)] whitespace-nowrap print:hidden ${
+          toastMsg ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2.5'
+        }`}
+      >
         {toastMsg}
       </div>
 
@@ -5097,12 +5011,16 @@ export default function KitchenViewer() {
 
       <aside
         id="side-panel"
-        className={`${panelOpen ? '' : 'collapsed'} ${
-          mobileSheetFull ? 'sheet-full' : 'sheet-half'
+        className={`fixed top-[calc(68px+var(--safe-top))] right-[calc(12px+var(--safe-right))] bottom-[calc(68px+var(--safe-bottom))] w-[420px] max-w-[calc(100vw-24px)] bg-[var(--panel-bg)] backdrop-blur-xl border border-[var(--panel-border)] rounded-2xl flex flex-col z-[25] shadow-[0_20px_50px_rgba(0,0,0,0.6)] transition-all duration-300 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded print:hidden max-md:top-auto max-md:left-0 max-md:right-0 max-md:bottom-0 max-md:w-full max-md:max-w-full max-md:max-h-[84vh] max-md:rounded-t-[20px] max-md:rounded-b-none max-md:pb-[calc(10px+var(--safe-bottom))] ${
+          mobileSheetFull ? 'max-md:h-[82vh]' : 'max-md:h-[48vh]'
+        } ${
+          panelOpen
+            ? 'opacity-100 translate-x-0 max-md:translate-y-0'
+            : 'translate-x-[405px] opacity-0 pointer-events-none max-md:translate-x-0 max-md:translate-y-[105%] max-md:opacity-100'
         }`}
       >
         <div
-          className="sheet-handle-bar"
+          className="hidden max-md:flex flex-col items-center px-3.5 pt-2 pb-1.5 border-b border-[var(--panel-border)] cursor-pointer shrink-0 sticky top-0 z-[15] bg-[#0f131c]/95 backdrop-blur-md"
           onClick={() => setMobileSheetFull((v) => !v)}
           onTouchStart={(e) => {
             if (e.touches && e.touches.length === 1) {
@@ -5129,14 +5047,13 @@ export default function KitchenViewer() {
             }
           }}
         >
-          <div className="sheet-pill" />
-          <div className="sheet-header-row">
+          <div className="w-10 h-1 rounded-sm bg-white/30 mb-1.5" />
+          <div className="w-full flex items-center justify-between text-[0.8rem] font-bold text-[var(--text-muted)]">
             <span>{dict.controlsToggle}</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                className="sheet-close-btn"
-                style={{ width: 'auto', borderRadius: '10px', padding: '0 8px', fontSize: '0.7rem' }}
+                className="bg-white/10 border-none text-[var(--text-main)] h-[26px] rounded-[10px] px-2 text-[0.7rem] cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
                   setMobileSheetFull((v) => !v);
@@ -5146,7 +5063,7 @@ export default function KitchenViewer() {
               </button>
               <button
                 type="button"
-                className="sheet-close-btn"
+                className="bg-white/10 border-none text-[var(--text-main)] w-[26px] h-[26px] rounded-full text-[0.85rem] cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
                   setPanelOpen(false);
@@ -5160,48 +5077,45 @@ export default function KitchenViewer() {
 
         {/* Studio Top Navigation Tab Bar (Radix UI Tabs) */}
         <Tabs value={activeStudioTab} onValueChange={(v) => setActiveStudioTab(v as any)}>
-          <TabsList className="studio-tab-bar w-full rounded-none border-x-0 border-t-0 bg-black/25 p-1">
-            <TabsTrigger value="furniture" className="studio-tab-btn" title={dict.tabFurniture}>
-              <span className="tab-icon">🛋️</span>
-              <span className="tab-label">{dict.tabFurniture}</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="appliances"
-              className="studio-tab-btn"
-              title={lang === 'ro' ? 'Electrocasnice' : lang === 'ru' ? 'Техника' : 'Appliances'}
-            >
-              <span className="tab-icon">🍳</span>
-              <span className="tab-label">{lang === 'ro' ? 'Tehnică' : lang === 'ru' ? 'Техника' : 'Appliances'}</span>
-            </TabsTrigger>
-            <TabsTrigger value="materials" className="studio-tab-btn" title={dict.tabMaterials}>
-              <span className="tab-icon">🎨</span>
-              <span className="tab-label">{dict.tabMaterials}</span>
-            </TabsTrigger>
-            <TabsTrigger value="models" className="studio-tab-btn" title={dict.tab3DModels}>
-              <span className="tab-icon">📦</span>
-              <span className="tab-label">{dict.tab3DModels}</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="architecture"
-              className="studio-tab-btn"
-              title={lang === 'ro' ? 'Arhitectură Cameră' : lang === 'ru' ? 'Архитектура комнаты' : 'Room Architecture'}
-            >
-              <span className="tab-icon">🏛️</span>
-              <span className="tab-label">{lang === 'ro' ? 'Cameră' : lang === 'ru' ? 'Комната' : 'Room'}</span>
-            </TabsTrigger>
-            <TabsTrigger value="tree" className="studio-tab-btn" title={dict.tabModelTree || 'Arbore CAD'}>
-              <span className="tab-icon">🌲</span>
-              <span className="tab-label">{dict.tabModelTree || 'Arbore CAD'}</span>
-            </TabsTrigger>
-            <TabsTrigger value="lighting" className="studio-tab-btn" title={dict.tabLighting}>
-              <span className="tab-icon">💡</span>
-              <span className="tab-label">{dict.tabLighting}</span>
-            </TabsTrigger>
+          <TabsList className="flex items-stretch w-full rounded-none border-x-0 border-t-0 border-b border-[var(--panel-border)] bg-[#0a0f1d]/92 p-1.5 gap-1 sticky top-0 max-md:top-[45px] z-10 backdrop-blur-md max-md:overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {[
+              { value: 'furniture', icon: '🛋️', label: dict.tabFurniture, title: dict.tabFurniture },
+              {
+                value: 'appliances',
+                icon: '🍳',
+                label: lang === 'ro' ? 'Tehnică' : lang === 'ru' ? 'Техника' : 'Appliances',
+                title: lang === 'ro' ? 'Electrocasnice' : lang === 'ru' ? 'Техника' : 'Appliances'
+              },
+              { value: 'materials', icon: '🎨', label: dict.tabMaterials, title: dict.tabMaterials },
+              { value: 'models', icon: '📦', label: dict.tab3DModels, title: dict.tab3DModels },
+              {
+                value: 'architecture',
+                icon: '🏛️',
+                label: lang === 'ro' ? 'Cameră' : lang === 'ru' ? 'Комната' : 'Room',
+                title: lang === 'ro' ? 'Arhitectură Cameră' : lang === 'ru' ? 'Архитектура комнаты' : 'Room Architecture'
+              },
+              { value: 'tree', icon: '🌲', label: dict.tabModelTree || 'Arbore CAD', title: dict.tabModelTree || 'Arbore CAD' },
+              { value: 'lighting', icon: '💡', label: dict.tabLighting, title: dict.tabLighting }
+            ].map((t) => (
+              <TabsTrigger
+                key={t.value}
+                value={t.value}
+                title={t.title}
+                className="group flex-1 min-w-0 max-md:min-w-[50px] flex flex-col items-center justify-center gap-[3px] px-1 py-2 max-md:py-[7px] max-md:px-[3px] bg-transparent border border-transparent rounded-[9px] text-[var(--text-muted)] cursor-pointer transition-all duration-150 hover:bg-white/[0.06] hover:text-[var(--text-main)] hover:-translate-y-px data-[state=active]:bg-gradient-to-b data-[state=active]:from-sky-400/16 data-[state=active]:to-sky-400/5 data-[state=active]:border-sky-400/38 data-[state=active]:text-sky-400 data-[state=active]:shadow-[0_0_14px_rgba(56,189,248,0.18)]"
+              >
+                <span className="text-[1.15rem] leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] group-data-[state=active]:scale-110 transition-transform">
+                  {t.icon}
+                </span>
+                <span className="text-[0.65rem] font-bold tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
+                  {t.label}
+                </span>
+              </TabsTrigger>
+            ))}
           </TabsList>
         </Tabs>
 
         {/* Studio Content Area */}
-        <div className="studio-tab-content">
+        <div className="flex-1">
           {activeStudioTab === 'architecture' && (
             <ArchitecturalRoomSection
               lang={lang}

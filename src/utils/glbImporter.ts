@@ -5,8 +5,7 @@ import {
   inspectModelMetrics,
   optimizeModelTextures,
   optimizeModelShadows,
-  updateModelBoundingStructure,
-  convertAndBatchModelGeometries
+  updateModelBoundingStructure
 } from './cadModelOptimizer';
 
 let sharedGltfLoader = null;

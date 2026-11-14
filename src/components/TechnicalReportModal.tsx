@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
-  DEFAULT_SHEET,
   calculateCuttingNesting,
   drawPanelBlueprint,
   generateCncDrillingCsv
@@ -531,11 +530,32 @@ export default function TechnicalReportModal({
       window.print();
     };
 
+    const cardClass =
+      'rounded-xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-2 print:border-slate-300 print:bg-white print:text-slate-900 print:break-inside-avoid';
+    const cardTitleClass =
+      'm-0 mb-1.5 text-[0.9rem] font-bold text-slate-100 border-b border-white/10 pb-2 print:text-slate-900 print:border-slate-300';
+    const statsRowClass =
+      'flex items-center justify-between text-[0.8rem] text-slate-300 py-1 border-b border-white/[0.04] last:border-b-0 print:text-slate-700 print:border-slate-200';
+    const costInputRowClass =
+      'flex items-center justify-between gap-2 text-[0.8rem] text-slate-300 py-1 print:text-slate-700';
+    const inputNumClass =
+      'w-24 rounded-md border border-white/15 bg-black/35 px-2 py-1 text-right text-[0.82rem] font-mono text-white focus:border-sky-400 focus:outline-none print:border-slate-300 print:bg-white print:text-slate-900';
+    const selectClass =
+      'rounded-md border border-white/15 bg-slate-900 px-2 py-1 text-[0.8rem] text-white focus:border-sky-400 focus:outline-none print:border-slate-300 print:bg-white print:text-slate-900';
+    const statPillClass =
+      'flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-slate-300 print:border-slate-300 print:bg-slate-50 print:text-slate-800';
+    const tableClass =
+      'w-full border-collapse text-left text-[0.78rem]';
+    const thClass =
+      'bg-slate-900/90 text-slate-300 font-semibold px-2.5 py-2 border-b border-white/15 whitespace-nowrap print:bg-slate-100 print:text-slate-900 print:border-slate-300';
+    const tdClass =
+      'px-2.5 py-1.5 border-b border-white/[0.06] text-slate-200 print:text-slate-800 print:border-slate-200';
+
     return (
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DialogContent
           showClose={false}
-          className="report-modal-window cad-manufacturing-window max-w-[1200px] w-[96vw] max-h-[92vh] p-0 overflow-hidden flex flex-col border-white/15 bg-[#121620]/98"
+          className="max-w-[1200px] w-[96vw] max-h-[92vh] p-0 overflow-hidden flex flex-col border-white/15 bg-[#121620]/98 print:static print:max-w-none print:w-full print:max-h-none print:overflow-visible print:border-0 print:bg-white print:text-black print:shadow-none"
         >
           <DialogTitle className="sr-only">
             {isRo ? 'Centru Producție & Fabricație Tehnică CAD' : 'CAD Furniture Manufacturing & Production Suite'}
@@ -544,52 +564,71 @@ export default function TechnicalReportModal({
             {isRo ? 'Debitări, Hărți de tăiere, Planșe tehnice și Program CNC' : 'Cutting nesting, drawings & CNC drilling'}
           </DialogDescription>
             {/* Header Bar */}
-            <div className="report-header-bar">
-              <div className="report-brand">
-                <span className="report-icon">📐</span>
+            <div className="flex items-center justify-between gap-4 border-b border-white/10 bg-black/25 px-5 py-3.5 max-md:flex-col max-md:items-start max-md:gap-2.5 max-md:p-3 print:border-slate-300 print:bg-white">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl leading-none">📐</span>
                 <div>
-                  <h2>{isRo ? 'Centru Producție & Fabricație Tehnică CAD' : isRu ? 'Производственный Центр CAD' : 'CAD Furniture Manufacturing & Production Suite'}</h2>
-                  <p>{isRo ? 'Debitări, Hărți de tăiere (Раскрой), Planșe tehnice și Program CNC' : isRu ? 'Раскрой, сметы, чертежи деталей и ЧПУ присадка' : 'Cutting nesting, drawings & CNC drilling'}</p>
+                  <h2 className="m-0 text-base font-bold text-slate-100 print:text-slate-900">
+                    {isRo ? 'Centru Producție & Fabricație Tehnică CAD' : isRu ? 'Производственный Центр CAD' : 'CAD Furniture Manufacturing & Production Suite'}
+                  </h2>
+                  <p className="m-0 text-xs text-slate-400 print:text-slate-600">
+                    {isRo ? 'Debitări, Hărți de tăiere (Раскрой), Planșe tehnice și Program CNC' : isRu ? 'Раскрой, сметы, чертежи деталей и ЧПУ присадка' : 'Cutting nesting, drawings & CNC drilling'}
+                  </p>
                 </div>
               </div>
 
-              <div className="report-actions">
+              <div className="flex items-center gap-2 max-md:w-full max-md:flex-wrap print:hidden">
                 <button
-                  className="btn-pill"
+                  type="button"
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+                    copied
+                      ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400'
+                      : 'border-white/15 bg-white/5 text-slate-200 hover:bg-white/10'
+                  }`}
                   onClick={handleCopySummary}
                   title={isRo ? 'Copiază specificația și prețul pentru ofertă' : isRu ? 'Копировать смету' : 'Copy summary'}
-                  style={{
-                    borderColor: copied ? '#22c55e' : undefined,
-                    color: copied ? '#22c55e' : undefined,
-                    fontWeight: 600
-                  }}
                 >
                   <span>{copied ? '✅' : '📋'}</span>
                   <span>{copied ? (isRo ? 'Copiat!' : isRu ? 'Скопировано!' : 'Copied!') : (isRo ? 'Copiază Sumar' : isRu ? 'Копировать' : 'Copy Summary')}</span>
                 </button>
                 <button
-                  className="btn-pill"
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#25D366]/40 bg-[#25D366]/10 px-2.5 py-1.5 text-xs font-semibold text-[#25D366] hover:bg-[#25D366]/20 transition-colors cursor-pointer"
                   onClick={handleShareWhatsApp}
                   title="Trimite rezumatul comenzii pe WhatsApp"
-                  style={{ color: '#25D366', borderColor: 'rgba(37, 211, 102, 0.4)', fontWeight: 600 }}
                 >
                   <span>💬</span>
                   <span>WhatsApp</span>
                 </button>
-                <button className="btn-pill" onClick={handleDownloadCsv} title="Export CSV pentru utilaje de debitare">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                  onClick={handleDownloadCsv}
+                  title="Export CSV pentru utilaje de debitare"
+                >
                   <span>📥</span>
                   <span>CSV Debitare</span>
                 </button>
-                <button className="btn-primary" onClick={handlePrint} style={{ padding: '6px 14px', fontSize: '12px' }}>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 px-3.5 py-1.5 text-xs font-bold text-slate-950 hover:brightness-110 transition cursor-pointer"
+                  onClick={handlePrint}
+                >
                   <span>🖨️</span>
                   <span>{isRo ? 'Tipărește / PDF' : isRu ? 'Печать / PDF' : 'Print / PDF'}</span>
                 </button>
-                <button className="sheet-close-btn" onClick={onClose}>✕</button>
+                <button
+                  type="button"
+                  className="bg-white/10 hover:bg-white/20 border-none text-slate-200 w-7 h-7 rounded-full text-sm cursor-pointer flex items-center justify-center transition-colors"
+                  onClick={onClose}
+                >
+                  ✕
+                </button>
               </div>
             </div>
 
             {/* Manufacturing Suite Sub-Navigation Tabs (Radix UI) */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="border-b border-white/10 bg-black/20 px-4 py-2">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="border-b border-white/10 bg-black/20 px-4 py-2 print:hidden">
               <TabsList className="flex w-full flex-wrap gap-1 bg-transparent p-0 border-0">
                 <TabsTrigger value="bom" className="gap-1.5">
                   <span>📄</span>
@@ -611,154 +650,166 @@ export default function TechnicalReportModal({
             </Tabs>
 
             {/* Printable & Interactive Content Area */}
-            <div className="report-printable-area">
+            <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5 print:overflow-visible print:p-0">
                     {/* TAB 1: BOM & Spec Sheet */}
                     {activeTab === 'bom' && (
             <>
-                        <div className="report-summary-grid">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                           {screenshotUrl && (
-                            <div className="report-screenshot-box">
-                              <img src={screenshotUrl} alt="3D Furniture Render" className="report-render-img" />
-                              <span className="report-watermark">Randare 3D CAD</span>
+                            <div className="relative rounded-xl border border-white/10 bg-black/40 overflow-hidden flex items-center justify-center min-h-[210px] print:border-slate-300 print:bg-slate-50">
+                              <img src={screenshotUrl} alt="3D Furniture Render" className="w-full h-full object-contain max-h-[260px]" />
+                              <span className="absolute bottom-2 right-2.5 rounded bg-black/70 px-2 py-0.5 text-[0.68rem] font-semibold text-slate-300">
+                                Randare 3D CAD
+                              </span>
                             </div>
                           )}
 
-                          <div className="report-stats-card">
-                            <h3>{isRo ? 'Sumar Materiale & Feronerie' : isRu ? 'Сводка материалов' : 'Material & Hardware Summary'}</h3>
-                            <div className="stats-row">
+                          <div className={cardClass}>
+                            <h3 className={cardTitleClass}>{isRo ? 'Sumar Materiale & Feronerie' : isRu ? 'Сводка материалов' : 'Material & Hardware Summary'}</h3>
+                            <div className={statsRowClass}>
                               <span>{isRo ? 'Corpuri în Proiect:' : isRu ? 'Изделий в сцене:' : 'Cabinets in Scene:'}</span>
                               <strong>{importedModels.length} {isRo ? 'corpuri' : isRu ? 'шт' : 'units'}</strong>
                             </div>
-                            <div className="stats-row">
+                            <div className={statsRowClass}>
                               <span>{isRo ? 'Total Piese Debitate:' : isRu ? 'Всего деталей:' : 'Total Cut Panels:'}</span>
                               <strong>{stats.totalParts} {isRo ? 'buc' : isRu ? 'шт' : 'pcs'}</strong>
                             </div>
-                            <div className="stats-row">
+                            <div className={statsRowClass}>
                               <span>{isRo ? 'Suprafață Carcasă (PAL):' : isRu ? 'Площадь каркаса:' : 'Carcass Area:'}</span>
                               <strong>{stats.carcassSqM} m²</strong>
                             </div>
-                            <div className="stats-row">
+                            <div className={statsRowClass}>
                               <span>{isRo ? 'Suprafață Fațade (Uși/Fronturi):' : isRu ? 'Площадь фасадов:' : 'Facade Area:'}</span>
                               <strong>{stats.facadeSqM} m²</strong>
                             </div>
-                            <div className="stats-row">
+                            <div className={statsRowClass}>
                               <span>{isRo ? 'Total Suprafață Material:' : isRu ? 'Общая площадь:' : 'Total Board Area:'}</span>
-                              <strong style={{ color: '#38bdf8' }}>{stats.totalSqM} m²</strong>
+                              <strong className="text-sky-400 print:text-sky-700">{stats.totalSqM} m²</strong>
                             </div>
-                            <div className="stats-row">
+                            <div className={statsRowClass}>
                               <span>{isRo ? 'Necesar Plăci PAL (2800×2070):' : isRu ? 'Листов ЛДСП (2800×2070):' : 'Estimated PAL Sheets:'}</span>
                               <strong>~{stats.estimatedSheets} {isRo ? 'plăci' : isRu ? 'листов' : 'sheets'}</strong>
                             </div>
-                            <div className="stats-row">
+                            <div className={statsRowClass}>
                               <span>{isRo ? 'Total Canturi (ABS 1mm/2mm):' : isRu ? 'Длина кромки ABS:' : 'Edge Banding Length:'}</span>
                               <strong>~{stats.edgeMeters} ml</strong>
                             </div>
-                            <div className="stats-row">
+                            <div className={statsRowClass}>
                               <span>{isRo ? 'Balamale Clip-On:' : isRu ? 'Петли мебельные:' : 'Hinges:'}</span>
                               <strong>{stats.hingesCount} {isRo ? 'buc' : isRu ? 'шт' : 'pcs'}</strong>
                             </div>
-                            <div className="stats-row">
+                            <div className={statsRowClass}>
                               <span>{isRo ? 'Perechi Glisiere Sertar:' : isRu ? 'Комплектов направляющих:' : 'Drawer Slides:'}</span>
                               <strong>{stats.slidesCount} {isRo ? 'perechi' : isRu ? 'пар' : 'pairs'}</strong>
                             </div>
-                            <div className="stats-row">
+                            <div className={statsRowClass}>
                               <span>{isRo ? 'Mânere Mobilier:' : isRu ? 'Ручки мебельные:' : 'Handles:'}</span>
                               <strong>{stats.handlesCount} {isRo ? 'buc' : isRu ? 'шт' : 'pcs'}</strong>
                             </div>
                           </div>
 
-                          <div className="report-cost-card">
-                            <h3>{isRo ? 'Estimator Cost Producție' : isRu ? 'Смета стоимости' : 'Cost Estimation'}</h3>
-                            <div className="cost-input-row">
+                          <div className={cardClass}>
+                            <h3 className={cardTitleClass}>{isRo ? 'Estimator Cost Producție' : isRu ? 'Смета стоимости' : 'Cost Estimation'}</h3>
+                            <div className={costInputRowClass}>
                               <label>{isRo ? 'Preț PAL / m²:' : isRu ? 'Цена ЛДСП / м²:' : 'Board / m²:'}</label>
                               <input
                                 type="number"
                                 value={costPerSqM}
                                 onChange={(e) => setCostPerSqM(Number(e.target.value) || 0)}
-                                className="cost-input"
+                                className={inputNumClass}
                               />
                             </div>
-                            <div className="cost-input-row">
+                            <div className={costInputRowClass}>
                               <label>{isRo ? 'Preț Cant / ml:' : isRu ? 'Кромка / пог.м:' : 'Edge / m:'}</label>
                               <input
                                 type="number"
                                 value={costPerMEdge}
                                 onChange={(e) => setCostPerMEdge(Number(e.target.value) || 0)}
-                                className="cost-input"
+                                className={inputNumClass}
                               />
                             </div>
-                            <div className="cost-input-row">
+                            <div className={costInputRowClass}>
                               <label>{isRo ? 'Cost / Balama:' : isRu ? 'Цена / петля:' : 'Hinge unit:'}</label>
                               <input
                                 type="number"
                                 value={costPerHinge}
                                 onChange={(e) => setCostPerHinge(Number(e.target.value) || 0)}
-                                className="cost-input"
+                                className={inputNumClass}
                               />
                             </div>
-                            <div className="cost-input-row">
+                            <div className={costInputRowClass}>
                               <label>{isRo ? 'Cost / Set Glisieră:' : isRu ? 'Цена / направляющая:' : 'Slide pair:'}</label>
                               <input
                                 type="number"
                                 value={costPerSlide}
                                 onChange={(e) => setCostPerSlide(Number(e.target.value) || 0)}
-                                className="cost-input"
+                                className={inputNumClass}
                               />
                             </div>
-                            <div className="cost-input-row">
+                            <div className={costInputRowClass}>
                               <label>{isRo ? 'Monedă:' : isRu ? 'Валюта:' : 'Currency:'}</label>
-                              <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="cost-select">
+                              <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={selectClass}>
                                 <option value="RON">RON (Lei)</option>
                                 <option value="EUR">EUR (€)</option>
                                 <option value="USD">USD ($)</option>
                                 <option value="MDL">MDL (Lei)</option>
                               </select>
                             </div>
-                            <div className="cost-total-display">
-                              <span>{isRo ? 'TOTAL ESTIMATIV:' : isRu ? 'ИТОГО ПО СМЕТЕ:' : 'ESTIMATED TOTAL:'}</span>
-                              <strong>{stats.totalCost.toLocaleString('ro-RO')} {currency}</strong>
+                            <div className="mt-auto pt-3 border-t border-white/10 flex items-center justify-between text-sm print:border-slate-300">
+                              <span className="text-slate-400 font-semibold print:text-slate-700">{isRo ? 'TOTAL ESTIMATIV:' : isRu ? 'ИТОГО ПО СМЕТЕ:' : 'ESTIMATED TOTAL:'}</span>
+                              <strong className="text-lg font-extrabold text-amber-400 print:text-slate-900">{stats.totalCost.toLocaleString('ro-RO')} {currency}</strong>
                             </div>
                           </div>
                         </div>
 
                             {/* Cutting BOM Table */}
-                            <div className="report-table-section">
-                              <h3>{isRo ? 'Listă Detaliată Debitare Panouri (Optimizare Debit & Croire)' : isRu ? 'Ведомость деталей на раскрой' : 'Detailed Panel Cutting List'}</h3>
+                            <div className="flex flex-col gap-3">
+                              <h3 className="m-0 text-sm font-bold text-slate-100 print:text-slate-900">
+                                {isRo ? 'Listă Detaliată Debitare Panouri (Optimizare Debit & Croire)' : isRu ? 'Ведомость деталей на раскрой' : 'Detailed Panel Cutting List'}
+                              </h3>
                               {aggregatedParts.length === 0 ? (
-                                <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>
+                                <p className="text-slate-400 italic text-sm">
                                   {isRo ? 'Nu există corpuri de mobilier create în scenă. Adaugă corpuri din secțiunea "Mobilier (CAD)".' : isRu ? 'В сцене нет мебели. Создайте модули во вкладке Мебель CAD.' : 'No furniture cabinets placed in scene.'}
                                 </p>
                               ) : (
-                                <div className="table-responsive">
-                                  <table className="cutting-table">
+                                <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/25 print:border-slate-300 print:bg-white">
+                                  <table className={tableClass}>
                                     <thead>
                                       <tr>
-                                        <th>#</th>
-                                        <th>{isRo ? 'Corp / Modul' : isRu ? 'Изделие' : 'Cabinet'}</th>
-                                        <th>{isRo ? 'Denumire Piesă' : isRu ? 'Деталь' : 'Part Name'}</th>
-                                        <th>{isRo ? 'Lungime (mm)' : isRu ? 'Длина (мм)' : 'Length (mm)'}</th>
-                                        <th>{isRo ? 'Lățime (mm)' : isRu ? 'Ширина (мм)' : 'Width (mm)'}</th>
-                                        <th>{isRo ? 'Grosime' : isRu ? 'Толщ.' : 'Thk'}</th>
-                                        <th>{isRo ? 'Buc' : isRu ? 'Кол-во' : 'Qty'}</th>
-                                        <th>{isRo ? 'Material' : isRu ? 'Материал' : 'Material'}</th>
-                                        <th>{isRo ? 'Fibră' : isRu ? 'Текстура' : 'Grain'}</th>
-                                        <th>{isRo ? 'Canturi' : isRu ? 'Кромка' : 'Edging'}</th>
+                                        <th className={thClass}>#</th>
+                                        <th className={thClass}>{isRo ? 'Corp / Modul' : isRu ? 'Изделие' : 'Cabinet'}</th>
+                                        <th className={thClass}>{isRo ? 'Denumire Piesă' : isRu ? 'Деталь' : 'Part Name'}</th>
+                                        <th className={thClass}>{isRo ? 'Lungime (mm)' : isRu ? 'Длина (мм)' : 'Length (mm)'}</th>
+                                        <th className={thClass}>{isRo ? 'Lățime (mm)' : isRu ? 'Ширина (мм)' : 'Width (mm)'}</th>
+                                        <th className={thClass}>{isRo ? 'Grosime' : isRu ? 'Толщ.' : 'Thk'}</th>
+                                        <th className={thClass}>{isRo ? 'Buc' : isRu ? 'Кол-во' : 'Qty'}</th>
+                                        <th className={thClass}>{isRo ? 'Material' : isRu ? 'Материал' : 'Material'}</th>
+                                        <th className={thClass}>{isRo ? 'Fibră' : isRu ? 'Текстура' : 'Grain'}</th>
+                                        <th className={thClass}>{isRo ? 'Canturi' : isRu ? 'Кромка' : 'Edging'}</th>
                                       </tr>
                                     </thead>
                                     <tbody>
                                       {aggregatedParts.map((p, idx) => (
-                                        <tr key={idx}>
-                                          <td>{idx + 1}</td>
-                                          <td><strong>{p.cabinet}</strong></td>
-                                          <td>{p.partName}</td>
-                                          <td className="num-cell">{p.lengthMm}</td>
-                                          <td className="num-cell">{p.widthMm}</td>
-                                          <td className="num-cell">{p.thicknessMm} mm</td>
-                                          <td className="num-cell"><strong>{p.qty}</strong></td>
-                                          <td>{p.material}</td>
-                                          <td>{p.grain}</td>
-                                          <td>
-                                            <span className={`edge-tag ${p.edgeBanding.includes('2mm') ? 'edge-2mm' : p.edgeBanding.includes('1mm') ? 'edge-1mm' : ''}`}>
+                                        <tr key={idx} className="hover:bg-white/[0.03]">
+                                          <td className={tdClass}>{idx + 1}</td>
+                                          <td className={tdClass}><strong>{p.cabinet}</strong></td>
+                                          <td className={tdClass}>{p.partName}</td>
+                                          <td className={`${tdClass} font-mono text-right`}>{p.lengthMm}</td>
+                                          <td className={`${tdClass} font-mono text-right`}>{p.widthMm}</td>
+                                          <td className={`${tdClass} font-mono text-right`}>{p.thicknessMm} mm</td>
+                                          <td className={`${tdClass} font-mono text-right`}><strong>{p.qty}</strong></td>
+                                          <td className={tdClass}>{p.material}</td>
+                                          <td className={tdClass}>{p.grain}</td>
+                                          <td className={tdClass}>
+                                            <span
+                                              className={`inline-block rounded px-1.5 py-0.5 text-[0.7rem] font-semibold ${
+                                                p.edgeBanding.includes('2mm')
+                                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                                  : p.edgeBanding.includes('1mm')
+                                                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
+                                                    : 'bg-white/5 text-slate-400'
+                                              }`}
+                                            >
                                               {p.edgeBanding}
                                             </span>
                                           </td>
@@ -774,40 +825,39 @@ export default function TechnicalReportModal({
 
                               {/* TAB 2: Optimizare Debit & Croire (2D Cut Nesting Engine) */}
                               {activeTab === 'raskroy' && (
-                                <div className="cad-raskroy-container">
+                                <div className="flex flex-col gap-3.5">
                                   {/* Raskroy Toolbar & Statistics */}
-                                  <div className="raskroy-stats-bar">
-                                    <div className="raskroy-stat-pill">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <div className={statPillClass}>
                                       <span>{isRo ? 'Eficiență (К.И.М.):' : isRu ? 'К.И.М. (Эффективность):' : 'Efficiency (K.I.M.):'}</span>
-                                      <strong style={{ color: '#22c55e' }}>{nestingResult.efficiencyPercent}%</strong>
+                                      <strong className="text-emerald-400">{nestingResult.efficiencyPercent}%</strong>
                                     </div>
-                                      <div className="raskroy-stat-pill">
+                                      <div className={statPillClass}>
                                         <span>{isRo ? 'Coli Necesare:' : isRu ? 'Листов всего:' : 'Total Sheets:'}</span>
                                         <strong>{nestingResult.sheetsCount} {isRo ? 'coli' : isRu ? 'листов' : 'sheets'}</strong>
                                       </div>
-                                        <div className="raskroy-stat-pill">
+                                        <div className={statPillClass}>
                                           <span>{isRo ? 'Suprafață Piese:' : isRu ? 'Полезная площадь:' : 'Used Area:'}</span>
                                           <strong>{nestingResult.totalUsedArea} m²</strong>
                                         </div>
-                                          <div className="raskroy-stat-pill">
+                                          <div className={statPillClass}>
                                             <span>{isRo ? 'Deșeu / Pierdere:' : isRu ? 'Отходы раскроя:' : 'Scrap Area:'}</span>
                                             <strong>{nestingResult.scrapAreaSqM} m²</strong>
                                           </div>
-                                        <div className="raskroy-stat-pill">
+                                        <div className={statPillClass}>
                                           <span>{isRo ? 'Lungime Tăiere:' : isRu ? 'Длина реза:' : 'Cut Length:'}</span>
                                           <strong>{nestingResult.totalCutMeters} ml</strong>
                                         </div>
 
-                                            <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                              <label style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Format Placă:</label>
+                                            <div className="ml-auto flex items-center gap-2">
+                                              <label className="text-xs text-slate-400">Format Placă:</label>
                                               <select
                                                 value={sheetFormat}
                                                 onChange={(e) => {
                                                   setSheetFormat(e.target.value);
                                                   setActiveSheetIndex(0);
                                                 }}
-                                                className="cost-select"
-                                                style={{ padding: '4px 8px', fontSize: '0.78rem' }}
+                                                className={`${selectClass} text-xs py-1 px-2`}
                                               >
                                                 <option value="2800x2070">2800 × 2070 mm (Standard Egger / Kastamonu)</option>
                                                 <option value="2440x1830">2440 × 1830 mm (Standard Kronospan)</option>
@@ -817,22 +867,22 @@ export default function TechnicalReportModal({
                                           </div>
 
                                           {/* Sheet Switcher & Print / PNG Export Actions */}
-                                          <div className="raskroy-sheet-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                          <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
+                                            <div className="flex items-center gap-2">
                                               <button
                                                 type="button"
-                                                className="btn-pill"
+                                                className="inline-flex items-center rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-xs font-medium text-slate-200 hover:bg-white/10 disabled:opacity-40 transition-colors cursor-pointer"
                                                 disabled={activeSheetIndex <= 0}
                                                 onClick={() => setActiveSheetIndex((v) => Math.max(0, v - 1))}
                                               >
                                                 ◄ Foaia Anterioară
                                               </button>
-                                              <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.85rem' }}>
+                                              <span className="text-[13px] font-bold text-slate-50">
                                                 Foaia {activeSheetIndex + 1} din {nestingResult.sheetsCount} (Randament: {nestingResult.sheets[activeSheetIndex]?.efficiencyPercent || 0}%)
                                               </span>
                                               <button
                                                 type="button"
-                                                className="btn-pill"
+                                                className="inline-flex items-center rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-xs font-medium text-slate-200 hover:bg-white/10 disabled:opacity-40 transition-colors cursor-pointer"
                                                 disabled={activeSheetIndex >= nestingResult.sheetsCount - 1}
                                                 onClick={() => setActiveSheetIndex((v) => Math.min(nestingResult.sheetsCount - 1, v + 1))}
                                               >
@@ -840,19 +890,11 @@ export default function TechnicalReportModal({
                                               </button>
                                             </div>
 
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <div className="flex items-center gap-2">
                                               <button
                                                 type="button"
                                                 onClick={handleDownloadNestingSheetPng}
-                                                className="btn-pill"
-                                                style={{
-                                                  background: 'rgba(56, 189, 248, 0.18)',
-                                                  borderColor: 'rgba(56, 189, 248, 0.45)',
-                                                  color: '#7dd3fc',
-                                                  display: 'flex',
-                                                  alignItems: 'center',
-                                                  gap: '5px'
-                                                }}
+                                                className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/45 bg-sky-500/20 px-2.5 py-1 text-xs font-medium text-sky-300 hover:bg-sky-500/30 transition-colors cursor-pointer"
                                                 title="Descarcă imaginea de debitare la rezoluție înaltă"
                                               >
                                                 <span>📥</span>
@@ -861,15 +903,7 @@ export default function TechnicalReportModal({
                                               <button
                                                 type="button"
                                                 onClick={handlePrint}
-                                                className="btn-pill"
-                                                style={{
-                                                  background: 'rgba(34, 197, 94, 0.18)',
-                                                  borderColor: 'rgba(34, 197, 94, 0.45)',
-                                                  color: '#4ade80',
-                                                  display: 'flex',
-                                                  alignItems: 'center',
-                                                  gap: '5px'
-                                                }}
+                                                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/45 bg-emerald-500/20 px-2.5 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-500/30 transition-colors cursor-pointer"
                                                 title="Imprimare fișă tehnică și plan de debitare atelier"
                                               >
                                                 <span>🖨️</span>
@@ -879,53 +913,39 @@ export default function TechnicalReportModal({
                                           </div>
 
                                           {/* 2D Canvas Viewport */}
-                                          <div className="raskroy-canvas-box">
+                                          <div className="rounded-xl border border-white/10 bg-[#0b0f17] p-3 flex justify-center overflow-hidden">
                                             <canvas
                                               ref={nestingCanvasRef}
                                               width={960}
                                               height={560}
-                                              className="raskroy-canvas"
+                                              className="w-full max-w-[960px] h-auto block rounded-lg"
                                             />
                                           </div>
 
                                           {/* Visual Workshop Legend */}
-                                          <div
-                                            style={{
-                                              display: 'flex',
-                                              flexWrap: 'wrap',
-                                              gap: '12px 18px',
-                                              alignItems: 'center',
-                                              justifyContent: 'center',
-                                              padding: '10px 14px',
-                                              background: 'rgba(15, 23, 42, 0.75)',
-                                              borderRadius: '8px',
-                                              border: '1px solid rgba(255, 255, 255, 0.08)',
-                                              fontSize: '0.74rem',
-                                              color: '#cbd5e1'
-                                            }}
-                                          >
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                              <span style={{ width: '14px', height: '14px', background: 'rgba(217, 119, 6, 0.72)', border: '2px solid #f59e0b', borderRadius: '3px' }} />
+                                          <div className="flex flex-wrap gap-x-[18px] gap-y-3 items-center justify-center px-3.5 py-2.5 bg-slate-900/75 rounded-lg border border-white/[0.08] text-[0.74rem] text-slate-300 print:bg-slate-50 print:text-slate-800 print:border-slate-300">
+                                            <div className="flex items-center gap-1.5">
+                                              <span className="w-3.5 h-3.5 bg-amber-600/70 border-2 border-amber-500 rounded-[3px]" />
                                               <span><strong>Cant ABS 2.0 mm</strong> (Uși & Fațade expuse)</span>
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                              <span style={{ width: '14px', height: '14px', background: 'rgba(2, 132, 199, 0.72)', border: '2px solid #06b6d4', borderRadius: '3px' }} />
+                                            <div className="flex items-center gap-1.5">
+                                              <span className="w-3.5 h-3.5 bg-sky-600/70 border-2 border-cyan-500 rounded-[3px]" />
                                               <span><strong>Cant ABS 1.0 mm</strong> (Carcase & Polițe)</span>
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                              <span style={{ width: '14px', height: '14px', background: 'rgba(22, 163, 74, 0.72)', border: '1.5px solid #10b981', borderRadius: '3px' }} />
+                                            <div className="flex items-center gap-1.5">
+                                              <span className="w-3.5 h-3.5 bg-green-600/70 border border-emerald-500 rounded-[3px]" />
                                               <span><strong>Cant ABS 0.4 mm</strong> (Spate / Elemente secundare)</span>
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                              <span style={{ width: '14px', height: '14px', border: '1px dashed #f43f5e', borderRadius: '2px' }} />
+                                            <div className="flex items-center gap-1.5">
+                                              <span className="w-3.5 h-3.5 border border-dashed border-rose-500 rounded-[2px]" />
                                               <span><strong>Margine Trim 15 mm</strong> (Curățare placă)</span>
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                              <span style={{ fontWeight: 700, color: '#fef08a' }}>↕ / ↔</span>
+                                            <div className="flex items-center gap-1.5">
+                                              <span className="font-bold text-yellow-200">↕ / ↔</span>
                                               <span><strong>Orientare Fibră</strong> (Texture Grain)</span>
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                              <span style={{ color: '#38bdf8' }}>✂️</span>
+                                            <div className="flex items-center gap-1.5">
+                                              <span className="text-sky-400">✂️</span>
                                               <span><strong>Pânză Circular (Kerf 4 mm)</strong></span>
                                             </div>
                                           </div>
@@ -934,17 +954,16 @@ export default function TechnicalReportModal({
 
                                           {/* TAB 3: 2D Panel Blueprint & Cotation (Чертёж детали) */}
                                           {activeTab === 'blueprint' && (
-                                            <div className="cad-blueprint-container">
+                                            <div className="flex flex-col gap-3.5">
                                               {/* Part Selector Bar */}
-                                              <div className="blueprint-selector-bar">
-                                                <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: 600 }}>
+                                              <div className="flex flex-wrap items-center gap-3 print:hidden">
+                                                <span className="text-[0.82rem] text-slate-400 font-semibold">
                                                   {isRo ? 'Alege Piesa pentru Desenare Tehnică:' : isRu ? 'Выберите деталь для чертежа:' : 'Select Panel for Blueprint:'}
                                                 </span>
                                                 <select
                                                   value={selectedBlueprintPartId || ''}
                                                   onChange={(e) => setSelectedBlueprintPartId(e.target.value)}
-                                                  className="cost-select"
-                                                  style={{ flex: 1, maxWidth: '420px', padding: '6px 10px' }}
+                                                  className={`${selectClass} flex-1 max-w-[420px] py-1.5 px-2.5`}
                                                 >
                                                   {aggregatedParts.map((p) => (
                                                     <option key={p.id} value={p.id}>
@@ -955,12 +974,12 @@ export default function TechnicalReportModal({
                                               </div>
 
                                               {/* 2D Blueprint Canvas Viewport */}
-                                              <div className="blueprint-canvas-box">
+                                              <div className="rounded-xl border border-white/10 bg-[#0b0f17] p-3 flex justify-center overflow-hidden">
                                                 <canvas
                                                   ref={blueprintCanvasRef}
                                                   width={960}
                                                   height={560}
-                                                  className="blueprint-canvas"
+                                                  className="w-full max-w-[960px] h-auto block rounded-lg"
                                                 />
                                               </div>
                                             </div>
@@ -968,57 +987,61 @@ export default function TechnicalReportModal({
 
                                                   {/* TAB 4: CNC Drilling & G-Code Export (Programare CNC & Găurire) */ }
           {activeTab === 'cnc' && (
-                                                  <div className="cad-cnc-container">
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                                                  <div className="flex flex-col gap-3.5">
+                                                    <div className="flex items-center justify-between gap-3">
                                                       <div>
-                                                        <h3 style={{ margin: 0, color: '#f8fafc', fontSize: '1.05rem' }}>{isRo ? 'Program Găurire CNC (System 32)' : isRu ? 'Программа сверловки для станков с ЧПУ' : 'CNC Drilling Coordinates Program'}</h3>
-                                                        <small style={{ color: '#94a3b8' }}>{isRo ? 'Coordonate de găurire pentru Minifix, Euroșuruburi, Șcanturi și Balamale' : isRu ? 'Координаты присадки отверстий X, Y, глубина' : 'Drilling X, Y, depth and diameter coordinates'}</small>
+                                                        <h3 className="m-0 text-slate-50 text-[1.05rem] font-bold print:text-slate-900">{isRo ? 'Program Găurire CNC (System 32)' : isRu ? 'Программа сверловки для станков с ЧПУ' : 'CNC Drilling Coordinates Program'}</h3>
+                                                        <small className="text-slate-400 print:text-slate-600">{isRo ? 'Coordonate de găurire pentru Minifix, Euroșuruburi, Șcanturi și Balamale' : isRu ? 'Координаты присадки отверстий X, Y, глубина' : 'Drilling X, Y, depth and diameter coordinates'}</small>
                                                       </div>
-                                                      <button className="btn-primary" onClick={handleDownloadCnc}>
+                                                      <button
+                                                        type="button"
+                                                        className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 px-3 py-1.5 text-xs font-bold text-slate-950 hover:brightness-110 transition cursor-pointer print:hidden"
+                                                        onClick={handleDownloadCnc}
+                                                      >
                                                         <span>📥</span>
                                                         <span>{isRo ? 'Exportă Program CNC (.csv)' : isRu ? 'Экспорт программы ЧПУ (.csv)' : 'Export CNC Program (.csv)'}</span>
                                                       </button>
                                                     </div>
 
-                                                    <div className="table-responsive">
-                                                      <table className="cutting-table">
+                                                    <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/25 print:border-slate-300 print:bg-white">
+                                                      <table className={tableClass}>
                                                         <thead>
                                                           <tr>
-                                                            <th>#</th>
-                                                            <th>Piesă</th>
-                                                            <th>Corp</th>
-                                                            <th>Operațiune / Tip Găurire</th>
-                                                            <th>Diametru Ø</th>
-                                                            <th>Adâncime</th>
-                                                            <th>Coord. X</th>
-                                                            <th>Coord. Y</th>
-                                                            <th>Suprafață</th>
+                                                            <th className={thClass}>#</th>
+                                                            <th className={thClass}>Piesă</th>
+                                                            <th className={thClass}>Corp</th>
+                                                            <th className={thClass}>Operațiune / Tip Găurire</th>
+                                                            <th className={thClass}>Diametru Ø</th>
+                                                            <th className={thClass}>Adâncime</th>
+                                                            <th className={thClass}>Coord. X</th>
+                                                            <th className={thClass}>Coord. Y</th>
+                                                            <th className={thClass}>Suprafață</th>
                                                           </tr>
                                                     </thead>
                                                     <tbody>
                                                       {aggregatedParts.slice(0, 20).map((p, idx) => (
                                                         <React.Fragment key={idx}>
-                                                          <tr>
-                                                            <td>{idx * 2 + 1}</td>
-                                                            <td><strong>{p.partName}</strong></td>
-                                                            <td>{p.cabinet}</td>
-                                                            <td>Confirmat Ø7 mm (Găurire trecere)</td>
-                                                            <td className="num-cell">7 mm</td>
-                                                            <td className="num-cell">18 mm</td>
-                                                            <td className="num-cell">50 mm</td>
-                                                            <td className="num-cell">9 mm</td>
-                                                            <td>Față Superioară</td>
+                                                          <tr className="hover:bg-white/[0.03]">
+                                                            <td className={tdClass}>{idx * 2 + 1}</td>
+                                                            <td className={tdClass}><strong>{p.partName}</strong></td>
+                                                            <td className={tdClass}>{p.cabinet}</td>
+                                                            <td className={tdClass}>Confirmat Ø7 mm (Găurire trecere)</td>
+                                                            <td className={`${tdClass} font-mono text-right`}>7 mm</td>
+                                                            <td className={`${tdClass} font-mono text-right`}>18 mm</td>
+                                                            <td className={`${tdClass} font-mono text-right`}>50 mm</td>
+                                                            <td className={`${tdClass} font-mono text-right`}>9 mm</td>
+                                                            <td className={tdClass}>Față Superioară</td>
                                                           </tr>
-                                                          <tr>
-                                                            <td>{idx * 2 + 2}</td>
-                                                            <td><strong>{p.partName}</strong></td>
-                                                            <td>{p.cabinet}</td>
-                                                            <td>Minifix Ø15 mm (Oală excentric)</td>
-                                                            <td className="num-cell">15 mm</td>
-                                                            <td className="num-cell">13.5 mm</td>
-                                                            <td className="num-cell">34 mm</td>
-                                                            <td className="num-cell">32 mm</td>
-                                                            <td>Față Interioară</td>
+                                                          <tr className="hover:bg-white/[0.03]">
+                                                            <td className={tdClass}>{idx * 2 + 2}</td>
+                                                            <td className={tdClass}><strong>{p.partName}</strong></td>
+                                                            <td className={tdClass}>{p.cabinet}</td>
+                                                            <td className={tdClass}>Minifix Ø15 mm (Oală excentric)</td>
+                                                            <td className={`${tdClass} font-mono text-right`}>15 mm</td>
+                                                            <td className={`${tdClass} font-mono text-right`}>13.5 mm</td>
+                                                            <td className={`${tdClass} font-mono text-right`}>34 mm</td>
+                                                            <td className={`${tdClass} font-mono text-right`}>32 mm</td>
+                                                            <td className={tdClass}>Față Interioară</td>
                                                           </tr>
                                                         </React.Fragment>
                                                       ))}

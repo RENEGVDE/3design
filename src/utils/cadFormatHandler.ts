@@ -2,13 +2,6 @@ import * as THREE from 'three';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { OBJExporter } from 'three/examples/jsm/exporters/OBJExporter.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
-import {
-  inspectModelMetrics,
-  optimizeModelTextures,
-  optimizeModelShadows,
-  updateModelBoundingStructure
-} from './cadModelOptimizer';
-import { autoDetectGlbMechanisms } from './glbImporter';
 import { isNativeB3DBinary, parseNativeB3DBinary } from './b3dBinaryParser';
 
 export interface B3DPanelSpec {
