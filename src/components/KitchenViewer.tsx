@@ -199,6 +199,7 @@ export default function KitchenViewer() {
   const [showFasteners3d, setShowFasteners3d] = useState(false);
   const [wireframeActive, setWireframeActive] = useState(false);
   const [hiddenPartIds, setHiddenPartIds] = useState<Set<string>>(new Set());
+  const hiddenPartIdsRef = useRef<Set<string>>(new Set());
   const [selectedSubPart, setSelectedSubPart] = useState<{
     modelId: string;
     subIdx: number;
@@ -418,6 +419,19 @@ export default function KitchenViewer() {
       parametricConfig: im.parametricConfig ? { ...im.parametricConfig } : null
     }));
 
+    const roomConfigSnap = stateRef.current.roomConfig
+      ? JSON.parse(JSON.stringify(stateRef.current.roomConfig))
+      : JSON.parse(JSON.stringify(DEFAULT_ROOM_CONFIG));
+
+    const appliancesSnap = (stateRef.current.appliances || []).map((a) => ({
+      ...a,
+      position: { ...a.position },
+      rotation: { ...a.rotation },
+      dimensions: { ...a.dimensions }
+    }));
+
+    const hiddenPartIdsSnap = Array.from(hiddenPartIdsRef.current);
+
     return {
       desc,
       activeMatId: stateRef.current.activeMatId,
@@ -426,7 +440,10 @@ export default function KitchenViewer() {
       staticZoneAssignments,
       openParts,
       lightState: { ...stateRef.current.lightState },
-      importedModels
+      importedModels,
+      roomConfig: roomConfigSnap,
+      appliances: appliancesSnap,
+      hiddenPartIds: hiddenPartIdsSnap
     };
   }, []);
   captureSnapshotRef.current = captureSnapshot;
@@ -454,7 +471,7 @@ export default function KitchenViewer() {
       const curIdx = historyIndexRef.current;
       const truncated = historyRef.current.slice(0, curIdx + 1);
       truncated.push(snapshot);
-      if (truncated.length > 40) {
+      if (truncated.length > 60) {
         truncated.shift();
       }
       historyRef.current = truncated;
@@ -896,6 +913,62 @@ export default function KitchenViewer() {
         stateRef.current.selectedGlbId = nextSel;
       }
 
+      // 6. Architectural Room Config
+      const nextRoomConfig = snapshot.roomConfig || DEFAULT_ROOM_CONFIG;
+      setRoomConfig(nextRoomConfig);
+      stateRef.current.roomConfig = nextRoomConfig;
+      if (ctx.scene) {
+        if (ctx.roomRoot) {
+          ctx.scene.remove(ctx.roomRoot);
+        }
+        const rebuiltRoom = buildArchitecturalRoom(nextRoomConfig);
+        ctx.scene.add(rebuiltRoom);
+        ctx.roomRoot = rebuiltRoom;
+        ctx.needsShadowUpdate = true;
+      }
+
+      // 7. Appliances
+      const nextAppliances = (snapshot.appliances || []).map((a) => ({
+        ...a,
+        position: { ...a.position },
+        rotation: { ...a.rotation },
+        dimensions: { ...a.dimensions }
+      }));
+      if (ctx.appliancesRootGroup) {
+        if (
+          ctx.transformControls?.object &&
+          ctx.transformControls.object.userData?.applianceId
+        ) {
+          ctx.transformControls.detach();
+          ctx.transformControls.visible = false;
+        }
+        while (ctx.appliancesRootGroup.children.length > 0) {
+          ctx.appliancesRootGroup.remove(ctx.appliancesRootGroup.children[0]);
+        }
+        for (const app of nextAppliances) {
+          ctx.appliancesRootGroup.add(buildAppliance3DModel(app));
+        }
+      }
+      setAppliances(nextAppliances);
+      stateRef.current.appliances = nextAppliances;
+      if (
+        stateRef.current.selectedApplianceId &&
+        !nextAppliances.some((a) => a.id === stateRef.current.selectedApplianceId)
+      ) {
+        setSelectedApplianceId(null);
+        stateRef.current.selectedApplianceId = null;
+      }
+
+      // 8. Hidden Part IDs
+      const nextHidden = new Set<string>(snapshot.hiddenPartIds || []);
+      hiddenPartIdsRef.current = nextHidden;
+      setHiddenPartIds(nextHidden);
+      for (const [mId, entry] of Object.entries(ctx.importedMap) as [string, any][]) {
+        if (entry?.wrapperGroup) {
+          entry.wrapperGroup.visible = !nextHidden.has(mId);
+        }
+      }
+
       syncPartsMetaToReact();
       if (stateRef.current.dimsEnabled) {
         update3DDimensionsDisplay(ctx.selectedPartId);
@@ -905,7 +978,9 @@ export default function KitchenViewer() {
         materials: nextMaterials,
         activeMatId: snapshot.activeMatId,
         lightState: snapshot.lightState,
-        importedModels: restoredGlbList
+        importedModels: restoredGlbList,
+        roomConfig: nextRoomConfig,
+        appliances: nextAppliances
       });
 
       isRestoringHistoryRef.current = false;
@@ -1115,20 +1190,6 @@ export default function KitchenViewer() {
               Math.round(Math.max(0, p.y) * 1000) / 1000,
               Math.round(p.z * 1000) / 1000
             ];
-
-            if (stateRef.current.selectedApplianceId) {
-              const aid = stateRef.current.selectedApplianceId;
-              const appMesh = sceneRef.current?.appliancesRootGroup?.children.find((c: any) => c.userData?.applianceId === aid);
-              if (appMesh) {
-                const ap = appMesh.position;
-                const ar = appMesh.rotation;
-                setAppliances((prev) => {
-                  const updated = prev.map((a) => a.id === aid ? { ...a, position: { x: ap.x, y: ap.y, z: ap.z }, rotation: { x: ar.x, y: ar.y, z: ar.z } } : a);
-                  persistWorkspace({ appliances: updated });
-                  return updated;
-                });
-              }
-            }
             if (stateRef.current.magneticSnapEnabled && (stateRef.current.gizmoMode === 'translate' || !stateRef.current.gizmoMode)) {
               const snapResult = calculateMagneticSnap(
                 gid,
@@ -1151,21 +1212,50 @@ export default function KitchenViewer() {
               Math.max(0.05, Math.round(s.z * 1000) / 1000)
             ];
             updateModelBoundingStructure(entry.wrapperGroup);
-            setImportedModels((prev) => {
-              const updated = prev.map((im) =>
-                im.id === gid
-                  ? {
-                    ...im,
-                    position: nextPos,
-                    rotationYDeg: nextRot,
-                    scale: nextScale
-                  }
-                  : im
-              );
-              persistWorkspace({ importedModels: updated });
-              return updated;
-            });
+            const updatedModels = (stateRef.current.importedModels || []).map((im) =>
+              im.id === gid
+                ? {
+                  ...im,
+                  position: nextPos,
+                  rotationYDeg: nextRot,
+                  scale: nextScale
+                }
+                : im
+            );
+            stateRef.current.importedModels = updatedModels;
+            setImportedModels(updatedModels);
+            persistWorkspace({ importedModels: updatedModels });
             pushHistoryRef.current?.('Transformare 3D ' + (stateRef.current.gizmoMode || 'Model'));
+          }
+        } else if (!event.value && stateRef.current.selectedApplianceId) {
+          const appId = stateRef.current.selectedApplianceId;
+          const appObj = sceneRef.current?.appliancesRootGroup?.children.find(
+            (c: any) => c.userData?.applianceId === appId
+          );
+          if (appObj) {
+            const p = appObj.position;
+            const r = appObj.rotation;
+            const updatedApps = (stateRef.current.appliances || []).map((a) =>
+              a.id === appId
+                ? {
+                  ...a,
+                  position: {
+                    x: Math.round(p.x * 1000) / 1000,
+                    y: Math.round(Math.max(0, p.y) * 1000) / 1000,
+                    z: Math.round(p.z * 1000) / 1000
+                  },
+                  rotation: {
+                    x: r.x,
+                    y: r.y,
+                    z: r.z
+                  }
+                }
+                : a
+            );
+            stateRef.current.appliances = updatedApps;
+            setAppliances(updatedApps);
+            persistWorkspace({ appliances: updatedApps });
+            pushHistoryRef.current?.('Transformare Electrocasnic');
           }
         }
       });
@@ -2771,13 +2861,12 @@ export default function KitchenViewer() {
       mounted.isParametric = true;
       mounted.parametricConfig = parametricConfig;
 
-      setImportedModels((prev) => {
-        const updated = [...prev, mounted];
-        setSelectedGlbId(modelId);
-        setGizmoMode('translate');
-        persistWorkspace({ importedModels: updated });
-        return updated;
-      });
+      const updatedModels = [...(stateRef.current.importedModels || []), mounted];
+      stateRef.current.importedModels = updatedModels;
+      setImportedModels(updatedModels);
+      setSelectedGlbId(modelId);
+      setGizmoMode('translate');
+      persistWorkspace({ importedModels: updatedModels });
 
       pushHistoryRef.current?.('Adăugare corp ' + modelName);
       showToast(
@@ -3858,11 +3947,10 @@ export default function KitchenViewer() {
 
   // Lighting Studio Handlers
   const handleChangeLightState = (partial, isContinuous = true) => {
-    setLightState((prev) => {
-      const next = { ...prev, ...partial };
-      persistWorkspace({ lightState: next });
-      return next;
-    });
+    const next = { ...stateRef.current.lightState, ...partial };
+    stateRef.current.lightState = next;
+    setLightState(next);
+    persistWorkspace({ lightState: next });
     pushHistoryRef.current?.('Iluminare', isContinuous);
   };
 
@@ -3911,14 +3999,15 @@ export default function KitchenViewer() {
     }
 
     setImportedModels([]);
+    stateRef.current.importedModels = [];
     setSelectedGlbId(null);
+    stateRef.current.selectedGlbId = null;
     setAppliances([]);
+    stateRef.current.appliances = [];
     setSelectedApplianceId(null);
+    stateRef.current.selectedApplianceId = null;
     setRoomConfig(DEFAULT_ROOM_CONFIG);
-    historyRef.current = [];
-    historyIndexRef.current = -1;
-    setCanUndo(false);
-    setCanRedo(false);
+    stateRef.current.roomConfig = DEFAULT_ROOM_CONFIG;
     setActiveCloudProject(null);
     setActiveCloudProjectMeta(null);
 
@@ -3928,6 +4017,7 @@ export default function KitchenViewer() {
       appliances: [],
       roomConfig: DEFAULT_ROOM_CONFIG
     });
+    pushHistoryRef.current?.('Proiect Nou');
 
     showToast(
       lang === 'ro'
@@ -4278,6 +4368,7 @@ export default function KitchenViewer() {
         importedModels: proj.importedModels || [],
         roomConfig: proj.roomConfig || DEFAULT_ROOM_CONFIG, appliances: proj.appliances || []
       });
+      pushHistoryRef.current?.('Încărcare Proiect');
 
       showToast('📥 Proiect încărcat cu succes!');
     } catch (err) {
@@ -4503,6 +4594,7 @@ export default function KitchenViewer() {
     }
 
     persistWorkspace({ roomConfig: newConfig });
+    pushHistoryRef.current?.('Arhitectură Cameră', true);
   }, [persistWorkspace]);
 
   const handleAddAppliance = useCallback((def: ApplianceDefinition, finish: string) => {
@@ -4536,16 +4628,16 @@ export default function KitchenViewer() {
     const meshGroup = buildAppliance3DModel(instance);
     ctx.appliancesRootGroup.add(meshGroup);
 
-    setAppliances((prev) => {
-      const updated = [...prev, instance];
-      persistWorkspace({ appliances: updated });
-      return updated;
-    });
+    const updatedApps = [...(stateRef.current.appliances || []), instance];
+    stateRef.current.appliances = updatedApps;
+    setAppliances(updatedApps);
+    persistWorkspace({ appliances: updatedApps });
 
     setSelectedApplianceId(id);
     setSelectedGlbId(null);
     ctx.transformControls.attach(meshGroup);
     ctx.transformControls.visible = true;
+    pushHistoryRef.current?.('Adăugare Electrocasnic: ' + instance.name);
 
     showToast(
       lang === 'ro'
@@ -4567,14 +4659,14 @@ export default function KitchenViewer() {
       ctx.appliancesRootGroup.remove(meshGroup);
     }
 
-    setAppliances((prev) => {
-      const updated = prev.filter((a) => a.id !== id);
-      persistWorkspace({ appliances: updated });
-      return updated;
-    });
+    const updatedApps = (stateRef.current.appliances || []).filter((a) => a.id !== id);
+    stateRef.current.appliances = updatedApps;
+    setAppliances(updatedApps);
+    persistWorkspace({ appliances: updatedApps });
     if (selectedApplianceId === id) {
       setSelectedApplianceId(null);
     }
+    pushHistoryRef.current?.('Ștergere Electrocasnic');
   }, [selectedApplianceId, persistWorkspace]);
 
   const handleSelectAppliance = useCallback((id: string | null) => {
@@ -4736,22 +4828,22 @@ export default function KitchenViewer() {
   }, [lang, showToast]);
 
   const handleTogglePartVisibility = useCallback((partId) => {
-    setHiddenPartIds((prev) => {
-      const next = new Set(prev);
-      const isCurrentlyHidden = next.has(partId);
-      if (isCurrentlyHidden) {
-        next.delete(partId);
-      } else {
-        next.add(partId);
-      }
+    const next = new Set(hiddenPartIdsRef.current);
+    const isCurrentlyHidden = next.has(partId);
+    if (isCurrentlyHidden) {
+      next.delete(partId);
+    } else {
+      next.add(partId);
+    }
+    hiddenPartIdsRef.current = next;
+    setHiddenPartIds(next);
 
-      const ctx = sceneRef.current;
-      if (ctx && ctx.importedMap[partId]) {
-        ctx.importedMap[partId].wrapperGroup.visible = isCurrentlyHidden;
-        ctx.needsShadowUpdate = true;
-      }
-      return next;
-    });
+    const ctx = sceneRef.current;
+    if (ctx && ctx.importedMap[partId]) {
+      ctx.importedMap[partId].wrapperGroup.visible = isCurrentlyHidden;
+      ctx.needsShadowUpdate = true;
+    }
+    pushHistoryRef.current?.('Vizibilitate Piesă');
   }, []);
 
   const handleAddCustomPanel = useCallback(async (config) => {
@@ -4823,13 +4915,13 @@ export default function KitchenViewer() {
         }
       ];
 
-      setImportedModels((prev) => {
-        const updated = [...prev, mounted];
-        setSelectedGlbId(modelId);
-        setGizmoMode('translate');
-        persistWorkspace({ importedModels: updated });
-        return updated;
-      });
+      const updatedModels = [...(stateRef.current.importedModels || []), mounted];
+      stateRef.current.importedModels = updatedModels;
+      setImportedModels(updatedModels);
+      setSelectedGlbId(modelId);
+      setGizmoMode('translate');
+      persistWorkspace({ importedModels: updatedModels });
+      pushHistoryRef.current?.('Adăugare Panou: ' + name);
 
       showToast(
         lang === 'ro'
