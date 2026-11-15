@@ -155,11 +155,11 @@ export default function PhotorealRenderModal({
         }
       }}
     >
-      <DialogContent className="flex max-h-[92dvh] max-w-6xl flex-col overflow-hidden border-white/15 bg-gradient-to-b from-[#121826]/99 to-[#0a0e18]/99 p-0">
+      <DialogContent className="flex max-h-[92dvh] max-w-6xl flex-col overflow-hidden border-[#262B34] bg-[#0F1115] p-0">
         {/* Header */}
-        <DialogHeader className="mb-0 border-b border-white/10 bg-white/[0.02] px-5 py-3.5">
+        <DialogHeader className="mb-0 border-b border-white/[0.08] bg-[#14171C] px-5 py-3.5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-pink-500 text-white shadow-lg shadow-amber-500/30">
+            <div className="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-xl bg-[#0F5773] text-[#F5F7FA] border border-[#17789E]/60">
               <Camera className="h-5 w-5" />
             </div>
             <div>
@@ -182,7 +182,7 @@ export default function PhotorealRenderModal({
         {/* Main Body: Responsive Split Layout */}
         <div className="flex flex-1 flex-wrap overflow-y-auto">
           {/* Left Column: Photo Preview Viewport */}
-          <div className="flex-[1_1_560px] min-h-[320px] bg-[#070a12] flex flex-col items-center justify-center p-4 relative border-r border-white/[0.07]">
+          <div className="flex-[1_1_560px] min-h-[320px] bg-[#090A0C] flex flex-col items-center justify-center p-4 relative border-r border-white/[0.08]">
             <div className="w-full max-h-[64dvh] flex items-center justify-center relative rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.65)] border border-white/10">
               <canvas
                 ref={previewCanvasRef}
@@ -191,7 +191,7 @@ export default function PhotorealRenderModal({
 
               {/* Live Render Progress Overlay */}
               {isRendering && progress && (
-                <div className="absolute inset-0 bg-[#070a12]/65 backdrop-blur-sm flex flex-col items-center justify-center gap-3 p-6">
+                <div className="absolute inset-0 bg-[#090A0C]/75 backdrop-blur-sm flex flex-col items-center justify-center gap-3 p-6">
                   <div className="text-[28px]">✨</div>
                   <div className="text-sm font-bold text-slate-50">
                     {isRo
@@ -205,7 +205,7 @@ export default function PhotorealRenderModal({
                   </div>
                   <div className="w-[260px] h-2 rounded-full bg-white/12 overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-amber-500 to-pink-500 transition-[width] duration-150"
+                      className="h-full bg-[#0F5773] transition-[width] duration-150"
                       style={{ width: `${progress.percent}%` }}
                     />
                   </div>
@@ -224,7 +224,7 @@ export default function PhotorealRenderModal({
                   type="button"
                   disabled={isRendering}
                   onClick={() => startRenderPass(renderSettings)}
-                  className="px-4 py-2.5 rounded-[10px] border-none bg-gradient-to-br from-amber-500 to-pink-500 text-white text-[12.5px] font-bold cursor-pointer shadow-[0_4px_15px_rgba(245,158,11,0.35)] hover:brightness-110 disabled:opacity-50 transition"
+                  className="px-4 py-2.5 rounded-[10px] border border-[#17789E] bg-[#0F5773] text-[#F5F7FA] text-[12.5px] font-bold cursor-pointer hover:bg-[#146E91] disabled:opacity-50 transition"
                 >
                   🎬 {isRo ? 'Randează la Calitate Maximă' : isRu ? 'Рендер в макс. качестве' : 'Render Full Quality'}
                 </button>
@@ -233,7 +233,7 @@ export default function PhotorealRenderModal({
                   type="button"
                   disabled={isRendering || !rawBuffer}
                   onClick={() => handleDownloadImage('png')}
-                  className="px-3.5 py-2.5 rounded-[10px] border border-emerald-500/45 bg-emerald-500/15 text-emerald-300 text-[12.5px] font-bold cursor-pointer hover:bg-emerald-500/25 disabled:opacity-45 transition"
+                  className="px-3.5 py-2.5 rounded-[10px] border border-[#355E43] bg-[#1F3627] text-[#F5F7FA] text-[12.5px] font-bold cursor-pointer hover:bg-[#2A4935] disabled:opacity-45 transition"
                 >
                   📥 {isRo ? 'Descarcă PNG' : 'Download PNG'}
                 </button>
@@ -242,7 +242,7 @@ export default function PhotorealRenderModal({
                   type="button"
                   disabled={isRendering || !rawBuffer}
                   onClick={() => handleDownloadImage('jpeg')}
-                  className="px-3.5 py-2.5 rounded-[10px] border border-sky-400/45 bg-sky-400/15 text-sky-300 text-[12.5px] font-bold cursor-pointer hover:bg-sky-400/25 disabled:opacity-45 transition"
+                  className="px-3.5 py-2.5 rounded-[10px] border border-[#262B34] bg-[#1C2027] text-[#C9D1D9] text-[12.5px] font-bold cursor-pointer hover:bg-[#262B34] hover:text-[#F5F7FA] disabled:opacity-45 transition"
                 >
                   📥 {isRo ? 'Descarcă JPG' : 'Download JPG'}
                 </button>
@@ -287,8 +287,8 @@ export default function PhotorealRenderModal({
                       onClick={() => updateRenderSetting('atmosphere', item.id, true)}
                       className={`px-2.5 py-2 rounded-[9px] border text-[11.5px] font-semibold cursor-pointer text-left transition ${
                         active
-                          ? 'border-amber-500 bg-amber-500/20 text-amber-200'
-                          : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]'
+                          ? 'border-[#17789E] bg-[#0F5773] text-[#F5F7FA]'
+                          : 'border-white/[0.08] bg-[#14171C] text-[#C9D1D9] hover:bg-[#1C2027] hover:text-[#F5F7FA]'
                       }`}
                     >
                       {item.label}
@@ -333,8 +333,8 @@ export default function PhotorealRenderModal({
                       onClick={() => updateRenderSetting('backdrop', item.id, true)}
                       className={`px-2.5 py-2 rounded-[9px] border text-[11.5px] font-semibold cursor-pointer text-left transition ${
                         active
-                          ? 'border-sky-400 bg-sky-400/18 text-sky-300'
-                          : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]'
+                          ? 'border-[#17789E] bg-[#0F5773] text-[#F5F7FA]'
+                          : 'border-white/[0.08] bg-[#14171C] text-[#C9D1D9] hover:bg-[#1C2027] hover:text-[#F5F7FA]'
                       }`}
                     >
                       {item.label}
@@ -367,8 +367,8 @@ export default function PhotorealRenderModal({
                       }}
                       className={`px-1.5 py-[7px] rounded-lg border text-[11px] font-semibold cursor-pointer transition ${
                         active
-                          ? 'border-purple-500 bg-purple-500/22 text-purple-200'
-                          : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]'
+                          ? 'border-[#17789E] bg-[#0F5773] text-[#F5F7FA]'
+                          : 'border-white/[0.08] bg-[#14171C] text-[#C9D1D9] hover:bg-[#1C2027] hover:text-[#F5F7FA]'
                       }`}
                     >
                       {res.label}
@@ -392,8 +392,8 @@ export default function PhotorealRenderModal({
                       onClick={() => updateRenderSetting('samples', q.s, false)}
                       className={`px-1.5 py-[7px] rounded-lg border text-[11px] font-semibold cursor-pointer transition ${
                         active
-                          ? 'border-amber-500 bg-amber-500/22 text-amber-200'
-                          : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]'
+                          ? 'border-[#355E43] bg-[#1F3627] text-[#F5F7FA]'
+                          : 'border-white/[0.08] bg-[#14171C] text-[#C9D1D9] hover:bg-[#1C2027] hover:text-[#F5F7FA]'
                       }`}
                     >
                       {q.label}
@@ -404,7 +404,7 @@ export default function PhotorealRenderModal({
             </div>
 
             {/* 4. Live Photographic Post-Processing Sliders (Radix UI) */}
-            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] flex flex-col gap-2.5">
+            <div className="p-3 rounded-xl bg-[#14171C] border border-white/[0.08] flex flex-col gap-2.5">
               <div className="flex justify-between items-center">
                 <span className="text-[11.5px] font-bold text-slate-50">
                   🎚️ {isRo ? 'REGLAJE FOTO LIVE (INSTANT)' : 'LIVE PHOTO GRADING'}
@@ -412,7 +412,7 @@ export default function PhotorealRenderModal({
                 <button
                   type="button"
                   onClick={() => setPostSettings(DEFAULT_POST_PROCESS)}
-                  className="bg-transparent border-none text-sky-400 text-[11px] cursor-pointer hover:underline"
+                  className="bg-transparent border-none text-[#8B949E] hover:text-[#F5F7FA] text-[11px] cursor-pointer hover:underline"
                 >
                   Reset
                 </button>
@@ -478,7 +478,7 @@ export default function PhotorealRenderModal({
                 }[]
               ).map((s) => (
                 <div key={s.key} className="space-y-1">
-                  <div className="flex justify-between text-[11px] text-slate-300">
+                  <div className="flex justify-between text-[11px] text-[#C9D1D9]">
                     <span>{s.label}</span>
                     <span>{s.display}</span>
                   </div>

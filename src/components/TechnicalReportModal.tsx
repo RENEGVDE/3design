@@ -531,31 +531,31 @@ export default function TechnicalReportModal({
     };
 
     const cardClass =
-      'rounded-xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-2 print:border-slate-300 print:bg-white print:text-slate-900 print:break-inside-avoid';
+      'rounded-xl border border-white/[0.08] bg-[#14171C] p-4 flex flex-col gap-2 print:border-slate-300 print:bg-white print:text-slate-900 print:break-inside-avoid';
     const cardTitleClass =
-      'm-0 mb-1.5 text-[0.9rem] font-bold text-slate-100 border-b border-white/10 pb-2 print:text-slate-900 print:border-slate-300';
+      'm-0 mb-1.5 text-[0.9rem] font-bold text-[#F5F7FA] border-b border-white/[0.08] pb-2 print:text-slate-900 print:border-slate-300';
     const statsRowClass =
-      'flex items-center justify-between text-[0.8rem] text-slate-300 py-1 border-b border-white/[0.04] last:border-b-0 print:text-slate-700 print:border-slate-200';
+      'flex items-center justify-between text-[0.8rem] text-[#C9D1D9] py-1 border-b border-white/[0.04] last:border-b-0 print:text-slate-700 print:border-slate-200';
     const costInputRowClass =
-      'flex items-center justify-between gap-2 text-[0.8rem] text-slate-300 py-1 print:text-slate-700';
+      'flex items-center justify-between gap-2 text-[0.8rem] text-[#C9D1D9] py-1 print:text-slate-700';
     const inputNumClass =
-      'w-24 rounded-md border border-white/15 bg-black/35 px-2 py-1 text-right text-[0.82rem] font-mono text-white focus:border-sky-400 focus:outline-none print:border-slate-300 print:bg-white print:text-slate-900';
+      'w-24 rounded-md border border-[#262B34] bg-[#090A0C] px-2 py-1 text-right text-[0.82rem] font-mono text-[#F5F7FA] focus:border-[#0F5773] focus:outline-none print:border-slate-300 print:bg-white print:text-slate-900';
     const selectClass =
-      'rounded-md border border-white/15 bg-slate-900 px-2 py-1 text-[0.8rem] text-white focus:border-sky-400 focus:outline-none print:border-slate-300 print:bg-white print:text-slate-900';
+      'rounded-md border border-[#262B34] bg-[#090A0C] px-2 py-1 text-[0.8rem] text-[#F5F7FA] focus:border-[#0F5773] focus:outline-none print:border-slate-300 print:bg-white print:text-slate-900';
     const statPillClass =
-      'flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-slate-300 print:border-slate-300 print:bg-slate-50 print:text-slate-800';
+      'flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-[#14171C] px-3 py-1.5 text-xs text-[#C9D1D9] print:border-slate-300 print:bg-slate-50 print:text-slate-800';
     const tableClass =
       'w-full border-collapse text-left text-[0.78rem]';
     const thClass =
-      'bg-slate-900/90 text-slate-300 font-semibold px-2.5 py-2 border-b border-white/15 whitespace-nowrap print:bg-slate-100 print:text-slate-900 print:border-slate-300';
+      'bg-[#14171C] text-[#C9D1D9] font-semibold px-2.5 py-2 border-b border-white/[0.1] whitespace-nowrap print:bg-slate-100 print:text-slate-900 print:border-slate-300';
     const tdClass =
-      'px-2.5 py-1.5 border-b border-white/[0.06] text-slate-200 print:text-slate-800 print:border-slate-200';
+      'px-2.5 py-1.5 border-b border-white/[0.06] text-[#F5F7FA] print:text-slate-800 print:border-slate-200';
 
     return (
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DialogContent
           showClose={false}
-          className="max-w-[1200px] w-[96vw] max-h-[92vh] p-0 overflow-hidden flex flex-col border-white/15 bg-[#121620]/98 print:static print:max-w-none print:w-full print:max-h-none print:overflow-visible print:border-0 print:bg-white print:text-black print:shadow-none"
+          className="max-w-[1200px] w-[96vw] max-h-[92vh] p-0 overflow-hidden flex flex-col border-[#262B34] bg-[#0F1115] print:static print:max-w-none print:w-full print:max-h-none print:overflow-visible print:border-0 print:bg-white print:text-black print:shadow-none"
         >
           <DialogTitle className="sr-only">
             {isRo ? 'Centru Producție & Fabricație Tehnică CAD' : 'CAD Furniture Manufacturing & Production Suite'}
@@ -564,14 +564,14 @@ export default function TechnicalReportModal({
             {isRo ? 'Debitări, Hărți de tăiere, Planșe tehnice și Program CNC' : 'Cutting nesting, drawings & CNC drilling'}
           </DialogDescription>
             {/* Header Bar */}
-            <div className="flex items-center justify-between gap-4 border-b border-white/10 bg-black/25 px-5 py-3.5 max-md:flex-col max-md:items-start max-md:gap-2.5 max-md:p-3 print:border-slate-300 print:bg-white">
+            <div className="flex items-center justify-between gap-4 border-b border-white/[0.08] bg-[#14171C] px-5 py-3.5 max-md:flex-col max-md:items-start max-md:gap-2.5 max-md:p-3 print:border-slate-300 print:bg-white">
               <div className="flex items-center gap-3">
                 <span className="text-2xl leading-none">📐</span>
                 <div>
-                  <h2 className="m-0 text-base font-bold text-slate-100 print:text-slate-900">
+                  <h2 className="m-0 text-base font-bold text-[#F5F7FA] print:text-slate-900">
                     {isRo ? 'Centru Producție & Fabricație Tehnică CAD' : isRu ? 'Производственный Центр CAD' : 'CAD Furniture Manufacturing & Production Suite'}
                   </h2>
-                  <p className="m-0 text-xs text-slate-400 print:text-slate-600">
+                  <p className="m-0 text-xs text-[#8B949E] print:text-slate-600">
                     {isRo ? 'Debitări, Hărți de tăiere (Раскрой), Planșe tehnice și Program CNC' : isRu ? 'Раскрой, сметы, чертежи деталей и ЧПУ присадка' : 'Cutting nesting, drawings & CNC drilling'}
                   </p>
                 </div>
@@ -582,8 +582,8 @@ export default function TechnicalReportModal({
                   type="button"
                   className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
                     copied
-                      ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400'
-                      : 'border-white/15 bg-white/5 text-slate-200 hover:bg-white/10'
+                      ? 'border-[#355E43] bg-[#1F3627] text-[#F5F7FA]'
+                      : 'border-[#262B34] bg-[#1C2027] text-[#C9D1D9] hover:bg-[#262B34] hover:text-[#F5F7FA]'
                   }`}
                   onClick={handleCopySummary}
                   title={isRo ? 'Copiază specificația și prețul pentru ofertă' : isRu ? 'Копировать смету' : 'Copy summary'}
@@ -593,7 +593,7 @@ export default function TechnicalReportModal({
                 </button>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#25D366]/40 bg-[#25D366]/10 px-2.5 py-1.5 text-xs font-semibold text-[#25D366] hover:bg-[#25D366]/20 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#355E43] bg-[#1F3627] px-2.5 py-1.5 text-xs font-semibold text-[#F5F7FA] hover:bg-[#2A4935] transition-colors cursor-pointer"
                   onClick={handleShareWhatsApp}
                   title="Trimite rezumatul comenzii pe WhatsApp"
                 >
@@ -602,7 +602,7 @@ export default function TechnicalReportModal({
                 </button>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#262B34] bg-[#1C2027] px-2.5 py-1.5 text-xs font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-[#F5F7FA] transition-colors cursor-pointer"
                   onClick={handleDownloadCsv}
                   title="Export CSV pentru utilaje de debitare"
                 >
@@ -611,7 +611,7 @@ export default function TechnicalReportModal({
                 </button>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 px-3.5 py-1.5 text-xs font-bold text-slate-950 hover:brightness-110 transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#0F5773] border border-[#17789E] px-3.5 py-1.5 text-xs font-bold text-[#F5F7FA] hover:bg-[#146E91] transition cursor-pointer"
                   onClick={handlePrint}
                 >
                   <span>🖨️</span>
@@ -619,7 +619,7 @@ export default function TechnicalReportModal({
                 </button>
                 <button
                   type="button"
-                  className="bg-white/10 hover:bg-white/20 border-none text-slate-200 w-7 h-7 rounded-full text-sm cursor-pointer flex items-center justify-center transition-colors"
+                  className="bg-[#1C2027] hover:bg-[#262B34] border border-[#262B34] text-[#C9D1D9] hover:text-[#F5F7FA] w-7 h-7 rounded-full text-sm cursor-pointer flex items-center justify-center transition-colors"
                   onClick={onClose}
                 >
                   ✕
@@ -628,7 +628,7 @@ export default function TechnicalReportModal({
             </div>
 
             {/* Manufacturing Suite Sub-Navigation Tabs (Radix UI) */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="border-b border-white/10 bg-black/20 px-4 py-2 print:hidden">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="border-b border-white/[0.08] bg-[#0F1115] px-4 py-2 print:hidden">
               <TabsList className="flex w-full flex-wrap gap-1 bg-transparent p-0 border-0">
                 <TabsTrigger value="bom" className="gap-1.5">
                   <span>📄</span>
@@ -684,7 +684,7 @@ export default function TechnicalReportModal({
                             </div>
                             <div className={statsRowClass}>
                               <span>{isRo ? 'Total Suprafață Material:' : isRu ? 'Общая площадь:' : 'Total Board Area:'}</span>
-                              <strong className="text-sky-400 print:text-sky-700">{stats.totalSqM} m²</strong>
+                              <strong className="text-[#F5F7FA] print:text-sky-700">{stats.totalSqM} m²</strong>
                             </div>
                             <div className={statsRowClass}>
                               <span>{isRo ? 'Necesar Plăci PAL (2800×2070):' : isRu ? 'Листов ЛДСП (2800×2070):' : 'Estimated PAL Sheets:'}</span>
@@ -755,24 +755,24 @@ export default function TechnicalReportModal({
                                 <option value="MDL">MDL (Lei)</option>
                               </select>
                             </div>
-                            <div className="mt-auto pt-3 border-t border-white/10 flex items-center justify-between text-sm print:border-slate-300">
-                              <span className="text-slate-400 font-semibold print:text-slate-700">{isRo ? 'TOTAL ESTIMATIV:' : isRu ? 'ИТОГО ПО СМЕТЕ:' : 'ESTIMATED TOTAL:'}</span>
-                              <strong className="text-lg font-extrabold text-amber-400 print:text-slate-900">{stats.totalCost.toLocaleString('ro-RO')} {currency}</strong>
+                            <div className="mt-auto pt-3 border-t border-white/[0.08] flex items-center justify-between text-sm print:border-slate-300">
+                              <span className="text-[#8B949E] font-semibold print:text-slate-700">{isRo ? 'TOTAL ESTIMATIV:' : isRu ? 'ИТОГО ПО СМЕТЕ:' : 'ESTIMATED TOTAL:'}</span>
+                              <strong className="text-lg font-extrabold text-[#F5F7FA] print:text-slate-900">{stats.totalCost.toLocaleString('ro-RO')} {currency}</strong>
                             </div>
                           </div>
                         </div>
 
                             {/* Cutting BOM Table */}
                             <div className="flex flex-col gap-3">
-                              <h3 className="m-0 text-sm font-bold text-slate-100 print:text-slate-900">
+                              <h3 className="m-0 text-sm font-bold text-[#F5F7FA] print:text-slate-900">
                                 {isRo ? 'Listă Detaliată Debitare Panouri (Optimizare Debit & Croire)' : isRu ? 'Ведомость деталей на раскрой' : 'Detailed Panel Cutting List'}
                               </h3>
                               {aggregatedParts.length === 0 ? (
-                                <p className="text-slate-400 italic text-sm">
+                                <p className="text-[#8B949E] italic text-sm">
                                   {isRo ? 'Nu există corpuri de mobilier create în scenă. Adaugă corpuri din secțiunea "Mobilier (CAD)".' : isRu ? 'В сцене нет мебели. Создайте модули во вкладке Мебель CAD.' : 'No furniture cabinets placed in scene.'}
                                 </p>
                               ) : (
-                                <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/25 print:border-slate-300 print:bg-white">
+                                <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#090A0C] print:border-slate-300 print:bg-white">
                                   <table className={tableClass}>
                                     <thead>
                                       <tr>
@@ -804,10 +804,10 @@ export default function TechnicalReportModal({
                                             <span
                                               className={`inline-block rounded px-1.5 py-0.5 text-[0.7rem] font-semibold ${
                                                 p.edgeBanding.includes('2mm')
-                                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                                  ? 'bg-[#0F5773] text-[#F5F7FA] border border-[#17789E]'
                                                   : p.edgeBanding.includes('1mm')
-                                                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
-                                                    : 'bg-white/5 text-slate-400'
+                                                    ? 'bg-[#1F3627] text-[#F5F7FA] border border-[#355E43]'
+                                                    : 'bg-[#1C2027] text-[#8B949E]'
                                               }`}
                                             >
                                               {p.edgeBanding}
@@ -830,7 +830,7 @@ export default function TechnicalReportModal({
                                   <div className="flex flex-wrap items-center gap-2">
                                     <div className={statPillClass}>
                                       <span>{isRo ? 'Eficiență (К.И.М.):' : isRu ? 'К.И.М. (Эффективность):' : 'Efficiency (K.I.M.):'}</span>
-                                      <strong className="text-emerald-400">{nestingResult.efficiencyPercent}%</strong>
+                                      <strong className="text-[#F5F7FA]">{nestingResult.efficiencyPercent}%</strong>
                                     </div>
                                       <div className={statPillClass}>
                                         <span>{isRo ? 'Coli Necesare:' : isRu ? 'Листов всего:' : 'Total Sheets:'}</span>
@@ -850,7 +850,7 @@ export default function TechnicalReportModal({
                                         </div>
 
                                             <div className="ml-auto flex items-center gap-2">
-                                              <label className="text-xs text-slate-400">Format Placă:</label>
+                                              <label className="text-xs text-[#8B949E]">Format Placă:</label>
                                               <select
                                                 value={sheetFormat}
                                                 onChange={(e) => {
@@ -871,18 +871,18 @@ export default function TechnicalReportModal({
                                             <div className="flex items-center gap-2">
                                               <button
                                                 type="button"
-                                                className="inline-flex items-center rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-xs font-medium text-slate-200 hover:bg-white/10 disabled:opacity-40 transition-colors cursor-pointer"
+                                                className="inline-flex items-center rounded-lg border border-[#262B34] bg-[#1C2027] px-2.5 py-1 text-xs font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-[#F5F7FA] disabled:opacity-40 transition-colors cursor-pointer"
                                                 disabled={activeSheetIndex <= 0}
                                                 onClick={() => setActiveSheetIndex((v) => Math.max(0, v - 1))}
                                               >
                                                 ◄ Foaia Anterioară
                                               </button>
-                                              <span className="text-[13px] font-bold text-slate-50">
+                                              <span className="text-[13px] font-bold text-[#F5F7FA]">
                                                 Foaia {activeSheetIndex + 1} din {nestingResult.sheetsCount} (Randament: {nestingResult.sheets[activeSheetIndex]?.efficiencyPercent || 0}%)
                                               </span>
                                               <button
                                                 type="button"
-                                                className="inline-flex items-center rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-xs font-medium text-slate-200 hover:bg-white/10 disabled:opacity-40 transition-colors cursor-pointer"
+                                                className="inline-flex items-center rounded-lg border border-[#262B34] bg-[#1C2027] px-2.5 py-1 text-xs font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-[#F5F7FA] disabled:opacity-40 transition-colors cursor-pointer"
                                                 disabled={activeSheetIndex >= nestingResult.sheetsCount - 1}
                                                 onClick={() => setActiveSheetIndex((v) => Math.min(nestingResult.sheetsCount - 1, v + 1))}
                                               >
@@ -894,7 +894,7 @@ export default function TechnicalReportModal({
                                               <button
                                                 type="button"
                                                 onClick={handleDownloadNestingSheetPng}
-                                                className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/45 bg-sky-500/20 px-2.5 py-1 text-xs font-medium text-sky-300 hover:bg-sky-500/30 transition-colors cursor-pointer"
+                                                className="inline-flex items-center gap-1.5 rounded-lg border border-[#17789E] bg-[#0F5773] px-2.5 py-1 text-xs font-medium text-[#F5F7FA] hover:bg-[#146E91] transition-colors cursor-pointer"
                                                 title="Descarcă imaginea de debitare la rezoluție înaltă"
                                               >
                                                 <span>📥</span>
@@ -903,7 +903,7 @@ export default function TechnicalReportModal({
                                               <button
                                                 type="button"
                                                 onClick={handlePrint}
-                                                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/45 bg-emerald-500/20 px-2.5 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-500/30 transition-colors cursor-pointer"
+                                                className="inline-flex items-center gap-1.5 rounded-lg border border-[#355E43] bg-[#1F3627] px-2.5 py-1 text-xs font-medium text-[#F5F7FA] hover:bg-[#2A4935] transition-colors cursor-pointer"
                                                 title="Imprimare fișă tehnică și plan de debitare atelier"
                                               >
                                                 <span>🖨️</span>
@@ -913,7 +913,7 @@ export default function TechnicalReportModal({
                                           </div>
 
                                           {/* 2D Canvas Viewport */}
-                                          <div className="rounded-xl border border-white/10 bg-[#0b0f17] p-3 flex justify-center overflow-hidden">
+                                          <div className="rounded-xl border border-white/[0.08] bg-[#090A0C] p-3 flex justify-center overflow-hidden">
                                             <canvas
                                               ref={nestingCanvasRef}
                                               width={960}
@@ -923,7 +923,7 @@ export default function TechnicalReportModal({
                                           </div>
 
                                           {/* Visual Workshop Legend */}
-                                          <div className="flex flex-wrap gap-x-[18px] gap-y-3 items-center justify-center px-3.5 py-2.5 bg-slate-900/75 rounded-lg border border-white/[0.08] text-[0.74rem] text-slate-300 print:bg-slate-50 print:text-slate-800 print:border-slate-300">
+                                          <div className="flex flex-wrap gap-x-[18px] gap-y-3 items-center justify-center px-3.5 py-2.5 bg-[#14171C] rounded-lg border border-white/[0.08] text-[0.74rem] text-[#C9D1D9] print:bg-slate-50 print:text-slate-800 print:border-slate-300">
                                             <div className="flex items-center gap-1.5">
                                               <span className="w-3.5 h-3.5 bg-amber-600/70 border-2 border-amber-500 rounded-[3px]" />
                                               <span><strong>Cant ABS 2.0 mm</strong> (Uși & Fațade expuse)</span>
@@ -957,7 +957,7 @@ export default function TechnicalReportModal({
                                             <div className="flex flex-col gap-3.5">
                                               {/* Part Selector Bar */}
                                               <div className="flex flex-wrap items-center gap-3 print:hidden">
-                                                <span className="text-[0.82rem] text-slate-400 font-semibold">
+                                                <span className="text-[0.82rem] text-[#8B949E] font-semibold">
                                                   {isRo ? 'Alege Piesa pentru Desenare Tehnică:' : isRu ? 'Выберите деталь для чертежа:' : 'Select Panel for Blueprint:'}
                                                 </span>
                                                 <select
@@ -974,7 +974,7 @@ export default function TechnicalReportModal({
                                               </div>
 
                                               {/* 2D Blueprint Canvas Viewport */}
-                                              <div className="rounded-xl border border-white/10 bg-[#0b0f17] p-3 flex justify-center overflow-hidden">
+                                              <div className="rounded-xl border border-white/[0.08] bg-[#090A0C] p-3 flex justify-center overflow-hidden">
                                                 <canvas
                                                   ref={blueprintCanvasRef}
                                                   width={960}
@@ -990,12 +990,12 @@ export default function TechnicalReportModal({
                                                   <div className="flex flex-col gap-3.5">
                                                     <div className="flex items-center justify-between gap-3">
                                                       <div>
-                                                        <h3 className="m-0 text-slate-50 text-[1.05rem] font-bold print:text-slate-900">{isRo ? 'Program Găurire CNC (System 32)' : isRu ? 'Программа сверловки для станков с ЧПУ' : 'CNC Drilling Coordinates Program'}</h3>
-                                                        <small className="text-slate-400 print:text-slate-600">{isRo ? 'Coordonate de găurire pentru Minifix, Euroșuruburi, Șcanturi și Balamale' : isRu ? 'Координаты присадки отверстий X, Y, глубина' : 'Drilling X, Y, depth and diameter coordinates'}</small>
+                                                        <h3 className="m-0 text-[#F5F7FA] text-[1.05rem] font-bold print:text-slate-900">{isRo ? 'Program Găurire CNC (System 32)' : isRu ? 'Программа сверловки для станков с ЧПУ' : 'CNC Drilling Coordinates Program'}</h3>
+                                                        <small className="text-[#8B949E] print:text-slate-600">{isRo ? 'Coordonate de găurire pentru Minifix, Euroșuruburi, Șcanturi și Balamale' : isRu ? 'Координаты присадки отверстий X, Y, глубина' : 'Drilling X, Y, depth and diameter coordinates'}</small>
                                                       </div>
                                                       <button
                                                         type="button"
-                                                        className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 px-3 py-1.5 text-xs font-bold text-slate-950 hover:brightness-110 transition cursor-pointer print:hidden"
+                                                        className="inline-flex items-center gap-1.5 rounded-lg bg-[#0F5773] border border-[#17789E] px-3 py-1.5 text-xs font-bold text-[#F5F7FA] hover:bg-[#146E91] transition cursor-pointer print:hidden"
                                                         onClick={handleDownloadCnc}
                                                       >
                                                         <span>📥</span>
@@ -1003,7 +1003,7 @@ export default function TechnicalReportModal({
                                                       </button>
                                                     </div>
 
-                                                    <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/25 print:border-slate-300 print:bg-white">
+                                                    <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#090A0C] print:border-slate-300 print:bg-white">
                                                       <table className={tableClass}>
                                                         <thead>
                                                           <tr>

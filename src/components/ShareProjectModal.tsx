@@ -95,10 +95,10 @@ export default function ShareProjectModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && !isGenerating && onClose()}>
-      <DialogContent className="max-w-xl border-sky-500/25 bg-gradient-to-b from-[#13192a]/98 to-[#0b0f1b]/98 p-6">
+      <DialogContent className="max-w-xl border-white/[0.08] bg-[#0F1115]/98 p-6">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-500/30">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#17789E] bg-[#0F5773] text-white">
               <Link2 className="h-5 w-5" />
             </div>
             <div>
@@ -120,18 +120,18 @@ export default function ShareProjectModal({
 
         <div className="flex flex-col gap-4">
           {/* Project Info Pill */}
-          <div className="flex flex-col gap-1 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-3">
-            <span className="text-[11px] text-zinc-400">
+          <div className="flex flex-col gap-1 rounded-lg border border-white/[0.08] bg-[#14171C] px-3.5 py-3">
+            <span className="text-[11px] text-[#8B949E]">
               {isRo ? 'Proiectul care se partajează:' : 'Sharing project:'}
             </span>
-            <strong className="text-sm font-bold text-sky-400">
+            <strong className="text-sm font-semibold text-[#F5F7FA]">
               {projectName || 'Mobilier 3D CAD'}
             </strong>
           </div>
 
           {/* Author / Studio Input */}
           <div>
-            <label className="mb-1.5 block text-xs font-semibold text-zinc-300">
+            <label className="mb-1.5 block text-xs font-semibold text-[#C9D1D9]">
               {isRo
                 ? 'Numele Designerului / Atelierului (afișat clientului):'
                 : 'Studio / Designer Name:'}
@@ -141,20 +141,20 @@ export default function ShareProjectModal({
               value={authorName}
               onChange={(e) => setAuthorName(e.target.value)}
               placeholder="Ex: Studio Mobilă Design"
-              className="w-full rounded-xl border border-white/15 bg-slate-900/90 px-3 py-2.5 text-sm text-white outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20"
+              className="w-full rounded-lg border border-white/[0.1] bg-[#14171C] px-3 py-2.5 text-sm text-[#F5F7FA] outline-none transition focus:border-[#0F5773]"
             />
           </div>
 
           {/* Progress bar */}
           {syncStatus && (
-            <div className="rounded-xl border border-sky-500/35 bg-sky-500/10 p-3">
-              <div className="mb-1.5 flex justify-between text-xs font-semibold text-sky-400">
+            <div className="rounded-lg border border-[#17789E] bg-[#0F5773]/25 p-3">
+              <div className="mb-1.5 flex justify-between text-xs font-semibold text-white">
                 <span>{syncStatus.label}</span>
                 <span>{syncStatus.percent}%</span>
               </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div className="h-1.5 overflow-hidden rounded-full bg-[#262B34]">
                 <div
-                  className="h-full bg-gradient-to-r from-sky-400 to-indigo-500 transition-all duration-200"
+                  className="h-full bg-[#0F5773] transition-all duration-200"
                   style={{ width: `${syncStatus.percent}%` }}
                 />
               </div>
@@ -167,7 +167,7 @@ export default function ShareProjectModal({
               type="button"
               disabled={isGenerating}
               onClick={handleGenerateLink}
-              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-sky-600/30 transition hover:from-sky-500 hover:to-blue-500 disabled:pointer-events-none disabled:opacity-50"
+              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#17789E] bg-[#0F5773] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#146E91] disabled:pointer-events-none disabled:opacity-50"
             >
               <Link2 className="h-4 w-4" />
               <span>
@@ -181,8 +181,8 @@ export default function ShareProjectModal({
               </span>
             </button>
           ) : (
-            <div className="flex flex-col gap-3 rounded-2xl border border-emerald-500/35 bg-emerald-500/10 p-3.5">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-300">
+            <div className="flex flex-col gap-3 rounded-xl border border-[#355E43] bg-[#1F3627]/35 p-3.5">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-white">
                 <Check className="h-4 w-4" />
                 <span>{isRo ? 'Linkul este gata pentru trimitere!' : 'Link ready to share!'}</span>
               </div>
@@ -193,16 +193,16 @@ export default function ShareProjectModal({
                   readOnly
                   value={generatedUrl}
                   onClick={(e) => (e.target as HTMLInputElement).select()}
-                  className="flex-1 rounded-lg border border-white/20 bg-slate-950/90 px-3 py-2 text-xs text-white outline-none"
+                  className="flex-1 rounded-lg border border-white/[0.12] bg-[#090A0C] px-3 py-2 text-xs text-[#F5F7FA] outline-none"
                 />
                 <button
                   type="button"
                   onClick={handleCopyLink}
                   className={cn(
-                    'inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold transition whitespace-nowrap',
+                    'inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3.5 py-2 text-xs font-semibold transition whitespace-nowrap',
                     copied
-                      ? 'bg-emerald-500 text-white'
-                      : 'bg-sky-400 text-slate-950 hover:bg-sky-300'
+                      ? 'border-[#355E43] bg-[#1F3627] text-white'
+                      : 'border-[#17789E] bg-[#0F5773] text-white hover:bg-[#146E91]'
                   )}
                 >
                   {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -214,7 +214,7 @@ export default function ShareProjectModal({
                 <button
                   type="button"
                   onClick={handleOpenWhatsApp}
-                  className="inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-emerald-400/40 bg-emerald-500/15 px-3 py-2.5 text-xs font-bold text-emerald-300 transition hover:bg-emerald-500/25"
+                  className="inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#355E43] bg-[#1F3627] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-[#2A4935]"
                 >
                   <MessageCircle className="h-4 w-4" />
                   <span>Trimite pe WhatsApp</span>
@@ -223,7 +223,7 @@ export default function ShareProjectModal({
                 <button
                   type="button"
                   onClick={() => window.open(generatedUrl, '_blank')}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-2.5 text-xs font-medium text-zinc-200 transition hover:bg-white/10"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/[0.1] bg-[#1C2027] px-3 py-2.5 text-xs font-medium text-[#C9D1D9] transition hover:bg-[#262B34] hover:text-white"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                   <span>Deschide</span>
@@ -233,23 +233,23 @@ export default function ShareProjectModal({
           )}
 
           {/* Benefits summary */}
-          <div className="flex flex-col gap-1.5 border-t border-white/10 pt-3 text-[11px] text-zinc-400">
+          <div className="flex flex-col gap-1.5 border-t border-white/[0.08] pt-3 text-[11px] text-[#8B949E]">
             <div className="flex items-center gap-2">
-              <Lock className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+              <Lock className="h-3.5 w-3.5 shrink-0 text-[#C9D1D9]" />
               <span>
-                <strong className="text-zinc-200">Mod Protejat (Read-Only):</strong> Clientul nu poate șterge sau altera proiectul tău.
+                <strong className="text-[#F5F7FA]">Mod Protejat (Read-Only):</strong> Clientul nu poate șterge sau altera proiectul tău.
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Smartphone className="h-3.5 w-3.5 shrink-0 text-sky-400" />
+              <Smartphone className="h-3.5 w-3.5 shrink-0 text-[#C9D1D9]" />
               <span>
-                <strong className="text-zinc-200">Universal:</strong> Funcționează pe iPhone, Android, iPad, Mac și Windows fără cont.
+                <strong className="text-[#F5F7FA]">Universal:</strong> Funcționează pe iPhone, Android, iPad, Mac și Windows fără cont.
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <DoorOpen className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+              <DoorOpen className="h-3.5 w-3.5 shrink-0 text-[#C9D1D9]" />
               <span>
-                <strong className="text-zinc-200">Interactiv:</strong> Ușile și sertarele se pot deschide prin simplu tap/click.
+                <strong className="text-[#F5F7FA]">Interactiv:</strong> Ușile și sertarele se pot deschide prin simplu tap/click.
               </span>
             </div>
           </div>

@@ -151,7 +151,7 @@ export default function ModularKitchenStudioSection({
 
   return (
     <div className="flex flex-col gap-3.5" id="modular-kitchen-studio">
-      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#8B949E]">
         <span>🏛️</span>
         <span>
           {isRo
@@ -162,7 +162,7 @@ export default function ModularKitchenStudioSection({
         </span>
       </div>
 
-      <div className="text-[11px] leading-relaxed text-slate-400">
+      <div className="text-[11px] leading-relaxed text-[#8B949E]">
         {isRo
           ? 'Proiectează bucătării complete de orice formă (L-Colț, Peninsulă, Liniară, Formă de U) cu blat continuu, electrocasnice și listă tehnică de panouri.'
           : isRu
@@ -172,7 +172,7 @@ export default function ModularKitchenStudioSection({
 
       {/* Layout Selection */}
       <div>
-        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#8B949E]">
           {isRo ? '1. Configurație Spațială:' : isRu ? '1. Конфигурация помещения:' : '1. Spatial Layout:'}
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -184,15 +184,15 @@ export default function ModularKitchenStudioSection({
                 type="button"
                 className={`flex flex-col gap-0.5 rounded-lg border px-2.5 py-2 text-left transition-colors cursor-pointer ${
                   isSelected
-                    ? 'border-sky-400/60 bg-sky-500/15'
-                    : 'border-white/10 bg-white/5 hover:bg-white/10'
+                    ? 'border-[#17789E] bg-[#0F5773]'
+                    : 'border-white/[0.08] bg-[#14171C] hover:bg-[#1C2027]'
                 }`}
                 onClick={() => setLayoutType(t.id)}
               >
-                <strong className={`text-[13px] ${isSelected ? 'text-sky-400' : 'text-slate-50'}`}>
+                <strong className={`text-[13px] ${isSelected ? 'text-white' : 'text-[#F5F7FA]'}`}>
                   {isRo ? t.nameRo : isRu ? t.nameRu : t.nameEn}
                 </strong>
-                <span className="text-[11px] text-slate-400">
+                <span className={`text-[11px] ${isSelected ? 'text-[#C9D1D9]' : 'text-[#8B949E]'}`}>
                   {t.hasPeninsula ? (isRo ? 'Cu Peninsulă / Bar' : 'With Peninsula') : (isRo ? 'Standard de Perete' : 'Wall Standard')}
                 </span>
               </button>
@@ -203,15 +203,15 @@ export default function ModularKitchenStudioSection({
 
       {/* Parametric Dimension Sliders */}
       <div className="flex flex-col gap-3">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-[#8B949E]">
           {isRo ? '2. Dimensiuni Perete & Înălțime:' : isRu ? '2. Размеры стен и потолка:' : '2. Wall Dimensions & Ceiling:'}
         </div>
 
         {/* Main Wall Width */}
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between text-xs text-slate-300">
+          <div className="flex items-center justify-between text-xs text-[#C9D1D9]">
             <span>{isRo ? 'Perete Principal (Lățime):' : isRu ? 'Основная стена (Длина):' : 'Main Wall Width:'}</span>
-            <strong className="font-mono text-sky-400">{mainWallWidthCm} cm</strong>
+            <strong className="font-mono text-[#F5F7FA]">{mainWallWidthCm} cm</strong>
           </div>
           <Slider
             min={200}
@@ -225,9 +225,9 @@ export default function ModularKitchenStudioSection({
         {/* Return Wall Depth (for L and U) */}
         {(layoutType === 'l_corner' || layoutType === 'l_peninsula' || layoutType === 'u_shape') && (
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between text-xs text-slate-300">
+            <div className="flex items-center justify-between text-xs text-[#C9D1D9]">
               <span>{isRo ? 'Perete Secundar / Colț (Adâncime):' : isRu ? 'Угловая стена (Глубина):' : 'Return Wall Depth:'}</span>
-              <strong className="font-mono text-sky-400">{returnWallDepthCm} cm</strong>
+              <strong className="font-mono text-[#F5F7FA]">{returnWallDepthCm} cm</strong>
             </div>
             <Slider
               min={120}
@@ -242,9 +242,9 @@ export default function ModularKitchenStudioSection({
         {/* Peninsula Length (for peninsula layouts) */}
         {(layoutType === 'l_peninsula' || layoutType === 'u_shape') && (
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between text-xs text-slate-300">
+            <div className="flex items-center justify-between text-xs text-[#C9D1D9]">
               <span>{isRo ? 'Lungime Peninsulă / Masă Bar:' : isRu ? 'Длина полуострова / стойки:' : 'Peninsula Length:'}</span>
-              <strong className="font-mono text-sky-400">{peninsulaLengthCm} cm</strong>
+              <strong className="font-mono text-[#F5F7FA]">{peninsulaLengthCm} cm</strong>
             </div>
             <Slider
               min={120}
@@ -258,9 +258,9 @@ export default function ModularKitchenStudioSection({
 
         {/* Room Height */}
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between text-xs text-slate-300">
+          <div className="flex items-center justify-between text-xs text-[#C9D1D9]">
             <span>{isRo ? 'Înălțime Încăpere (Tavan):' : isRu ? 'Высота потолка:' : 'Ceiling Height:'}</span>
-            <strong className="font-mono text-sky-400">{roomHeightCm} cm</strong>
+            <strong className="font-mono text-[#F5F7FA]">{roomHeightCm} cm</strong>
           </div>
           <Slider
             min={220}
@@ -274,24 +274,24 @@ export default function ModularKitchenStudioSection({
 
       {/* Module Inclusions Checkboxes */}
       <div>
-        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#8B949E]">
           {isRo ? '3. Echipare Coloane & Dotări:' : isRu ? '3. Комплектация пеналов:' : '3. Modules & Features:'}
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-900/60 px-2.5 py-2 text-xs text-slate-200">
+          <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/[0.08] bg-[#14171C] px-2.5 py-2 text-xs text-[#F5F7FA]">
             <span>{isRo ? 'Coloană Cuptor' : isRu ? 'Пенал с духовкой' : 'Oven Tall Unit'}</span>
             <Switch checked={includeOvenCol} onCheckedChange={setIncludeOvenCol} />
           </label>
-          <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-900/60 px-2.5 py-2 text-xs text-slate-200">
+          <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/[0.08] bg-[#14171C] px-2.5 py-2 text-xs text-[#F5F7FA]">
             <span>{isRo ? 'Coloană Frigider' : isRu ? 'Пенал холодильника' : 'Fridge Column'}</span>
             <Switch checked={includeFridgeCol} onCheckedChange={setIncludeFridgeCol} />
           </label>
-          <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-900/60 px-2.5 py-2 text-xs text-slate-200">
+          <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/[0.08] bg-[#14171C] px-2.5 py-2 text-xs text-[#F5F7FA]">
             <span>{isRo ? 'Mașină Spălat Vase' : isRu ? 'Посудомойка' : 'Dishwasher'}</span>
             <Switch checked={includeDishwasher} onCheckedChange={setIncludeDishwasher} />
           </label>
           {(layoutType === 'l_peninsula' || layoutType === 'u_shape') && (
-            <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-900/60 px-2.5 py-2 text-xs text-slate-200">
+            <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/[0.08] bg-[#14171C] px-2.5 py-2 text-xs text-[#F5F7FA]">
               <span>{isRo ? 'Activează Peninsulă' : isRu ? 'Полуостров' : 'Peninsula'}</span>
               <Switch checked={includePeninsula} onCheckedChange={setIncludePeninsula} />
             </label>
@@ -300,31 +300,31 @@ export default function ModularKitchenStudioSection({
       </div>
 
       {/* Engineering BOM Metrics Banner */}
-      <div className="rounded-xl border border-white/10 bg-slate-900/60 p-3">
+      <div className="rounded-xl border border-white/[0.08] bg-[#14171C] p-3">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-50">
+          <span className="text-xs font-semibold text-[#F5F7FA]">
             📊 {isRo ? 'Consum Materiale Proiect:' : isRu ? 'Расход материалов:' : 'BOM Consumption:'}
           </span>
-          <span className="rounded bg-sky-500/20 px-1.5 py-0.5 text-[11px] font-medium text-sky-400">
+          <span className="rounded border border-[#355E43] bg-[#1F3627] px-1.5 py-0.5 text-[11px] font-medium text-white">
             {bomSummary.totalParts} {isRo ? 'piese' : 'repere'}
           </span>
         </div>
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div>
-            <span className="text-slate-400">{isRo ? 'Carcasă PAL:' : 'Carcass PAL:'}</span>{' '}
-            <strong className="text-slate-200">{bomSummary.carcassSqM} m²</strong>
+            <span className="text-[#8B949E]">{isRo ? 'Carcasă PAL:' : 'Carcass PAL:'}</span>{' '}
+            <strong className="text-[#F5F7FA]">{bomSummary.carcassSqM} m²</strong>
           </div>
           <div>
-            <span className="text-slate-400">{isRo ? 'Fațade MDF:' : 'Facades MDF:'}</span>{' '}
-            <strong className="text-slate-200">{bomSummary.facadeSqM} m²</strong>
+            <span className="text-[#8B949E]">{isRo ? 'Fațade MDF:' : 'Facades MDF:'}</span>{' '}
+            <strong className="text-[#F5F7FA]">{bomSummary.facadeSqM} m²</strong>
           </div>
           <div>
-            <span className="text-slate-400">{isRo ? 'Blat Termo:' : 'Worktop:'}</span>{' '}
-            <strong className="text-slate-200">{bomSummary.countertopLinM} ml</strong>
+            <span className="text-[#8B949E]">{isRo ? 'Blat Termo:' : 'Worktop:'}</span>{' '}
+            <strong className="text-[#F5F7FA]">{bomSummary.countertopLinM} ml</strong>
           </div>
           <div>
-            <span className="text-slate-400">{isRo ? 'Cant ABS:' : 'Edge ABS:'}</span>{' '}
-            <strong className="text-slate-200">{bomSummary.edgeBandingLinM} ml</strong>
+            <span className="text-[#8B949E]">{isRo ? 'Cant ABS:' : 'Edge ABS:'}</span>{' '}
+            <strong className="text-[#F5F7FA]">{bomSummary.edgeBandingLinM} ml</strong>
           </div>
         </div>
       </div>
@@ -333,7 +333,7 @@ export default function ModularKitchenStudioSection({
       <div className="flex flex-col gap-2">
         <button
           type="button"
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 p-3 text-xs font-bold text-slate-950 shadow-sm hover:brightness-110 disabled:opacity-50 transition cursor-pointer"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#17789E] bg-[#0F5773] p-3 text-xs font-semibold text-white hover:bg-[#146E91] disabled:opacity-50 transition cursor-pointer"
           onClick={handleGenerateKitchen}
           disabled={generating}
         >
@@ -348,7 +348,7 @@ export default function ModularKitchenStudioSection({
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#355E43] bg-[#1F3627] px-2.5 py-2 text-xs font-medium text-white hover:bg-[#2A4935] transition-colors cursor-pointer"
             onClick={handleDownloadCsv}
             title={isRo ? 'Descarcă fișier CSV cu toate panourile pentru utilaje debitare' : 'Download CSV Cutting List'}
           >
@@ -357,7 +357,7 @@ export default function ModularKitchenStudioSection({
           </button>
           <button
             type="button"
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/[0.08] bg-[#1C2027] px-2.5 py-2 text-xs font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
             onClick={() => setShowPanelInspector(!showPanelInspector)}
           >
             <span>{showPanelInspector ? '▲' : '📋'}</span>
@@ -368,13 +368,13 @@ export default function ModularKitchenStudioSection({
 
       {/* Expanded Panel Inspector List */}
       {showPanelInspector && (
-        <div className="mt-1 max-h-[260px] overflow-y-auto rounded-lg border border-slate-700 bg-slate-900/75 p-2.5">
-          <div className="mb-1.5 text-xs font-semibold text-sky-400">
+        <div className="mt-1 max-h-[260px] overflow-y-auto rounded-lg border border-white/[0.08] bg-[#090A0C] p-2.5">
+          <div className="mb-1.5 text-xs font-semibold text-[#F5F7FA]">
             {isRo ? 'Specificație Detaliată Piese Mobilă:' : 'Detailed Parts Specification:'}
           </div>
-          <table className="w-full border-collapse text-[11px] text-slate-300">
+          <table className="w-full border-collapse text-[11px] text-[#C9D1D9]">
             <thead>
-              <tr className="border-b border-slate-600 text-left text-slate-400">
+              <tr className="border-b border-white/[0.08] text-left text-[#8B949E]">
                 <th className="p-1">Corp</th>
                 <th className="p-1">Piesă</th>
                 <th className="p-1">Dimensiune</th>
@@ -383,10 +383,10 @@ export default function ModularKitchenStudioSection({
             </thead>
             <tbody>
               {currentComposition.panelCuttingList.map((p: any, idx: number) => (
-                <tr key={idx} className="border-b border-slate-800">
-                  <td className="p-1 text-slate-400">{p.cabinet}</td>
-                  <td className="p-1">{p.partName}</td>
-                  <td className="p-1 font-mono text-sky-400">
+                <tr key={idx} className="border-b border-white/[0.04]">
+                  <td className="p-1 text-[#8B949E]">{p.cabinet}</td>
+                  <td className="p-1 text-[#F5F7FA]">{p.partName}</td>
+                  <td className="p-1 font-mono text-[#C9D1D9]">
                     {p.lengthMm}×{p.widthMm}
                   </td>
                   <td className="p-1 text-center">{p.qty}</td>

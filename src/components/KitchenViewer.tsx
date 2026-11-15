@@ -1123,7 +1123,7 @@ export default function KitchenViewer() {
         window.innerWidth <= 768;
 
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x121419);
+      scene.background = new THREE.Color(0x090a0c);
 
       const isPortrait = window.innerHeight > window.innerWidth;
       const camera = new THREE.PerspectiveCamera(
@@ -4988,12 +4988,12 @@ export default function KitchenViewer() {
     <TooltipProvider delayDuration={250}>
       <div
         id="loader"
-        className={`fixed inset-0 bg-[#111317] z-[100] flex flex-col items-center justify-center gap-3.5 transition-opacity duration-300 print:hidden ${
+        className={`fixed inset-0 bg-[#090A0C] z-[100] flex flex-col items-center justify-center gap-3.5 transition-opacity duration-300 print:hidden ${
           loading ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
-        <div className="w-[42px] h-[42px] rounded-full border-[3px] border-[#d4a359]/20 border-t-[var(--accent)] animate-spin" />
-        <div className="font-semibold tracking-wider">
+        <div className="w-[40px] h-[40px] rounded-full border-[3px] border-[#262B34] border-t-[#0F5773] animate-spin" />
+        <div className="text-sm font-medium tracking-wide text-[#F5F7FA]">
           Se încarcă modelul 3D al bucătăriei...
         </div>
       </div>
@@ -5007,16 +5007,16 @@ export default function KitchenViewer() {
       <div
         id="tooltip"
         ref={tooltipRef}
-        className="fixed pointer-events-none z-30 bg-[#0f1116]/94 border border-[var(--accent)] text-white px-[11px] py-[7px] rounded-[9px] text-[0.76rem] font-semibold shadow-[0_8px_20px_rgba(0,0,0,0.5)] opacity-0 [&.visible]:opacity-100 -translate-x-1/2 -translate-y-[130%] transition-opacity duration-100 whitespace-nowrap print:hidden"
+        className="fixed pointer-events-none z-30 bg-[#0F1115]/95 border border-[#17789E] text-[#F5F7FA] px-[11px] py-[7px] rounded-lg text-[0.75rem] font-medium shadow-[0_8px_20px_rgba(0,0,0,0.55)] opacity-0 [&.visible]:opacity-100 -translate-x-1/2 -translate-y-[130%] transition-opacity duration-100 whitespace-nowrap print:hidden"
       >
         <div ref={ttTitleRef} />
-        <div className="text-[0.71rem] text-sky-400 font-mono mt-0.5" ref={ttDimsRef} style={{ display: 'none' }} />
-        <div className="text-[0.66rem] text-[var(--accent)] block mt-0.5" ref={ttSubRef} />
+        <div className="text-[0.71rem] text-[#C9D1D9] font-mono mt-0.5" ref={ttDimsRef} style={{ display: 'none' }} />
+        <div className="text-[0.66rem] text-[#8B949E] block mt-0.5" ref={ttSubRef} />
       </div>
 
       <div
         id="mobile-toast"
-        className={`fixed top-[calc(74px+var(--safe-top))] left-1/2 -translate-x-1/2 bg-[#0f1116]/92 border border-[var(--accent)] text-white px-3.5 py-[7px] rounded-full text-[0.78rem] font-semibold z-[28] pointer-events-none transition-all duration-200 shadow-[0_8px_24px_rgba(0,0,0,0.45)] whitespace-nowrap print:hidden ${
+        className={`fixed top-[calc(74px+var(--safe-top))] left-1/2 -translate-x-1/2 bg-[#0F1115]/95 border border-[#17789E] text-[#F5F7FA] px-3.5 py-[7px] rounded-lg text-[0.78rem] font-medium z-[28] pointer-events-none transition-all duration-200 shadow-[0_8px_24px_rgba(0,0,0,0.5)] whitespace-nowrap print:hidden ${
           toastMsg ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2.5'
         }`}
       >
@@ -5077,17 +5077,17 @@ export default function KitchenViewer() {
 
       {/* 3D Tape Measure Floating HUD */}
       {dimsEnabled && dimMode === 'tape' && (
-        <div className="fixed top-[58px] left-1/2 z-[100] flex max-w-[92vw] -translate-x-1/2 items-center gap-3 rounded-xl border border-rose-500/55 bg-gradient-to-br from-slate-900/95 to-[#1c0c12]/95 px-4 py-2 text-slate-50 shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_20px_rgba(244,63,94,0.2)] backdrop-blur-md">
+        <div className="fixed top-[58px] left-1/2 z-[100] flex max-w-[92vw] -translate-x-1/2 items-center gap-3 rounded-lg border border-[#355E43] bg-[#0F1115]/95 px-4 py-2 text-[#F5F7FA] shadow-[0_8px_28px_rgba(0,0,0,0.65)] backdrop-blur-md">
           <div className="flex items-center gap-2">
-            <span className="text-lg">🎯</span>
+            <span className="text-base">🎯</span>
             <div>
-              <div className="flex items-center gap-1.5 text-[13px] font-bold text-rose-300">
+              <div className="flex items-center gap-1.5 text-[13px] font-semibold text-white">
                 <span>{lang === 'ro' ? 'Ruletă 3D' : lang === 'ru' ? 'Рулетка 3D' : '3D Tape Measure'}</span>
                 <span
-                  className={`rounded-lg border px-1.5 py-0.5 text-[10px] font-bold ${
+                  className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${
                     tapeHasPointA
-                      ? 'border-rose-400/40 bg-rose-500 text-white'
-                      : 'border-rose-400/40 bg-rose-500/20 text-rose-300'
+                      ? 'border-[#355E43] bg-[#1F3627] text-white'
+                      : 'border-white/[0.12] bg-[#14171C] text-[#C9D1D9]'
                   }`}
                 >
                   {tapeHasPointA
@@ -5095,12 +5095,12 @@ export default function KitchenViewer() {
                     : (lang === 'ro' ? 'PAS 1: CLICK PE PRIMUL PUNCT' : 'STEP 1: CLICK 1ST POINT')}
                 </span>
                 <span
-                  className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${
+                  className={`rounded-md border px-1.5 py-0.5 text-[10px] font-medium ${
                     tapeSnapType === 'vertex'
-                      ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
+                      ? 'border-[#17789E] bg-[#0F5773] text-white'
                       : tapeSnapType === 'edge'
-                        ? 'border-sky-400/50 bg-sky-500/20 text-sky-300'
-                        : 'border-white/15 bg-white/5 text-slate-300'
+                        ? 'border-[#355E43] bg-[#1F3627] text-white'
+                        : 'border-white/[0.08] bg-[#14171C] text-[#8B949E]'
                   }`}
                 >
                   {tapeSnapType === 'vertex'
@@ -5110,17 +5110,17 @@ export default function KitchenViewer() {
                       : (lang === 'ro' ? '● Suprafață' : '● Surface')}
                 </span>
                 {tapeLockedAxis && (
-                  <span className="rounded-md border border-amber-400/50 bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-200">
+                  <span className="rounded-md border border-[#17789E] bg-[#0F5773] px-1.5 py-0.5 text-[10px] font-semibold text-white">
                     🔒 Axă {tapeLockedAxis}
                   </span>
                 )}
                 {tapeLiveDistCm !== null && (
-                  <span className="rounded-md bg-rose-500/25 px-1.5 py-0.5 text-[11px] font-mono font-bold text-rose-100">
+                  <span className="rounded-md border border-[#355E43] bg-[#1F3627] px-1.5 py-0.5 text-[11px] font-mono font-semibold text-white">
                     {fmtCm(tapeLiveDistCm)} cm
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-slate-300">
+              <div className="text-[11px] text-[#8B949E]">
                 {tapeHasPointA
                   ? (lang === 'ro' ? 'Apasă pe suprafața țintă pentru a calcula distanța' : 'Click destination surface to compute distance')
                   : (lang === 'ro' ? 'Apasă pe orice colț, cant sau punct de pe mobilă/perete/podea' : 'Click on any edge, point or surface on furniture/wall/floor')}
@@ -5129,11 +5129,11 @@ export default function KitchenViewer() {
           </div>
 
           {tapeMeasurement && (
-            <div className="flex flex-col rounded-lg border border-rose-500/40 bg-rose-500/15 px-2.5 py-1 leading-tight">
-              <div className="text-[13px] font-extrabold text-rose-100">
+            <div className="flex flex-col rounded-md border border-[#355E43] bg-[#1F3627]/70 px-2.5 py-1 leading-tight">
+              <div className="text-[13px] font-bold text-white">
                 📏 {tapeMeasurement.labelStr}
               </div>
-              <div className="text-[10.5px] font-medium text-rose-300">
+              <div className="text-[10.5px] font-medium text-[#C9D1D9]">
                 ΔX: {fmtCm(tapeMeasurement.dxCm)} · ΔY: {fmtCm(tapeMeasurement.dyCm)} · ΔZ: {fmtCm(tapeMeasurement.dzCm)} cm
               </div>
             </div>
@@ -5143,7 +5143,7 @@ export default function KitchenViewer() {
             <button
               type="button"
               onClick={handleClearTape}
-              className="rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-[11px] text-slate-100 hover:bg-white/20 transition-colors cursor-pointer"
+              className="rounded-md border border-white/[0.1] bg-[#14171C] px-2 py-1 text-[11px] text-[#C9D1D9] hover:bg-[#1C2027] hover:text-white transition-colors cursor-pointer"
               title="Resetează măsurătorile de pe scenă"
             >
               🔄 {lang === 'ro' ? 'Reset' : 'Clear'}
@@ -5155,7 +5155,7 @@ export default function KitchenViewer() {
                 setDimsEnabled(false);
                 handleClearTape();
               }}
-              className="rounded-lg border border-rose-500/60 bg-rose-500/25 px-2 py-1 text-[11px] font-bold text-rose-200 hover:bg-rose-500/35 transition-colors cursor-pointer"
+              className="rounded-md border border-white/[0.12] bg-[#1C2027] px-2 py-1 text-[11px] font-semibold text-[#F5F7FA] hover:bg-[#262B34] transition-colors cursor-pointer"
               title="Ieși din modul ruletă"
             >
               ✕ {lang === 'ro' ? 'Închide' : 'Close'}
@@ -5166,17 +5166,17 @@ export default function KitchenViewer() {
 
       {/* Shared Client Presentation Top Notification Bar */}
       {isSharedReadOnly && (
-        <div className="fixed top-[56px] left-1/2 z-[100] flex max-w-[92vw] -translate-x-1/2 items-center gap-3 rounded-xl border border-sky-400/45 bg-gradient-to-br from-slate-900/95 to-slate-800/95 px-4 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(56,189,248,0.15)] backdrop-blur-md">
+        <div className="fixed top-[56px] left-1/2 z-[100] flex max-w-[92vw] -translate-x-1/2 items-center gap-3 rounded-lg border border-white/[0.08] bg-[#0F1115]/95 px-4 py-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-md">
           <div className="flex items-center gap-2">
             <span className="text-base">👁️</span>
             <div>
-              <div className="flex items-center gap-1.5 text-[13px] font-bold text-slate-50">
+              <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#F5F7FA]">
                 <span>{sharedMeta?.projectName || 'Prezentare 3D Interactivă'}</span>
-                <span className="rounded-lg border border-emerald-400/40 bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-400">
+                <span className="rounded-md border border-[#355E43] bg-[#1F3627] px-1.5 py-0.5 text-[10px] font-semibold text-white">
                   MOD CLIENT (DOAR VIZUALIZARE)
                 </span>
               </div>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-[11px] text-[#8B949E]">
                 {sharedMeta?.authorName ? `Pregătit de: ${sharedMeta.authorName} • ` : ''}
                 {lang === 'ro'
                   ? 'Apasă pe uși sau sertare pentru deschidere • Rotește și mărește liber'
@@ -5188,7 +5188,7 @@ export default function KitchenViewer() {
           <button
             type="button"
             onClick={() => setShareModalOpen(true)}
-            className="whitespace-nowrap rounded-lg border border-sky-400/40 bg-sky-500/15 px-2.5 py-1 text-[11.5px] font-semibold text-sky-300 hover:bg-sky-500/25 transition-colors cursor-pointer"
+            className="whitespace-nowrap rounded-md border border-[#17789E] bg-[#0F5773] px-2.5 py-1 text-[11.5px] font-medium text-white hover:bg-[#146E91] transition-colors cursor-pointer"
           >
             🔗 {lang === 'ro' ? 'Trimite mai departe' : 'Share link'}
           </button>
@@ -5197,9 +5197,9 @@ export default function KitchenViewer() {
 
       {/* Loading overlay during remote share sync */}
       {sharedLoadingProgress && (
-        <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center gap-3 bg-slate-900/90 backdrop-blur-md">
-          <div className="spinner" />
-          <div className="text-[15px] font-bold text-sky-400">
+        <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center gap-3 bg-[#090A0C]/92 backdrop-blur-md">
+          <div className="w-10 h-10 rounded-full border-[3px] border-[#262B34] border-t-[#0F5773] animate-spin" />
+          <div className="text-[14px] font-semibold text-[#F5F7FA]">
             {sharedLoadingProgress}
           </div>
         </div>
@@ -5207,7 +5207,7 @@ export default function KitchenViewer() {
 
       <aside
         id="side-panel"
-        className={`fixed top-[calc(68px+var(--safe-top))] right-[calc(12px+var(--safe-right))] bottom-[calc(68px+var(--safe-bottom))] w-[420px] max-w-[calc(100vw-24px)] bg-[var(--panel-bg)] backdrop-blur-xl border border-[var(--panel-border)] rounded-2xl flex flex-col z-[25] shadow-[0_20px_50px_rgba(0,0,0,0.6)] transition-all duration-300 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded print:hidden max-md:top-auto max-md:left-0 max-md:right-0 max-md:bottom-0 max-md:w-full max-md:max-w-full max-md:max-h-[84vh] max-md:rounded-t-[20px] max-md:rounded-b-none max-md:pb-[calc(10px+var(--safe-bottom))] ${
+        className={`fixed top-[calc(64px+var(--safe-top))] right-[calc(12px+var(--safe-right))] bottom-[calc(64px+var(--safe-bottom))] w-[420px] max-w-[calc(100vw-24px)] bg-[#0F1115]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl flex flex-col z-[25] shadow-[0_20px_50px_rgba(0,0,0,0.65)] transition-all duration-300 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded print:hidden max-md:top-auto max-md:left-0 max-md:right-0 max-md:bottom-0 max-md:w-full max-md:max-w-full max-md:max-h-[84vh] max-md:rounded-t-2xl max-md:rounded-b-none max-md:pb-[calc(10px+var(--safe-bottom))] ${
           mobileSheetFull ? 'max-md:h-[82vh]' : 'max-md:h-[48vh]'
         } ${
           panelOpen
@@ -5216,7 +5216,7 @@ export default function KitchenViewer() {
         }`}
       >
         <div
-          className="hidden max-md:flex flex-col items-center px-3.5 pt-2 pb-1.5 border-b border-[var(--panel-border)] cursor-pointer shrink-0 sticky top-0 z-[15] bg-[#0f131c]/95 backdrop-blur-md"
+          className="hidden max-md:flex flex-col items-center px-3.5 pt-2 pb-1.5 border-b border-white/[0.08] cursor-pointer shrink-0 sticky top-0 z-[15] bg-[#0F1115]/95 backdrop-blur-md"
           onClick={() => setMobileSheetFull((v) => !v)}
           onTouchStart={(e) => {
             if (e.touches && e.touches.length === 1) {
@@ -5243,13 +5243,13 @@ export default function KitchenViewer() {
             }
           }}
         >
-          <div className="w-10 h-1 rounded-sm bg-white/30 mb-1.5" />
-          <div className="w-full flex items-center justify-between text-[0.8rem] font-bold text-[var(--text-muted)]">
+          <div className="w-10 h-1 rounded-sm bg-white/25 mb-1.5" />
+          <div className="w-full flex items-center justify-between text-[0.8rem] font-semibold text-[#8B949E]">
             <span>{dict.controlsToggle}</span>
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                className="bg-white/10 border-none text-[var(--text-main)] h-[26px] rounded-[10px] px-2 text-[0.7rem] cursor-pointer"
+                className="bg-[#1C2027] border border-white/[0.08] text-[#F5F7FA] h-[26px] rounded-md px-2 text-[0.7rem] cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
                   setMobileSheetFull((v) => !v);
@@ -5259,7 +5259,7 @@ export default function KitchenViewer() {
               </button>
               <button
                 type="button"
-                className="bg-white/10 border-none text-[var(--text-main)] w-[26px] h-[26px] rounded-full text-[0.85rem] cursor-pointer"
+                className="bg-[#1C2027] border border-white/[0.08] text-[#F5F7FA] w-[26px] h-[26px] rounded-full text-[0.85rem] cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
                   setPanelOpen(false);
@@ -5273,7 +5273,7 @@ export default function KitchenViewer() {
 
         {/* Studio Top Navigation Tab Bar (Radix UI Tabs) */}
         <Tabs value={activeStudioTab} onValueChange={(v) => setActiveStudioTab(v as any)}>
-          <TabsList className="flex items-stretch w-full rounded-none border-x-0 border-t-0 border-b border-[var(--panel-border)] bg-[#0a0f1d]/92 p-1.5 gap-1 sticky top-0 max-md:top-[45px] z-10 backdrop-blur-md max-md:overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsList className="flex items-stretch w-full rounded-none border-x-0 border-t-0 border-b border-white/[0.08] bg-[#090A0C]/95 p-1.5 gap-1 sticky top-0 max-md:top-[45px] z-10 backdrop-blur-md max-md:overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {[
               { value: 'furniture', icon: '🛋️', label: dict.tabFurniture, title: dict.tabFurniture },
               {
@@ -5297,12 +5297,12 @@ export default function KitchenViewer() {
                 key={t.value}
                 value={t.value}
                 title={t.title}
-                className="group flex-1 min-w-0 max-md:min-w-[50px] flex flex-col items-center justify-center gap-[3px] px-1 py-2 max-md:py-[7px] max-md:px-[3px] bg-transparent border border-transparent rounded-[9px] text-[var(--text-muted)] cursor-pointer transition-all duration-150 hover:bg-white/[0.06] hover:text-[var(--text-main)] hover:-translate-y-px data-[state=active]:bg-gradient-to-b data-[state=active]:from-sky-400/16 data-[state=active]:to-sky-400/5 data-[state=active]:border-sky-400/38 data-[state=active]:text-sky-400 data-[state=active]:shadow-[0_0_14px_rgba(56,189,248,0.18)]"
+                className="group flex-1 min-w-0 max-md:min-w-[50px] flex flex-col items-center justify-center gap-[3px] px-1 py-2 max-md:py-[7px] max-md:px-[3px] bg-transparent border border-transparent rounded-md text-[#8B949E] cursor-pointer transition-all duration-150 hover:bg-[#1C2027] hover:text-[#F5F7FA] data-[state=active]:bg-[#0F5773] data-[state=active]:border-[#17789E] data-[state=active]:text-white"
               >
-                <span className="text-[1.15rem] leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] group-data-[state=active]:scale-110 transition-transform">
+                <span className="text-[1.1rem] leading-none transition-transform group-data-[state=active]:scale-105">
                   {t.icon}
                 </span>
-                <span className="text-[0.65rem] font-bold tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
+                <span className="text-[0.65rem] font-semibold tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
                   {t.label}
                 </span>
               </TabsTrigger>
@@ -5312,7 +5312,7 @@ export default function KitchenViewer() {
 
         {/* Studio Content Area */}
         <div className="flex-1">
-          <Suspense fallback={<div className="p-4 text-xs text-slate-400">Se încarcă...</div>}>
+          <Suspense fallback={<div className="p-4 text-xs text-[#8B949E]">Se încarcă...</div>}>
           {activeStudioTab === 'architecture' && (
             <ArchitecturalRoomSection
               lang={lang}
@@ -5336,13 +5336,13 @@ export default function KitchenViewer() {
           {activeStudioTab === 'furniture' && (
             <div className="flex flex-col gap-3">
               {/* Furniture Sub-navigation Pill Switcher */}
-              <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-white/10 bg-black/25 p-1">
+              <div className="grid grid-cols-3 gap-1 rounded-lg border border-white/[0.08] bg-[#14171C] p-1">
                 <button
                   type="button"
-                  className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
                     furnitureSubTab === 'universal'
-                      ? 'bg-amber-500/20 text-amber-300 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-[#0F5773] text-white'
+                      : 'text-[#8B949E] hover:text-[#F5F7FA]'
                   }`}
                   onClick={() => setFurnitureSubTab('universal')}
                 >
@@ -5351,10 +5351,10 @@ export default function KitchenViewer() {
                 </button>
                 <button
                   type="button"
-                  className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
                     furnitureSubTab === 'kitchen'
-                      ? 'bg-amber-500/20 text-amber-300 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-[#0F5773] text-white'
+                      : 'text-[#8B949E] hover:text-[#F5F7FA]'
                   }`}
                   onClick={() => setFurnitureSubTab('kitchen')}
                 >
@@ -5363,10 +5363,10 @@ export default function KitchenViewer() {
                 </button>
                 <button
                   type="button"
-                  className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
                     furnitureSubTab === 'single'
-                      ? 'bg-amber-500/20 text-amber-300 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-[#0F5773] text-white'
+                      : 'text-[#8B949E] hover:text-[#F5F7FA]'
                   }`}
                   onClick={() => setFurnitureSubTab('single')}
                 >
@@ -5539,9 +5539,9 @@ export default function KitchenViewer() {
 
       {/* 2D Architectural Floor Plan Overlay */}
       {is2DPlanMode && (
-        <div className="fixed inset-0 z-[2000] flex flex-col bg-slate-950/95 backdrop-blur-md">
-          <div className="flex items-center justify-between border-b border-white/10 bg-slate-900/90 px-5 py-3">
-            <div className="flex items-center gap-2 text-sm font-bold text-slate-100">
+        <div className="fixed inset-0 z-[2000] flex flex-col bg-[#090A0C]/96 backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-white/[0.08] bg-[#0F1115] px-5 py-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-[#F5F7FA]">
               <span>📐</span>
               <strong>
                 {lang === 'ro'
@@ -5554,7 +5554,7 @@ export default function KitchenViewer() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#355E43] bg-[#1F3627] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#2A4935] transition-colors cursor-pointer"
                 onClick={handleDownload2DPlanPng}
                 title="Descarcă Schiță Plan PNG"
               >
@@ -5563,7 +5563,7 @@ export default function KitchenViewer() {
               </button>
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 px-3 py-1.5 text-xs font-bold text-slate-950 hover:brightness-110 transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#17789E] bg-[#0F5773] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#146E91] transition cursor-pointer"
                 onClick={() => setIs2DPlanMode(false)}
               >
                 <span>🏛️</span>
@@ -5576,7 +5576,7 @@ export default function KitchenViewer() {
               ref={planCanvasRef}
               width={1600}
               height={1200}
-              className="max-h-full max-w-full rounded-xl border border-white/10 bg-[#0b1120] shadow-2xl"
+              className="max-h-full max-w-full rounded-xl border border-white/[0.08] bg-[#090A0C] shadow-2xl"
             />
           </div>
         </div>
@@ -5590,11 +5590,11 @@ export default function KitchenViewer() {
         const hasMech = qSp.mechType && qSp.mechType !== 'none';
 
         return (
-          <div className="fixed bottom-[64px] left-1/2 z-[150] flex max-w-[95vw] -translate-x-1/2 items-center gap-1.5 rounded-xl border border-white/15 bg-slate-900/95 px-2.5 py-1.5 shadow-2xl backdrop-blur-md">
-            <span className="whitespace-nowrap rounded bg-amber-500/25 px-1.5 py-0.5 text-[11px] font-bold text-amber-400">
+          <div className="fixed bottom-[64px] left-1/2 z-[150] flex max-w-[95vw] -translate-x-1/2 items-center gap-1.5 rounded-lg border border-white/[0.08] bg-[#0F1115]/95 px-2.5 py-1.5 shadow-2xl backdrop-blur-md">
+            <span className="whitespace-nowrap rounded bg-[#0F5773] px-1.5 py-0.5 text-[11px] font-semibold text-white">
               #{selectedSubPart.subIdx + 1}
             </span>
-            <span className="max-w-[120px] truncate text-xs font-semibold text-slate-50">
+            <span className="max-w-[120px] truncate text-xs font-medium text-[#F5F7FA]">
               {qSp.name}
             </span>
             {hasMech && (
@@ -5602,8 +5602,8 @@ export default function KitchenViewer() {
                 type="button"
                 className={`whitespace-nowrap rounded-md border px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
                   qSp.isOpen
-                    ? 'border-emerald-400 bg-emerald-500/15 text-emerald-400'
-                    : 'border-sky-400/50 bg-sky-500/15 text-sky-300'
+                    ? 'border-[#355E43] bg-[#1F3627] text-white'
+                    : 'border-[#17789E] bg-[#0F5773] text-white'
                 }`}
                 onClick={() =>
                   handleToggleGlbSubMeshOpen(
@@ -5617,7 +5617,7 @@ export default function KitchenViewer() {
             )}
             <button
               type="button"
-              className="whitespace-nowrap rounded-md border border-amber-400/50 bg-amber-500/20 px-2 py-1 text-[11px] font-medium text-amber-200 hover:bg-amber-500/30 transition-colors cursor-pointer"
+              className="whitespace-nowrap rounded-md border border-[#17789E] bg-[#0F5773] px-2 py-1 text-[11px] font-medium text-white hover:bg-[#146E91] transition-colors cursor-pointer"
               onClick={() =>
                 setPartContextMenu({
                   x: Math.max(16, window.innerWidth / 2 - 175),
@@ -5631,7 +5631,7 @@ export default function KitchenViewer() {
             </button>
             <button
               type="button"
-              className="whitespace-nowrap rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-[11px] hover:bg-white/10 transition-colors cursor-pointer"
+              className="whitespace-nowrap rounded-md border border-white/[0.08] bg-[#14171C] px-1.5 py-1 text-[11px] text-[#C9D1D9] hover:bg-[#1C2027] transition-colors cursor-pointer"
               onClick={() =>
                 handlePaintGlbSubMeshWithActiveMat(
                   selectedSubPart.modelId,
@@ -5644,7 +5644,7 @@ export default function KitchenViewer() {
             </button>
             <button
               type="button"
-              className="rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-[11px] text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="rounded-md border border-white/[0.08] bg-[#14171C] px-1.5 py-1 text-[11px] text-[#8B949E] hover:text-white transition-colors cursor-pointer"
               onClick={() => setSelectedSubPart(null)}
             >
               ✕
@@ -5720,7 +5720,7 @@ export default function KitchenViewer() {
 
         return (
           <div
-            className="fixed z-[250] flex w-[345px] max-w-[94vw] flex-col gap-2.5 rounded-xl border border-white/15 bg-slate-950/95 p-3 text-slate-100 shadow-2xl backdrop-blur-xl"
+            className="fixed z-[250] flex w-[345px] max-w-[94vw] flex-col gap-2.5 rounded-xl border border-white/[0.08] bg-[#0F1115]/96 p-3 text-[#F5F7FA] shadow-2xl backdrop-blur-xl"
             onContextMenu={(e) => e.preventDefault()}
             style={{
               left: `${leftPx}px`,
@@ -5728,9 +5728,9 @@ export default function KitchenViewer() {
             }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between gap-1.5 border-b border-white/10 pb-2">
+            <div className="flex items-center justify-between gap-1.5 border-b border-white/[0.08] pb-2">
               <div className="flex flex-1 items-center gap-1.5">
-                <span className="rounded bg-amber-500/25 px-1.5 py-0.5 text-[11px] font-bold text-amber-400">
+                <span className="rounded bg-[#0F5773] px-1.5 py-0.5 text-[11px] font-semibold text-white">
                   #{partContextMenu.subIdx + 1}
                 </span>
                 <input
@@ -5743,13 +5743,13 @@ export default function KitchenViewer() {
                       { name: e.target.value }
                     )
                   }
-                  className="w-full rounded border border-white/15 bg-black/35 px-1.5 py-0.5 text-xs font-semibold text-white outline-none focus:border-sky-400"
+                  className="w-full rounded border border-white/[0.1] bg-[#14171C] px-1.5 py-0.5 text-xs font-medium text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => setPartContextMenu(null)}
-                className="flex h-6 w-6 items-center justify-center rounded-md border border-white/15 bg-white/10 text-xs font-bold text-slate-300 hover:bg-white/20 cursor-pointer"
+                className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.08] bg-[#1C2027] text-xs font-semibold text-[#C9D1D9] hover:bg-[#262B34] hover:text-white cursor-pointer"
               >
                 ✕
               </button>
@@ -5757,7 +5757,7 @@ export default function KitchenViewer() {
 
             {/* 1. Mechanism Type Selector */}
             <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-[#8B949E]">
                 <span>⚙️ TIP PIESĂ & MECANISM DESCHIDERE</span>
                 {hasMech && (
                   <button
@@ -5768,10 +5768,10 @@ export default function KitchenViewer() {
                         partContextMenu.subIdx
                       )
                     }
-                    className={`rounded border border-sky-400/50 px-2 py-0.5 text-[10.5px] font-bold cursor-pointer ${
+                    className={`rounded border px-2 py-0.5 text-[10.5px] font-semibold cursor-pointer ${
                       ctxSp.isOpen
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : 'bg-sky-500/20 text-sky-200'
+                        ? 'border-[#355E43] bg-[#1F3627] text-white'
+                        : 'border-[#17789E] bg-[#0F5773] text-white'
                     }`}
                   >
                     {ctxSp.isOpen ? '🔓 Închide Acum' : '🔓 Testează Deschiderea'}
@@ -5788,10 +5788,10 @@ export default function KitchenViewer() {
                     e.target.value
                   )
                 }
-                className={`w-full cursor-pointer rounded-md border bg-black/55 px-2 py-1 text-xs font-semibold outline-none ${
+                className={`w-full cursor-pointer rounded-md border bg-[#14171C] px-2 py-1 text-xs font-medium outline-none ${
                   hasMech
-                    ? 'border-sky-400/60 text-sky-300'
-                    : 'border-white/20 text-slate-200'
+                    ? 'border-[#17789E] text-white'
+                    : 'border-white/[0.1] text-[#C9D1D9]'
                 }`}
               >
                 <option value="none">{dict.mech_none}</option>
@@ -5806,7 +5806,7 @@ export default function KitchenViewer() {
 
             {/* 2. Dimensions X, Y, Z in mm */}
             <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-[#8B949E]">
                 <span>📐 DIMENSIUNI PIESĂ (MM)</span>
                 <button
                   type="button"
@@ -5818,14 +5818,14 @@ export default function KitchenViewer() {
                       false
                     )
                   }
-                  className="text-[10.5px] text-amber-400 hover:underline cursor-pointer"
+                  className="text-[10.5px] text-[#C9D1D9] hover:text-white hover:underline cursor-pointer"
                 >
                   ↺ Reset ({Math.round(baseXMm)}×{Math.round(baseYMm)}×{Math.round(baseZMm)})
                 </button>
               </div>
               <div className="grid grid-cols-3 gap-1.5">
                 <div>
-                  <div className="text-[10px] text-slate-300">Lățime X (mm)</div>
+                  <div className="text-[10px] text-[#8B949E]">Lățime X (mm)</div>
                   <input
                     type="number"
                     min="2"
@@ -5840,11 +5840,11 @@ export default function KitchenViewer() {
                         { customScale: [val / baseXMm, curScale[1], curScale[2]] }
                       );
                     }}
-                    className="w-full rounded border border-amber-400/40 bg-black/45 px-1.5 py-1 text-xs font-bold text-amber-400 outline-none focus:border-amber-400"
+                    className="w-full rounded border border-white/[0.1] bg-[#14171C] px-1.5 py-1 text-xs font-semibold text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                   />
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-300">Înălțime Y (mm)</div>
+                  <div className="text-[10px] text-[#8B949E]">Înălțime Y (mm)</div>
                   <input
                     type="number"
                     min="2"
@@ -5859,11 +5859,11 @@ export default function KitchenViewer() {
                         { customScale: [curScale[0], val / baseYMm, curScale[2]] }
                       );
                     }}
-                    className="w-full rounded border border-emerald-400/40 bg-black/45 px-1.5 py-1 text-xs font-bold text-emerald-400 outline-none focus:border-emerald-400"
+                    className="w-full rounded border border-white/[0.1] bg-[#14171C] px-1.5 py-1 text-xs font-semibold text-[#F5F7FA] outline-none focus:border-[#1F3627]"
                   />
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-300">Adâncime Z (mm)</div>
+                  <div className="text-[10px] text-[#8B949E]">Adâncime Z (mm)</div>
                   <input
                     type="number"
                     min="2"
@@ -5878,7 +5878,7 @@ export default function KitchenViewer() {
                         { customScale: [curScale[0], curScale[1], val / baseZMm] }
                       );
                     }}
-                    className="w-full rounded border border-sky-400/40 bg-black/45 px-1.5 py-1 text-xs font-bold text-sky-400 outline-none focus:border-sky-400"
+                    className="w-full rounded border border-white/[0.1] bg-[#14171C] px-1.5 py-1 text-xs font-semibold text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                   />
                 </div>
               </div>
@@ -5886,7 +5886,7 @@ export default function KitchenViewer() {
 
             {/* 3. Position Offset (ΔX, ΔY, ΔZ in mm) & Rotation */}
             <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-[#8B949E]">
                 <span>✥ POZIȚIE (ΔMM) & ROTIRE (°)</span>
                 <button
                   type="button"
@@ -5898,14 +5898,14 @@ export default function KitchenViewer() {
                       false
                     )
                   }
-                  className="text-[10.5px] text-amber-400 hover:underline cursor-pointer"
+                  className="text-[10.5px] text-[#C9D1D9] hover:text-white hover:underline cursor-pointer"
                 >
                   ↺ Reset Poziție
                 </button>
               </div>
               <div className="grid grid-cols-3 gap-1.5">
                 <div>
-                  <div className="text-[10px] text-slate-300">ΔX St/Dr (mm)</div>
+                  <div className="text-[10px] text-[#8B949E]">ΔX St/Dr (mm)</div>
                   <input
                     type="number"
                     step="5"
@@ -5918,11 +5918,11 @@ export default function KitchenViewer() {
                         { customOffset: [val / 1000, curOff[1], curOff[2]] }
                       );
                     }}
-                    className="w-full rounded border border-white/20 bg-black/45 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
+                    className="w-full rounded border border-white/[0.1] bg-[#14171C] px-1.5 py-1 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                   />
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-300">ΔY Sus/Jos (mm)</div>
+                  <div className="text-[10px] text-[#8B949E]">ΔY Sus/Jos (mm)</div>
                   <input
                     type="number"
                     step="5"
@@ -5935,11 +5935,11 @@ export default function KitchenViewer() {
                         { customOffset: [curOff[0], val / 1000, curOff[2]] }
                       );
                     }}
-                    className="w-full rounded border border-white/20 bg-black/45 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
+                    className="w-full rounded border border-white/[0.1] bg-[#14171C] px-1.5 py-1 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                   />
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-300">ΔZ Sp/Față (mm)</div>
+                  <div className="text-[10px] text-[#8B949E]">ΔZ Sp/Față (mm)</div>
                   <input
                     type="number"
                     step="5"
@@ -5952,14 +5952,14 @@ export default function KitchenViewer() {
                         { customOffset: [curOff[0], curOff[1], val / 1000] }
                       );
                     }}
-                    className="w-full rounded border border-white/20 bg-black/45 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
+                    className="w-full rounded border border-white/[0.1] bg-[#14171C] px-1.5 py-1 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                   />
                 </div>
               </div>
 
               <div className="mt-0.5 grid grid-cols-3 gap-1.5">
                 <div>
-                  <div className="text-[10px] text-slate-300">Rot X (°)</div>
+                  <div className="text-[10px] text-[#8B949E]">Rot X (°)</div>
                   <input
                     type="number"
                     step="15"
@@ -5972,11 +5972,11 @@ export default function KitchenViewer() {
                         { customRotDeg: [val, curRot[1], curRot[2]] }
                       );
                     }}
-                    className="w-full rounded border border-white/20 bg-black/45 px-1.5 py-0.5 text-[11px] text-slate-300 outline-none focus:border-sky-400"
+                    className="w-full rounded border border-white/[0.1] bg-[#14171C] px-1.5 py-0.5 text-[11px] text-[#C9D1D9] outline-none focus:border-[#0F5773]"
                   />
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-300">Rot Y (°)</div>
+                  <div className="text-[10px] text-[#8B949E]">Rot Y (°)</div>
                   <input
                     type="number"
                     step="15"
@@ -5989,11 +5989,11 @@ export default function KitchenViewer() {
                         { customRotDeg: [curRot[0], val, curRot[2]] }
                       );
                     }}
-                    className="w-full rounded border border-white/20 bg-black/45 px-1.5 py-0.5 text-[11px] text-slate-300 outline-none focus:border-sky-400"
+                    className="w-full rounded border border-white/[0.1] bg-[#14171C] px-1.5 py-0.5 text-[11px] text-[#C9D1D9] outline-none focus:border-[#0F5773]"
                   />
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-300">Rot Z (°)</div>
+                  <div className="text-[10px] text-[#8B949E]">Rot Z (°)</div>
                   <input
                     type="number"
                     step="15"
@@ -6006,7 +6006,7 @@ export default function KitchenViewer() {
                         { customRotDeg: [curRot[0], curRot[1], val] }
                       );
                     }}
-                    className="w-full rounded border border-white/20 bg-black/45 px-1.5 py-0.5 text-[11px] text-slate-300 outline-none focus:border-sky-400"
+                    className="w-full rounded border border-white/[0.1] bg-[#14171C] px-1.5 py-0.5 text-[11px] text-[#C9D1D9] outline-none focus:border-[#0F5773]"
                   />
                 </div>
               </div>
@@ -6016,7 +6016,7 @@ export default function KitchenViewer() {
             <div className="flex gap-1.5">
               <button
                 type="button"
-                className="flex-1 rounded-md border border-white/15 bg-white/5 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                className="flex-1 rounded-md border border-white/[0.1] bg-[#14171C] py-1.5 text-xs font-medium text-[#F5F7FA] hover:bg-[#1C2027] transition-colors cursor-pointer"
                 onClick={() =>
                   handlePaintGlbSubMeshWithActiveMat(
                     partContextMenu.modelId,
@@ -6027,7 +6027,7 @@ export default function KitchenViewer() {
                 🖌️ Aplică Material Activ
               </button>
               <label
-                className="inline-flex cursor-pointer items-center justify-center rounded-md border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors"
+                className="inline-flex cursor-pointer items-center justify-center rounded-md border border-white/[0.1] bg-[#14171C] px-2.5 py-1.5 text-xs font-medium text-[#F5F7FA] hover:bg-[#1C2027] transition-colors"
                 title="Schimbă culoarea acestei piese"
               >
                 🎨 Culoare
@@ -6047,14 +6047,14 @@ export default function KitchenViewer() {
             </div>
 
             {/* 5. Add New Parts / Extend Furniture */}
-            <div className="flex flex-col gap-1 border-t border-white/10 pt-2">
-              <div className="text-[10.5px] font-semibold text-slate-400">
+            <div className="flex flex-col gap-1 border-t border-white/[0.08] pt-2">
+              <div className="text-[10.5px] font-semibold text-[#8B949E]">
                 ➕ EXTINDE MOBILIERUL (ADAUGĂ PIESĂ NOUĂ)
               </div>
               <div className="grid grid-cols-2 gap-1">
                 <button
                   type="button"
-                  className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                  className="rounded-md border border-white/[0.08] bg-[#14171C] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#1C2027] hover:text-white transition-colors cursor-pointer"
                   onClick={() =>
                     handleAddPartToGlbModel(
                       partContextMenu.modelId,
@@ -6073,7 +6073,7 @@ export default function KitchenViewer() {
                 </button>
                 <button
                   type="button"
-                  className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                  className="rounded-md border border-white/[0.08] bg-[#14171C] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#1C2027] hover:text-white transition-colors cursor-pointer"
                   onClick={() =>
                     handleAddPartToGlbModel(
                       partContextMenu.modelId,
@@ -6092,7 +6092,7 @@ export default function KitchenViewer() {
                 </button>
                 <button
                   type="button"
-                  className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                  className="rounded-md border border-white/[0.08] bg-[#14171C] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#1C2027] hover:text-white transition-colors cursor-pointer"
                   onClick={() =>
                     handleAddPartToGlbModel(
                       partContextMenu.modelId,
@@ -6111,7 +6111,7 @@ export default function KitchenViewer() {
                 </button>
                 <button
                   type="button"
-                  className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                  className="rounded-md border border-white/[0.08] bg-[#14171C] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#1C2027] hover:text-white transition-colors cursor-pointer"
                   onClick={() =>
                     handleAddPartToGlbModel(
                       partContextMenu.modelId,
@@ -6132,10 +6132,10 @@ export default function KitchenViewer() {
             </div>
 
             {/* 6. Duplicate & Delete Part */}
-            <div className="grid grid-cols-2 gap-1.5 border-t border-white/10 pt-2">
+            <div className="grid grid-cols-2 gap-1.5 border-t border-white/[0.08] pt-2">
               <button
                 type="button"
-                className="rounded-md border border-amber-400/40 bg-amber-500/10 py-1.5 text-xs font-semibold text-amber-200 hover:bg-amber-500/20 transition-colors cursor-pointer"
+                className="rounded-md border border-[#17789E] bg-[#0F5773] py-1.5 text-xs font-semibold text-white hover:bg-[#146E91] transition-colors cursor-pointer"
                 onClick={() =>
                   handleDuplicateGlbSubPart(
                     partContextMenu.modelId,
@@ -6147,7 +6147,7 @@ export default function KitchenViewer() {
               </button>
               <button
                 type="button"
-                className="rounded-md border border-rose-500/45 bg-rose-500/15 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/25 transition-colors cursor-pointer"
+                className="rounded-md border border-white/[0.12] bg-[#1C2027] py-1.5 text-xs font-semibold text-[#C9D1D9] hover:border-red-500/50 hover:bg-red-950/40 hover:text-red-200 transition-colors cursor-pointer"
                 onClick={() =>
                   handleDeleteGlbSubPart(
                     partContextMenu.modelId,

@@ -170,7 +170,7 @@ export default function UniversalFurnitureStudioSection({
 
   return (
     <div className="flex flex-col gap-3" id="universal-furniture-studio">
-      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#8B949E]">
         <span>🛋️</span>
         <span>
           {isRo
@@ -181,7 +181,7 @@ export default function UniversalFurnitureStudioSection({
         </span>
       </div>
 
-      <div className="text-[11px] leading-relaxed text-slate-400">
+      <div className="text-[11px] leading-relaxed text-[#8B949E]">
         {isRo
           ? 'Proiectează orice tip de mobilier: dressinguri culisante, comode TV, biblioteci, birouri, mobilier dormitor & baie de orice formă și dimensiune.'
           : isRu
@@ -191,7 +191,7 @@ export default function UniversalFurnitureStudioSection({
 
       {/* 1. Category Selector */}
       <div>
-        <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        <label className="block text-[11px] font-semibold uppercase tracking-wide text-[#8B949E]">
           {isRo ? '1. Tip & Destinație Mobilier:' : isRu ? '1. Назначение и тип мебели:' : '1. Furniture Destination & Type:'}
         </label>
         <div className="mt-1.5 grid grid-cols-3 gap-1.5">
@@ -204,8 +204,8 @@ export default function UniversalFurnitureStudioSection({
                 onClick={() => handleSelectType(t)}
                 className={`flex flex-col items-center gap-1 rounded-lg border px-1 py-2 text-center text-[10px] leading-tight transition-colors cursor-pointer ${
                   isSel
-                    ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
-                    : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                    ? 'border-[#17789E] bg-[#0F5773] text-white'
+                    : 'border-white/[0.08] bg-[#14171C] text-[#C9D1D9] hover:bg-[#1C2027] hover:text-white'
                 }`}
               >
                 <span className="text-[15px]">{t.nameRo.slice(0, 2)}</span>
@@ -218,26 +218,26 @@ export default function UniversalFurnitureStudioSection({
 
       {/* 2. Furniture Name */}
       <div>
-        <label className="mb-1 block text-[11px] font-semibold text-slate-400">
+        <label className="mb-1 block text-[11px] font-semibold text-[#8B949E]">
           {isRo ? 'Nume Proiect:' : isRu ? 'Название изделия:' : 'Item Name:'}
         </label>
         <input
           type="text"
           value={furnitureName}
           onChange={(e) => setFurnitureName(e.target.value)}
-          className="w-full rounded-lg border border-white/15 bg-slate-950/75 px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-sky-400"
+          className="w-full rounded-lg border border-white/[0.1] bg-[#14171C] px-3 py-1.5 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
         />
       </div>
 
       {/* 3. Parametric Dimensions (cm) */}
-      <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
-        <div className="mb-2 text-[11px] font-semibold text-sky-400">
+      <div className="rounded-lg border border-white/[0.08] bg-[#14171C] p-2.5">
+        <div className="mb-2 text-[11px] font-semibold text-[#C9D1D9]">
           {isRo ? '2. Dimensiuni Gabarit (cm):' : isRu ? '2. Габаритные размеры (см):' : '2. Dimensions (cm):'}
         </div>
 
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <label className="mb-1 block text-[10px] text-slate-400">
+            <label className="mb-1 block text-[10px] text-[#8B949E]">
               {isRo ? 'Lățime (X):' : isRu ? 'Ширина (X):' : 'Width (X):'}
             </label>
             <div className="flex items-center gap-1">
@@ -248,14 +248,14 @@ export default function UniversalFurnitureStudioSection({
                 step="5"
                 value={widthCm}
                 onChange={(e) => setWidthCm(Number(e.target.value))}
-                className="w-full rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
+                className="w-full rounded-md border border-white/[0.1] bg-[#0F1115] px-1.5 py-1 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
               />
-              <span className="text-[10px] text-slate-400">cm</span>
+              <span className="text-[10px] text-[#8B949E]">cm</span>
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-[10px] text-slate-400">
+            <label className="mb-1 block text-[10px] text-[#8B949E]">
               {isRo ? 'Înălțime (Y):' : isRu ? 'Высота (Y):' : 'Height (Y):'}
             </label>
             <div className="flex items-center gap-1">
@@ -266,14 +266,14 @@ export default function UniversalFurnitureStudioSection({
                 step="5"
                 value={heightCm}
                 onChange={(e) => setHeightCm(Number(e.target.value))}
-                className="w-full rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
+                className="w-full rounded-md border border-white/[0.1] bg-[#0F1115] px-1.5 py-1 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
               />
-              <span className="text-[10px] text-slate-400">cm</span>
+              <span className="text-[10px] text-[#8B949E]">cm</span>
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-[10px] text-slate-400">
+            <label className="mb-1 block text-[10px] text-[#8B949E]">
               {isRo ? 'Adâncime (Z):' : isRu ? 'Глубина (Z):' : 'Depth (Z):'}
             </label>
             <div className="flex items-center gap-1">
@@ -284,9 +284,9 @@ export default function UniversalFurnitureStudioSection({
                 step="5"
                 value={depthCm}
                 onChange={(e) => setDepthCm(Number(e.target.value))}
-                className="w-full rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
+                className="w-full rounded-md border border-white/[0.1] bg-[#0F1115] px-1.5 py-1 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
               />
-              <span className="text-[10px] text-slate-400">cm</span>
+              <span className="text-[10px] text-[#8B949E]">cm</span>
             </div>
           </div>
         </div>
@@ -294,9 +294,9 @@ export default function UniversalFurnitureStudioSection({
         {/* Compartimentare & Polițe */}
         <div className="mt-2.5 grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] text-slate-300">
+            <label className="text-[10px] text-[#C9D1D9]">
               {isRo ? 'Compartimente Verticale:' : isRu ? 'Вертикальных секций:' : 'Vertical Sections:'}{' '}
-              <strong className="text-sky-400">{sectionsCount}</strong>
+              <strong className="text-[#F5F7FA]">{sectionsCount}</strong>
             </label>
             <Slider
               min={1}
@@ -308,9 +308,9 @@ export default function UniversalFurnitureStudioSection({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] text-slate-300">
+            <label className="text-[10px] text-[#C9D1D9]">
               {isRo ? 'Polițe pe Compartiment:' : isRu ? 'Полок в секции:' : 'Shelves per section:'}{' '}
-              <strong className="text-sky-400">{shelvesPerSection}</strong>
+              <strong className="text-[#F5F7FA]">{shelvesPerSection}</strong>
             </label>
             <Slider
               min={0}
@@ -325,7 +325,7 @@ export default function UniversalFurnitureStudioSection({
 
       {/* 4. Facade & Functional Equipment */}
       <div>
-        <label className="mb-1.5 block text-[11px] font-semibold text-slate-300">
+        <label className="mb-1.5 block text-[11px] font-semibold text-[#C9D1D9]">
           {isRo ? '3. Tip Închidere & Funcțiuni:' : isRu ? '3. Фасады и наполнение:' : '3. Facade Style & Features:'}
         </label>
         <div className="grid grid-cols-4 gap-1">
@@ -341,8 +341,8 @@ export default function UniversalFurnitureStudioSection({
               onClick={() => setFacadeStyle(fst.id)}
               className={`rounded-md border px-1 py-1.5 text-[10px] font-medium transition-colors cursor-pointer ${
                 facadeStyle === fst.id
-                  ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
-                  : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                  ? 'border-[#17789E] bg-[#0F5773] text-white'
+                  : 'border-white/[0.08] bg-[#14171C] text-[#C9D1D9] hover:bg-[#1C2027]'
               }`}
             >
               {isRo ? fst.ro : isRu ? fst.ru : fst.en}
@@ -352,7 +352,7 @@ export default function UniversalFurnitureStudioSection({
 
         {/* Feronerie: Mânere & Butoni */}
         <div className="mt-2.5">
-          <label className="mb-1 block text-[10px] font-medium text-slate-400">
+          <label className="mb-1 block text-[10px] font-medium text-[#8B949E]">
             {isRo ? 'Mânere & Feronerie Fațadă:' : isRu ? 'Ручки и фурнитура фасадов:' : 'Handles & Hardware:'}
           </label>
           <div className="grid grid-cols-3 gap-1">
@@ -370,8 +370,8 @@ export default function UniversalFurnitureStudioSection({
                 onClick={() => setHandleType(h.id)}
                 className={`rounded-md border px-1 py-1 text-[9.5px] font-medium transition-colors cursor-pointer ${
                   handleType === h.id
-                    ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
-                    : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                    ? 'border-[#17789E] bg-[#0F5773] text-white'
+                    : 'border-white/[0.08] bg-[#14171C] text-[#C9D1D9] hover:bg-[#1C2027]'
                 }`}
               >
                 {isRo ? h.ro : isRu ? h.ru : h.en}
@@ -382,7 +382,7 @@ export default function UniversalFurnitureStudioSection({
 
         {/* Bază: Picioare & Soclu */}
         <div className="mt-2.5">
-          <label className="mb-1 block text-[10px] font-medium text-slate-400">
+          <label className="mb-1 block text-[10px] font-medium text-[#8B949E]">
             {isRo ? 'Bază & Suport:' : isRu ? 'Опора и цоколь:' : 'Base & Legs:'}
           </label>
           <div className="grid grid-cols-4 gap-1">
@@ -398,8 +398,8 @@ export default function UniversalFurnitureStudioSection({
                 onClick={() => setLegType(lg.id)}
                 className={`rounded-md border px-1 py-1 text-[9.5px] font-medium transition-colors cursor-pointer ${
                   legType === lg.id
-                    ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
-                    : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                    ? 'border-[#17789E] bg-[#0F5773] text-white'
+                    : 'border-white/[0.08] bg-[#14171C] text-[#C9D1D9] hover:bg-[#1C2027]'
                 }`}
               >
                 {isRo ? lg.ro : isRu ? lg.ru : lg.en}
@@ -410,12 +410,12 @@ export default function UniversalFurnitureStudioSection({
 
         {/* Optiuni Aditionale: Bara Haine & LED Ambient */}
         <div className="mt-2.5 grid grid-cols-2 gap-2">
-          <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-900/60 px-2.5 py-1.5 text-[11px] text-slate-200">
+          <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/[0.08] bg-[#14171C] px-2.5 py-1.5 text-[11px] text-[#F5F7FA]">
             <span>👔 {isRo ? 'Bară Haine' : isRu ? 'Штанга одежды' : 'Clothes Rail'}</span>
             <Switch checked={hasClothesRail} onCheckedChange={setHasClothesRail} />
           </label>
 
-          <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-900/60 px-2.5 py-1.5 text-[11px] text-slate-200">
+          <label className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/[0.08] bg-[#14171C] px-2.5 py-1.5 text-[11px] text-[#F5F7FA]">
             <span>💡 {isRo ? 'Bandă LED' : isRu ? 'LED подсветка' : 'Ambient LED'}</span>
             <Switch checked={hasLedGlow} onCheckedChange={setHasLedGlow} />
           </label>
@@ -427,7 +427,7 @@ export default function UniversalFurnitureStudioSection({
         type="button"
         onClick={handleGenerateFurniture}
         disabled={generating}
-        className={`flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-sky-600 to-sky-700 p-3 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(2,132,199,0.4)] hover:brightness-110 transition ${
+        className={`flex w-full items-center justify-center gap-2 rounded-lg border border-[#17789E] bg-[#0F5773] p-3 text-[13px] font-semibold text-white hover:bg-[#146E91] transition ${
           generating ? 'cursor-wait opacity-70' : 'cursor-pointer'
         }`}
       >
@@ -444,17 +444,17 @@ export default function UniversalFurnitureStudioSection({
         <button
           type="button"
           onClick={() => setShowPanelTable((v) => !v)}
-          className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-2 text-[11px] font-medium text-slate-200 hover:bg-white/[0.07] transition-colors cursor-pointer"
+          className="flex w-full items-center justify-between rounded-lg border border-white/[0.08] bg-[#14171C] px-2.5 py-2 text-[11px] font-medium text-[#C9D1D9] hover:bg-[#1C2027] hover:text-white transition-colors cursor-pointer"
         >
           <span>📋 {isRo ? `Panouri & Debitări CAD (${bomMetrics.totalParts} repere)` : isRu ? `Деталировка CAD (${bomMetrics.totalParts} шт)` : `CAD Parts List (${bomMetrics.totalParts} pcs)`}</span>
           <span>{showPanelTable ? '▲' : '▼'}</span>
         </button>
 
         {showPanelTable && (
-          <div className="mt-1.5 max-h-[260px] overflow-y-auto rounded-md border border-white/10 bg-[#0d1117] text-[10px]">
+          <div className="mt-1.5 max-h-[260px] overflow-y-auto rounded-md border border-white/[0.08] bg-[#090A0C] text-[10px]">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b border-white/10 bg-white/[0.06] text-slate-400">
+                <tr className="border-b border-white/[0.08] bg-[#14171C] text-[#8B949E]">
                   <th className="px-1.5 py-1">Denumire Piesă</th>
                   <th className="px-1.5 py-1">L (mm)</th>
                   <th className="px-1.5 py-1">W (mm)</th>
@@ -464,12 +464,12 @@ export default function UniversalFurnitureStudioSection({
               </thead>
               <tbody>
                 {currentComposition.panelCuttingList.map((p, idx) => (
-                  <tr key={idx} className="border-b border-white/[0.04] text-slate-300">
-                    <td className="px-1.5 py-1 text-sky-400">{p.partName}</td>
+                  <tr key={idx} className="border-b border-white/[0.04] text-[#C9D1D9]">
+                    <td className="px-1.5 py-1 text-[#F5F7FA]">{p.partName}</td>
                     <td className="px-1.5 py-1 font-semibold">{p.lengthMm}</td>
                     <td className="px-1.5 py-1 font-semibold">{p.widthMm}</td>
                     <td className="px-1.5 py-1">{p.thicknessMm}</td>
-                    <td className="px-1.5 py-1 text-slate-400">{p.edgeBanding}</td>
+                    <td className="px-1.5 py-1 text-[#8B949E]">{p.edgeBanding}</td>
                   </tr>
                 ))}
               </tbody>
@@ -482,7 +482,7 @@ export default function UniversalFurnitureStudioSection({
       <div className="flex gap-1.5">
         <button
           type="button"
-          className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/15 bg-white/5 px-1.5 py-2 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+          className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-[#355E43] bg-[#1F3627] px-1.5 py-2 text-[11px] font-medium text-white hover:bg-[#2A4935] transition-colors cursor-pointer"
           onClick={handleDownloadCsv}
         >
           <span>📐</span>
@@ -492,7 +492,7 @@ export default function UniversalFurnitureStudioSection({
         {onCaptureScreenshot && (
           <button
             type="button"
-            className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/15 bg-white/5 px-1.5 py-2 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+            className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/[0.08] bg-[#1C2027] px-1.5 py-2 text-[11px] font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
             onClick={onCaptureScreenshot}
           >
             <span>📸</span>

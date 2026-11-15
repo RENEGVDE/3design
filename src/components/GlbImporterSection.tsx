@@ -103,17 +103,17 @@ export default function GlbImporterSection({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-300">
+      <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-[#8B949E]">
         <span>📦 {dict.glbStudioTitle}</span>
-        <span className="rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-mono text-slate-200">
+        <span className="rounded border border-white/[0.08] bg-[#14171C] px-1.5 py-0.5 text-[11px] font-mono text-[#F5F7FA]">
           {importedModels.length}
         </span>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-slate-900/50 p-3">
+      <div className="flex flex-col gap-3 rounded-xl border border-white/[0.08] bg-[#14171C] p-3">
         <button
           type="button"
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-amber-400/35 bg-amber-500/15 px-3 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/25 transition-colors cursor-pointer"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#17789E] bg-[#0F5773] px-3 py-2 text-xs font-semibold text-white hover:bg-[#146E91] transition-colors cursor-pointer"
           onClick={() => fileInputRef.current && fileInputRef.current.click()}
         >
           <span>📦</span>
@@ -129,7 +129,7 @@ export default function GlbImporterSection({
         />
 
         {importedModels.length === 0 ? (
-          <div className="py-2 px-1.5 text-center text-[11.5px] text-slate-400">
+          <div className="py-2 px-1.5 text-center text-[11.5px] text-[#8B949E]">
             {dict.emptyGlbHint}
           </div>
         ) : (
@@ -146,21 +146,21 @@ export default function GlbImporterSection({
                     key={mdl.id}
                     className={`flex cursor-pointer items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 transition-colors ${
                       isSel
-                        ? 'border-amber-400/70 bg-amber-500/15'
-                        : 'border-white/10 bg-white/[0.03] hover:border-white/20'
+                        ? 'border-[#17789E] bg-[#0F5773]/30'
+                        : 'border-white/[0.08] bg-[#0F1115] hover:border-white/20'
                     }`}
                     onClick={() => onSelectGlb(mdl.id)}
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-xs font-semibold text-slate-100">📦 {mdl.name}</div>
-                      <div className="text-[10.5px] text-slate-400">
+                      <div className="truncate text-xs font-semibold text-[#F5F7FA]">📦 {mdl.name}</div>
+                      <div className="text-[10.5px] text-[#8B949E]">
                         📏 {mw} × {mh} × {md} cm
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       <button
                         type="button"
-                        className="rounded border border-white/10 bg-white/5 px-1.5 py-1 text-xs hover:bg-white/15 transition-colors cursor-pointer"
+                        className="rounded border border-white/[0.08] bg-[#1C2027] px-1.5 py-1 text-xs text-[#C9D1D9] hover:bg-[#262B34] transition-colors cursor-pointer"
                         title={dict.duplicateGlbBtn}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -171,7 +171,7 @@ export default function GlbImporterSection({
                       </button>
                       <button
                         type="button"
-                        className="rounded border border-rose-500/35 bg-rose-500/10 px-1.5 py-1 text-xs text-rose-300 hover:bg-rose-500/20 transition-colors cursor-pointer"
+                        className="rounded border border-white/[0.08] bg-[#1C2027] px-1.5 py-1 text-xs text-[#8B949E] hover:border-red-500/50 hover:bg-red-950/40 hover:text-red-200 transition-colors cursor-pointer"
                         title={dict.deleteGlbBtn}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -190,14 +190,14 @@ export default function GlbImporterSection({
               <div className="flex flex-col gap-2.5">
                 {/* CAD Three.js Performance Metrics & Optimizer Card */}
                 {selectedModel.metrics && (
-                  <div className="flex flex-col gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-2">
+                  <div className="flex flex-col gap-1.5 rounded-lg border border-white/[0.08] bg-[#0F1115] px-2.5 py-2">
                     <div className="flex items-center justify-between text-[11.5px]">
-                      <span className="font-semibold text-slate-100">⚡ Three.js CAD Engine</span>
+                      <span className="font-semibold text-[#F5F7FA]">⚡ Three.js CAD Engine</span>
                       <span
-                        className={`rounded px-1.5 py-0.5 text-[10.5px] font-semibold ${
+                        className={`rounded border px-1.5 py-0.5 text-[10.5px] font-semibold ${
                           selectedModel.metrics.isOptimized
-                            ? 'bg-emerald-500/20 text-emerald-400'
-                            : 'bg-amber-500/20 text-amber-400'
+                            ? 'border-[#355E43] bg-[#1F3627] text-white'
+                            : 'border-[#17789E] bg-[#0F5773]/60 text-white'
                         }`}
                       >
                         {selectedModel.metrics.isOptimized
@@ -206,21 +206,21 @@ export default function GlbImporterSection({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-1 text-center text-[10.5px] text-slate-400">
-                      <div className="rounded bg-black/25 p-1">
-                        <div className="font-semibold text-slate-100">
+                    <div className="grid grid-cols-3 gap-1 text-center text-[10.5px] text-[#8B949E]">
+                      <div className="rounded bg-[#14171C] p-1">
+                        <div className="font-semibold text-[#F5F7FA]">
                           {selectedModel.metrics.polyCount > 0 ? selectedModel.metrics.polyCount.toLocaleString() : '—'}
                         </div>
                         <div>{dict.cadStatsPoly || 'Poligoane'}</div>
                       </div>
-                      <div className="rounded bg-black/25 p-1">
-                        <div className="font-semibold text-slate-100">
+                      <div className="rounded bg-[#14171C] p-1">
+                        <div className="font-semibold text-[#F5F7FA]">
                           {selectedModel.subParts ? selectedModel.subParts.length : selectedModel.metrics.meshCount}
                         </div>
                         <div>{dict.cadStatsParts || 'Piese CAD'}</div>
                       </div>
-                      <div className="rounded bg-black/25 p-1">
-                        <div className="font-semibold text-slate-100">
+                      <div className="rounded bg-[#14171C] p-1">
+                        <div className="font-semibold text-[#F5F7FA]">
                           {selectedModel.metrics.estimatedVramMb > 0 ? `${selectedModel.metrics.estimatedVramMb} MB` : '< 1 MB'}
                         </div>
                         <div>{dict.cadStatsVram || 'VRAM GPU'}</div>
@@ -230,7 +230,7 @@ export default function GlbImporterSection({
                     {onOptimizeGlb && (
                       <button
                         type="button"
-                        className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-amber-400/40 bg-gradient-to-br from-amber-500/25 to-amber-600/20 px-2 py-1.5 text-[11.5px] font-medium text-amber-200 hover:brightness-110 transition cursor-pointer"
+                        className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-[#355E43] bg-[#1F3627] px-2 py-1.5 text-[11.5px] font-medium text-white hover:bg-[#2A4935] transition cursor-pointer"
                         onClick={() => onOptimizeGlb(selectedModel.id)}
                       >
                         <span>⚡</span>
@@ -241,14 +241,14 @@ export default function GlbImporterSection({
                 )}
 
                 {/* Export Model CAD Formats */}
-                <div className="flex flex-col gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-2">
-                  <div className="text-[11px] font-semibold text-slate-100">
+                <div className="flex flex-col gap-1.5 rounded-lg border border-white/[0.08] bg-[#0F1115] px-2.5 py-2">
+                  <div className="text-[11px] font-semibold text-[#F5F7FA]">
                     💾 {isRo ? 'Exportă acest corp / model' : isRu ? 'Экспорт этого изделия' : 'Export this Model'}
                   </div>
                   <div className="grid grid-cols-3 gap-1">
                     <button
                       type="button"
-                      className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                      className="rounded-md border border-white/[0.08] bg-[#1C2027] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                       title={isRo ? 'Descarcă modelul 3D binar (.glb)' : 'Download .GLB'}
                       onClick={() => onExportModelGlb && onExportModelGlb(selectedModel.id)}
                     >
@@ -256,7 +256,7 @@ export default function GlbImporterSection({
                     </button>
                     <button
                       type="button"
-                      className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                      className="rounded-md border border-white/[0.08] bg-[#1C2027] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                       title={isRo ? 'Descarcă modelul tehnic CAD (.b3d)' : 'Download .B3D'}
                       onClick={() => onExportModelB3D && onExportModelB3D(selectedModel.id)}
                     >
@@ -264,7 +264,7 @@ export default function GlbImporterSection({
                     </button>
                     <button
                       type="button"
-                      className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                      className="rounded-md border border-white/[0.08] bg-[#1C2027] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                       title={isRo ? 'Descarcă geometria CAD (.obj + .mtl)' : 'Download .OBJ'}
                       onClick={() => onExportModelObj && onExportModelObj(selectedModel.id)}
                     >
@@ -279,8 +279,8 @@ export default function GlbImporterSection({
                     type="button"
                     className={`rounded-md border py-1.5 text-[11px] font-medium transition-colors cursor-pointer ${
                       gizmoMode === 'translate'
-                        ? 'border-amber-400/60 bg-amber-500/20 text-amber-300'
-                        : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                        ? 'border-[#17789E] bg-[#0F5773] text-white'
+                        : 'border-white/[0.08] bg-[#1C2027] text-[#C9D1D9] hover:bg-[#262B34]'
                     }`}
                     onClick={() => onSetGizmoMode('translate')}
                   >
@@ -290,8 +290,8 @@ export default function GlbImporterSection({
                     type="button"
                     className={`rounded-md border py-1.5 text-[11px] font-medium transition-colors cursor-pointer ${
                       gizmoMode === 'rotate'
-                        ? 'border-amber-400/60 bg-amber-500/20 text-amber-300'
-                        : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                        ? 'border-[#17789E] bg-[#0F5773] text-white'
+                        : 'border-white/[0.08] bg-[#1C2027] text-[#C9D1D9] hover:bg-[#262B34]'
                     }`}
                     onClick={() => onSetGizmoMode('rotate')}
                   >
@@ -301,8 +301,8 @@ export default function GlbImporterSection({
                     type="button"
                     className={`rounded-md border py-1.5 text-[11px] font-medium transition-colors cursor-pointer ${
                       gizmoMode === 'scale'
-                        ? 'border-amber-400/60 bg-amber-500/20 text-amber-300'
-                        : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                        ? 'border-[#17789E] bg-[#0F5773] text-white'
+                        : 'border-white/[0.08] bg-[#1C2027] text-[#C9D1D9] hover:bg-[#262B34]'
                     }`}
                     onClick={() => onSetGizmoMode('scale')}
                   >
@@ -312,8 +312,8 @@ export default function GlbImporterSection({
                     type="button"
                     className={`rounded-md border py-1.5 text-[11px] font-medium transition-colors cursor-pointer ${
                       !gizmoMode
-                        ? 'border-amber-400/60 bg-amber-500/20 text-amber-300'
-                        : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                        ? 'border-[#17789E] bg-[#0F5773] text-white'
+                        : 'border-white/[0.08] bg-[#1C2027] text-[#C9D1D9] hover:bg-[#262B34]'
                     }`}
                     onClick={() => onSetGizmoMode(null)}
                   >
@@ -326,8 +326,8 @@ export default function GlbImporterSection({
                   type="button"
                   className={`inline-flex w-full items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
                     placeOnSurfaceMode
-                      ? 'border-sky-400/60 bg-sky-500/20 text-sky-300'
-                      : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                      ? 'border-[#17789E] bg-[#0F5773] text-white'
+                      : 'border-white/[0.08] bg-[#1C2027] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white'
                   }`}
                   onClick={onTogglePlaceOnSurface}
                 >
@@ -343,7 +343,7 @@ export default function GlbImporterSection({
                 <div className="grid grid-cols-[1fr_1fr_0.7fr_0.7fr] gap-1">
                   <button
                     type="button"
-                    className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                    className="rounded-md border border-white/[0.08] bg-[#1C2027] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                     onClick={() =>
                       onUpdateGlbTransform(selectedModel.id, {
                         position: [
@@ -358,7 +358,7 @@ export default function GlbImporterSection({
                   </button>
                   <button
                     type="button"
-                    className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                    className="rounded-md border border-white/[0.08] bg-[#1C2027] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                     onClick={() =>
                       onUpdateGlbTransform(selectedModel.id, {
                         position: [
@@ -373,7 +373,7 @@ export default function GlbImporterSection({
                   </button>
                   <button
                     type="button"
-                    className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                    className="rounded-md border border-white/[0.08] bg-[#1C2027] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                     onClick={() =>
                       onUpdateGlbTransform(selectedModel.id, {
                         rotationYDeg:
@@ -385,7 +385,7 @@ export default function GlbImporterSection({
                   </button>
                   <button
                     type="button"
-                    className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                    className="rounded-md border border-white/[0.08] bg-[#1C2027] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                     onClick={() =>
                       onUpdateGlbTransform(selectedModel.id, {
                         rotationYDeg:
@@ -399,9 +399,9 @@ export default function GlbImporterSection({
 
                 {/* Position X, Y, Z Sliders */}
                 <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-[11.5px] text-slate-300">
+                  <div className="flex items-center justify-between text-[11.5px] text-[#C9D1D9]">
                     <span>{dict.posXLbl}</span>
-                    <span className="font-mono font-semibold text-amber-300">
+                    <span className="font-mono font-semibold text-[#F5F7FA]">
                       {`${(selectedModel.position[0] * 100).toFixed(0)} cm`}
                     </span>
                   </div>
@@ -423,9 +423,9 @@ export default function GlbImporterSection({
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-[11.5px] text-slate-300">
+                  <div className="flex items-center justify-between text-[11.5px] text-[#C9D1D9]">
                     <span>{dict.posYLbl}</span>
-                    <span className="font-mono font-semibold text-amber-300">
+                    <span className="font-mono font-semibold text-[#F5F7FA]">
                       {`${(selectedModel.position[1] * 100).toFixed(0)} cm`}
                     </span>
                   </div>
@@ -447,9 +447,9 @@ export default function GlbImporterSection({
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-[11.5px] text-slate-300">
+                  <div className="flex items-center justify-between text-[11.5px] text-[#C9D1D9]">
                     <span>{dict.posZLbl}</span>
-                    <span className="font-mono font-semibold text-amber-300">
+                    <span className="font-mono font-semibold text-[#F5F7FA]">
                       {`${(selectedModel.position[2] * 100).toFixed(0)} cm`}
                     </span>
                   </div>
@@ -472,9 +472,9 @@ export default function GlbImporterSection({
 
                 {/* Rotation Y Slider */}
                 <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-[11.5px] text-slate-300">
+                  <div className="flex items-center justify-between text-[11.5px] text-[#C9D1D9]">
                     <span>{dict.rotYLbl}</span>
-                    <span className="font-mono font-semibold text-amber-300">
+                    <span className="font-mono font-semibold text-[#F5F7FA]">
                       {`${Math.round(selectedModel.rotationYDeg)}°`}
                     </span>
                   </div>
@@ -493,9 +493,9 @@ export default function GlbImporterSection({
 
                 {/* Uniform Scale + Independent W x H x D cm Sizing */}
                 <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-[11.5px] text-slate-300">
+                  <div className="flex items-center justify-between text-[11.5px] text-[#C9D1D9]">
                     <span>{dict.uniformScaleLbl}</span>
-                    <span className="font-mono font-semibold text-amber-300">
+                    <span className="font-mono font-semibold text-[#F5F7FA]">
                       {`${selectedModel.scale[0].toFixed(2)}x`}
                     </span>
                   </div>
@@ -515,7 +515,7 @@ export default function GlbImporterSection({
 
                 <div className="mt-0.5 grid grid-cols-3 gap-1.5">
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] text-slate-400">{dict.widthCmLbl}</span>
+                    <span className="text-[10px] text-[#8B949E]">{dict.widthCmLbl}</span>
                     <input
                       type="number"
                       min="1"
@@ -529,12 +529,12 @@ export default function GlbImporterSection({
                           scale: [sx, selectedModel.scale[1], selectedModel.scale[2]]
                         });
                       }}
-                      className="w-full rounded-md border border-white/15 bg-black/35 px-1.5 py-1 text-xs font-bold text-amber-400 outline-none focus:border-amber-400"
+                      className="w-full rounded-md border border-white/[0.1] bg-[#0F1115] px-1.5 py-1 text-xs font-semibold text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                     />
                   </div>
 
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] text-slate-400">{dict.heightCmLbl}</span>
+                    <span className="text-[10px] text-[#8B949E]">{dict.heightCmLbl}</span>
                     <input
                       type="number"
                       min="1"
@@ -548,12 +548,12 @@ export default function GlbImporterSection({
                           scale: [selectedModel.scale[0], sy, selectedModel.scale[2]]
                         });
                       }}
-                      className="w-full rounded-md border border-white/15 bg-black/35 px-1.5 py-1 text-xs font-bold text-emerald-400 outline-none focus:border-emerald-400"
+                      className="w-full rounded-md border border-white/[0.1] bg-[#0F1115] px-1.5 py-1 text-xs font-semibold text-[#F5F7FA] outline-none focus:border-[#1F3627]"
                     />
                   </div>
 
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] text-slate-400">{dict.depthCmLbl}</span>
+                    <span className="text-[10px] text-[#8B949E]">{dict.depthCmLbl}</span>
                     <input
                       type="number"
                       min="1"
@@ -567,20 +567,20 @@ export default function GlbImporterSection({
                           scale: [selectedModel.scale[0], selectedModel.scale[1], sz]
                         });
                       }}
-                      className="w-full rounded-md border border-white/15 bg-black/35 px-1.5 py-1 text-xs font-bold text-sky-400 outline-none focus:border-sky-400"
+                      className="w-full rounded-md border border-white/[0.1] bg-[#0F1115] px-1.5 py-1 text-xs font-semibold text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                     />
                   </div>
                 </div>
 
                 {/* Colors & Materials Editor for Imported .GLB */}
-                <div className="mt-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <div className="mt-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#8B949E]">
                   {dict.glbMatTitle}
                 </div>
 
                 <div className="flex gap-1.5">
                   <button
                     type="button"
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/[0.08] bg-[#1C2027] px-2.5 py-1.5 text-xs font-medium text-[#F5F7FA] hover:bg-[#262B34] transition-colors cursor-pointer"
                     onClick={() => onPaintWholeGlbWithActiveMat(selectedModel.id)}
                   >
                     <span>🖌️</span>
@@ -588,7 +588,7 @@ export default function GlbImporterSection({
                   </button>
 
                   <label
-                    className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs hover:bg-white/10 transition-colors"
+                    className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-white/[0.08] bg-[#1C2027] px-2.5 py-1.5 text-xs hover:bg-[#262B34] transition-colors"
                     title="Alege o culoare pentru întregul model"
                   >
                     🎨
@@ -603,7 +603,7 @@ export default function GlbImporterSection({
 
                 <button
                   type="button"
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/[0.08] bg-[#1C2027] px-2.5 py-1.5 text-xs font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                   onClick={() => onResetGlbMaterials(selectedModel.id)}
                 >
                   <span>🔄</span>
@@ -611,23 +611,23 @@ export default function GlbImporterSection({
                 </button>
 
                 {/* Furniture Mechanisms (Doors & Drawers) & Full CAD Editor Section */}
-                <div className="mt-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <div className="mt-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#8B949E]">
                   {dict.glbMechTitle}
                 </div>
 
-                <div className="rounded-lg border border-amber-400/35 bg-amber-500/10 px-2.5 py-1.5 text-[11px] leading-snug text-amber-200">
-                  💡 <strong>Click Dreapta pe orice piesă în 3D</strong> pentru a-i seta tipul de deschidere (Ușă, Sertar, Aventos), a-i edita dimensiunile (mm), poziția, a o duplica sau a o șterge.
+                <div className="rounded-lg border border-white/[0.08] bg-[#0F1115] px-2.5 py-1.5 text-[11px] leading-snug text-[#C9D1D9]">
+                  💡 <strong className="text-[#F5F7FA]">Click Dreapta pe orice piesă în 3D</strong> pentru a-i seta tipul de deschidere (Ușă, Sertar, Aventos), a-i edita dimensiunile (mm), poziția, a o duplica sau a o șterge.
                 </div>
 
                 {onAddPartToGlbModel && (
-                  <div className="flex flex-col gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5">
-                    <div className="text-[11px] font-semibold text-slate-100">
+                  <div className="flex flex-col gap-1.5 rounded-lg border border-white/[0.08] bg-[#0F1115] px-2 py-1.5">
+                    <div className="text-[11px] font-semibold text-[#F5F7FA]">
                       ➕ Adaugă Piesă / Panou Nou în acest Model:
                     </div>
                     <div className="grid grid-cols-2 gap-1">
                       <button
                         type="button"
-                        className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                        className="rounded-md border border-white/[0.08] bg-[#1C2027] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                         onClick={() =>
                           onAddPartToGlbModel(selectedModel.id, {
                             name: 'Ușă Nouă 600×720',
@@ -642,7 +642,7 @@ export default function GlbImporterSection({
                       </button>
                       <button
                         type="button"
-                        className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                        className="rounded-md border border-white/[0.08] bg-[#1C2027] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                         onClick={() =>
                           onAddPartToGlbModel(selectedModel.id, {
                             name: 'Sertar Nou 600×180',
@@ -657,7 +657,7 @@ export default function GlbImporterSection({
                       </button>
                       <button
                         type="button"
-                        className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                        className="rounded-md border border-white/[0.08] bg-[#1C2027] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                         onClick={() =>
                           onAddPartToGlbModel(selectedModel.id, {
                             name: 'Poliță Orizontală',
@@ -672,7 +672,7 @@ export default function GlbImporterSection({
                       </button>
                       <button
                         type="button"
-                        className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                        className="rounded-md border border-white/[0.08] bg-[#1C2027] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                         onClick={() =>
                           onAddPartToGlbModel(selectedModel.id, {
                             name: 'Panou Vertical',
@@ -692,7 +692,7 @@ export default function GlbImporterSection({
                 {selectedModel.hasNativeAnimations && (
                   <button
                     type="button"
-                    className="inline-flex w-full items-center justify-center rounded-lg border border-sky-400/50 bg-sky-500/20 px-2.5 py-1.5 text-xs font-medium text-sky-300 hover:bg-sky-500/30 transition-colors cursor-pointer"
+                    className="inline-flex w-full items-center justify-center rounded-lg border border-[#17789E] bg-[#0F5773] px-2.5 py-1.5 text-xs font-medium text-white hover:bg-[#146E91] transition-colors cursor-pointer"
                     onClick={() => onToggleNativeGlbAnimation(selectedModel.id)}
                   >
                     <span>{dict.playGlbAnimBtn}</span>
@@ -702,28 +702,28 @@ export default function GlbImporterSection({
                 <div className="grid grid-cols-2 gap-1">
                   <button
                     type="button"
-                    className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                    className="rounded-md border border-white/[0.08] bg-[#1C2027] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                     onClick={() => onAutoDetectGlbMechanisms(selectedModel.id)}
                   >
                     {dict.autoDetectMechBtn}
                   </button>
                   <button
                     type="button"
-                    className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                    className="rounded-md border border-white/[0.08] bg-[#1C2027] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                     onClick={() => onClearGlbMechanisms(selectedModel.id)}
                   >
                     {dict.clearMechBtn}
                   </button>
                   <button
                     type="button"
-                    className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                    className="rounded-md border border-white/[0.08] bg-[#1C2027] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                     onClick={() => onToggleAllGlbParts(selectedModel.id, true)}
                   >
                     {dict.openAllGlbBtn}
                   </button>
                   <button
                     type="button"
-                    className="rounded-md border border-white/10 bg-white/5 py-1 text-[11px] text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+                    className="rounded-md border border-white/[0.08] bg-[#1C2027] py-1 text-[11px] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
                     onClick={() => onToggleAllGlbParts(selectedModel.id, false)}
                   >
                     {dict.closeAllGlbBtn}
@@ -732,7 +732,7 @@ export default function GlbImporterSection({
 
                 {selectedModel.subParts && selectedModel.subParts.length > 0 && (
                   <>
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8B949E]">
                       {dict.glbSubMeshesTitle}
                     </div>
                     <div className="flex max-h-[230px] flex-col gap-1.5 overflow-y-auto pr-0.5">
@@ -744,15 +744,15 @@ export default function GlbImporterSection({
                             key={sp.subIdx}
                             className={`flex flex-col items-stretch gap-1 rounded-lg border px-2 py-1.5 ${
                               isDeleted
-                                ? 'border-rose-500/20 bg-rose-500/10 opacity-45'
+                                ? 'border-white/[0.05] bg-[#090A0C] opacity-45'
                                 : hasMech
-                                  ? 'border-sky-400/25 bg-sky-500/10'
-                                  : 'border-white/10 bg-white/[0.03]'
+                                  ? 'border-[#17789E]/60 bg-[#0F5773]/20'
+                                  : 'border-white/[0.08] bg-[#0F1115]'
                             }`}
                           >
                             <div className="flex items-center justify-between gap-1.5">
                               <span
-                                className={`min-w-0 flex-1 truncate text-[11px] font-medium text-slate-100 ${
+                                className={`min-w-0 flex-1 truncate text-[11px] font-medium text-[#F5F7FA] ${
                                   isDeleted ? 'line-through' : ''
                                 }`}
                               >
@@ -764,8 +764,8 @@ export default function GlbImporterSection({
                                     type="button"
                                     className={`rounded border px-1 py-0.5 text-[11px] transition-colors cursor-pointer ${
                                       sp.isOpen
-                                        ? 'border-emerald-400 text-emerald-400'
-                                        : 'border-sky-400/45 text-sky-200'
+                                        ? 'border-[#355E43] bg-[#1F3627] text-white'
+                                        : 'border-[#17789E] bg-[#0F5773]/60 text-white'
                                     }`}
                                     title={sp.isOpen ? dict.clickToClose : dict.clickToOpen}
                                     onClick={() => onToggleGlbSubMeshOpen(selectedModel.id, sp.subIdx)}
@@ -776,7 +776,7 @@ export default function GlbImporterSection({
                                 {!isDeleted && onOpenPartContextMenu && (
                                   <button
                                     type="button"
-                                    className="rounded border border-white/10 bg-white/5 px-1 py-0.5 text-[11px] hover:bg-white/15 cursor-pointer"
+                                    className="rounded border border-white/[0.08] bg-[#1C2027] px-1 py-0.5 text-[11px] hover:bg-[#262B34] cursor-pointer"
                                     title="Editează Dimensiuni, Poziție & Mecanism Piesă"
                                     onClick={() => onOpenPartContextMenu(selectedModel.id, sp.subIdx)}
                                   >
@@ -786,7 +786,7 @@ export default function GlbImporterSection({
                                 {!isDeleted && onDuplicateGlbSubPart && (
                                   <button
                                     type="button"
-                                    className="rounded border border-white/10 bg-white/5 px-1 py-0.5 text-[11px] hover:bg-white/15 cursor-pointer"
+                                    className="rounded border border-white/[0.08] bg-[#1C2027] px-1 py-0.5 text-[11px] hover:bg-[#262B34] cursor-pointer"
                                     title="Duplică această piesă"
                                     onClick={() => onDuplicateGlbSubPart(selectedModel.id, sp.subIdx)}
                                   >
@@ -795,7 +795,7 @@ export default function GlbImporterSection({
                                 )}
                                 {!isDeleted && (
                                   <label
-                                    className="inline-flex cursor-pointer items-center gap-1 rounded border border-white/10 bg-white/5 px-1 py-0.5 text-[11px] hover:bg-white/15"
+                                    className="inline-flex cursor-pointer items-center gap-1 rounded border border-white/[0.08] bg-[#1C2027] px-1 py-0.5 text-[11px] hover:bg-[#262B34]"
                                     title="Schimbă culoarea acestei sub-piese"
                                   >
                                     <span
@@ -816,7 +816,7 @@ export default function GlbImporterSection({
                                 {!isDeleted && (
                                   <button
                                     type="button"
-                                    className="rounded border border-white/10 bg-white/5 px-1 py-0.5 text-[11px] hover:bg-white/15 cursor-pointer"
+                                    className="rounded border border-white/[0.08] bg-[#1C2027] px-1 py-0.5 text-[11px] hover:bg-[#262B34] cursor-pointer"
                                     title="Aplică materialul/textura selectată din Studio pe această sub-piesă"
                                     onClick={() =>
                                       onPaintGlbSubMeshWithActiveMat(selectedModel.id, sp.subIdx)
@@ -828,7 +828,7 @@ export default function GlbImporterSection({
                                 {!isDeleted && onDeleteGlbSubPart && (
                                   <button
                                     type="button"
-                                    className="rounded border border-rose-500/35 bg-rose-500/10 px-1 py-0.5 text-[11px] text-rose-300 hover:bg-rose-500/20 cursor-pointer"
+                                    className="rounded border border-white/[0.08] bg-[#1C2027] px-1 py-0.5 text-[11px] text-[#8B949E] hover:border-red-500/50 hover:bg-red-950/40 hover:text-red-200 cursor-pointer"
                                     title="Șterge această piesă din model"
                                     onClick={() => onDeleteGlbSubPart(selectedModel.id, sp.subIdx)}
                                   >
@@ -838,7 +838,7 @@ export default function GlbImporterSection({
                                 {isDeleted && onRestoreGlbSubPart && (
                                   <button
                                     type="button"
-                                    className="rounded border border-emerald-400/40 bg-emerald-500/10 px-1.5 py-0.5 text-[11px] text-emerald-400 hover:bg-emerald-500/20 cursor-pointer"
+                                    className="rounded border border-[#355E43] bg-[#1F3627] px-1.5 py-0.5 text-[11px] text-white hover:bg-[#2A4935] cursor-pointer"
                                     title="Restaurează această piesă în model"
                                     onClick={() => onRestoreGlbSubPart(selectedModel.id, sp.subIdx)}
                                   >
@@ -859,10 +859,10 @@ export default function GlbImporterSection({
                                     e.target.value
                                   )
                                 }
-                                className={`w-full cursor-pointer rounded border bg-black/45 px-1.5 py-0.5 text-[11px] outline-none ${
+                                className={`w-full cursor-pointer rounded border bg-[#14171C] px-1.5 py-0.5 text-[11px] outline-none ${
                                   hasMech
-                                    ? 'border-sky-400/50 text-sky-200'
-                                    : 'border-white/15 text-slate-300'
+                                    ? 'border-[#17789E] text-white'
+                                    : 'border-white/[0.1] text-[#C9D1D9]'
                                 }`}
                               >
                                 <option value="none">{dict.mech_none}</option>

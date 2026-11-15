@@ -112,7 +112,7 @@ export default function ArchitecturalRoomSection({
 
   return (
     <div className="flex flex-col gap-3.5" id="architectural-room-studio">
-      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#8B949E]">
         <span>🏠</span>
         <span>
           {isRo
@@ -123,7 +123,7 @@ export default function ArchitecturalRoomSection({
         </span>
       </div>
 
-      <div className="text-[11px] leading-relaxed text-slate-400">
+      <div className="text-[11px] leading-relaxed text-[#8B949E]">
         {isRo
           ? 'Proiectează spațiul arhitectural de la 0: dimensiuni pereți, goluri uși/ferestre, parchet, gresie și schiță 2D a locuinței.'
           : isRu
@@ -135,7 +135,7 @@ export default function ArchitecturalRoomSection({
       {onOpen2DPlanView && (
         <button
           type="button"
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 p-2.5 text-xs font-bold text-slate-950 shadow-sm hover:brightness-110 transition cursor-pointer"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#17789E] bg-[#0F5773] p-2.5 text-xs font-semibold text-white hover:bg-[#146E91] transition cursor-pointer"
           onClick={onOpen2DPlanView}
         >
           <span>📐</span>
@@ -144,8 +144,8 @@ export default function ArchitecturalRoomSection({
       )}
 
       {/* 3D Space & Walls Visibility Toggles */}
-      <div className="rounded-lg border border-slate-700/80 bg-slate-800/50 p-2.5">
-        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+      <div className="rounded-lg border border-white/[0.08] bg-[#14171C] p-2.5">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#8B949E]">
           {isRo ? 'Vizibilitate Spațiu 3D:' : isRu ? 'Отображение в 3D:' : '3D Space Visibility:'}
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -153,8 +153,8 @@ export default function ArchitecturalRoomSection({
             type="button"
             className={`flex items-center justify-center gap-1.5 rounded-md border px-2.5 py-2 text-xs font-medium transition-colors cursor-pointer ${
               roomConfig.showWalls
-                ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
-                : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                ? 'border-[#17789E] bg-[#0F5773] text-white'
+                : 'border-white/[0.08] bg-[#1C2027] text-[#C9D1D9] hover:bg-[#262B34]'
             }`}
             onClick={() => updateConfig({ showWalls: !roomConfig.showWalls })}
           >
@@ -165,8 +165,8 @@ export default function ArchitecturalRoomSection({
             type="button"
             className={`flex items-center justify-center gap-1.5 rounded-md border px-2.5 py-2 text-xs font-medium transition-colors cursor-pointer ${
               roomConfig.showFloor
-                ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
-                : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                ? 'border-[#17789E] bg-[#0F5773] text-white'
+                : 'border-white/[0.08] bg-[#1C2027] text-[#C9D1D9] hover:bg-[#262B34]'
             }`}
             onClick={() => updateConfig({ showFloor: !roomConfig.showFloor })}
           >
@@ -178,7 +178,7 @@ export default function ArchitecturalRoomSection({
 
       {/* Quick Presets */}
       <div>
-        <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#8B949E]">
           {isRo ? 'Șabloane Rapide Dimensiuni:' : isRu ? 'Быстрые шаблоны комнат:' : 'Quick Room Presets:'}
         </div>
         <div className="grid grid-cols-2 gap-1.5">
@@ -186,7 +186,7 @@ export default function ArchitecturalRoomSection({
             <button
               key={idx}
               type="button"
-              className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-left text-[11px] font-semibold text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+              className="rounded-lg border border-white/[0.08] bg-[#14171C] px-2 py-1.5 text-left text-[11px] font-medium text-[#C9D1D9] hover:bg-[#1C2027] hover:text-white transition-colors cursor-pointer"
               onClick={() =>
                 updateConfig({
                   widthCm: p.widthCm,
@@ -203,14 +203,14 @@ export default function ArchitecturalRoomSection({
 
       {/* Room Dimensions */}
       <div className="flex flex-col gap-3">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-[#8B949E]">
           {isRo ? '1. Dimensiuni Încăpere (cm):' : isRu ? '1. Размеры комнаты (см):' : '1. Room Dimensions (cm):'}
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between text-xs text-slate-300">
+          <div className="flex items-center justify-between text-xs text-[#C9D1D9]">
             <span>{isRo ? 'Lățime Cameră (Axa X):' : 'Room Width (X):'}</span>
-            <strong className="font-mono text-sky-400">{roomConfig.widthCm} cm ({(roomConfig.widthCm / 100).toFixed(2)} m)</strong>
+            <strong className="font-mono text-[#F5F7FA]">{roomConfig.widthCm} cm ({(roomConfig.widthCm / 100).toFixed(2)} m)</strong>
           </div>
           <Slider
             min={200}
@@ -222,9 +222,9 @@ export default function ArchitecturalRoomSection({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between text-xs text-slate-300">
+          <div className="flex items-center justify-between text-xs text-[#C9D1D9]">
             <span>{isRo ? 'Lungime Cameră (Axa Z):' : 'Room Length (Z):'}</span>
-            <strong className="font-mono text-sky-400">{roomConfig.lengthCm} cm ({(roomConfig.lengthCm / 100).toFixed(2)} m)</strong>
+            <strong className="font-mono text-[#F5F7FA]">{roomConfig.lengthCm} cm ({(roomConfig.lengthCm / 100).toFixed(2)} m)</strong>
           </div>
           <Slider
             min={200}
@@ -236,9 +236,9 @@ export default function ArchitecturalRoomSection({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between text-xs text-slate-300">
+          <div className="flex items-center justify-between text-xs text-[#C9D1D9]">
             <span>{isRo ? 'Înălțime Tavan (Axa Y):' : 'Ceiling Height (Y):'}</span>
-            <strong className="font-mono text-sky-400">{roomConfig.heightCm} cm ({(roomConfig.heightCm / 100).toFixed(2)} m)</strong>
+            <strong className="font-mono text-[#F5F7FA]">{roomConfig.heightCm} cm ({(roomConfig.heightCm / 100).toFixed(2)} m)</strong>
           </div>
           <Slider
             min={220}
@@ -250,9 +250,9 @@ export default function ArchitecturalRoomSection({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between text-xs text-slate-300">
+          <div className="flex items-center justify-between text-xs text-[#C9D1D9]">
             <span>{isRo ? 'Grosime Pereți:' : 'Wall Thickness:'}</span>
-            <strong className="font-mono text-sky-400">{roomConfig.wallThicknessCm} cm</strong>
+            <strong className="font-mono text-[#F5F7FA]">{roomConfig.wallThicknessCm} cm</strong>
           </div>
           <Slider
             min={10}
@@ -266,7 +266,7 @@ export default function ArchitecturalRoomSection({
 
       {/* Surface Finishes: Flooring & Wall Color */}
       <div>
-        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#8B949E]">
           {isRo ? '2. Finisaj Pardoseală:' : isRu ? '2. Напольное покрытие:' : '2. Flooring Material:'}
         </div>
         <div className="grid grid-cols-2 gap-1.5">
@@ -276,10 +276,10 @@ export default function ArchitecturalRoomSection({
               <button
                 key={f.id}
                 type="button"
-                className={`rounded-lg border px-2.5 py-2 text-left text-xs font-semibold transition-colors cursor-pointer ${
+                className={`rounded-lg border px-2.5 py-2 text-left text-xs font-medium transition-colors cursor-pointer ${
                   active
-                    ? 'border-sky-400/60 bg-sky-500/15 text-sky-400'
-                    : 'border-white/10 bg-white/5 text-slate-100 hover:bg-white/10'
+                    ? 'border-[#17789E] bg-[#0F5773] text-white'
+                    : 'border-white/[0.08] bg-[#14171C] text-[#C9D1D9] hover:bg-[#1C2027]'
                 }`}
                 onClick={() => updateConfig({ floorFinish: f.id as any })}
               >
@@ -290,7 +290,7 @@ export default function ArchitecturalRoomSection({
         </div>
 
         {/* Baseboard Toggle */}
-        <label className="mt-2.5 flex cursor-pointer items-center justify-between rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-xs text-slate-200">
+        <label className="mt-2.5 flex cursor-pointer items-center justify-between rounded-lg border border-white/[0.08] bg-[#14171C] px-3 py-2 text-xs text-[#F5F7FA]">
           <span>{isRo ? 'Plintă Perimetrală Pardoseală (80mm)' : 'Floor Baseboard (80mm)'}</span>
           <Switch
             checked={roomConfig.showBaseboards !== false}
@@ -301,7 +301,7 @@ export default function ArchitecturalRoomSection({
 
       {/* Wall Paint Color */}
       <div>
-        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#8B949E]">
           {isRo ? '3. Culoare Lavabilă Pereți:' : isRu ? '3. Цвет стен:' : '3. Wall Paint Color:'}
         </div>
         <div className="flex items-center gap-2">
@@ -312,8 +312,8 @@ export default function ArchitecturalRoomSection({
               onClick={() => updateConfig({ wallColor: c.hex })}
               className={`h-8 w-8 rounded-full transition-transform hover:scale-105 cursor-pointer ${
                 roomConfig.wallColor === c.hex
-                  ? 'border-[3px] border-sky-400'
-                  : 'border-2 border-slate-600'
+                  ? 'border-[3px] border-[#0F5773] ring-1 ring-white'
+                  : 'border-2 border-[#262B34]'
               }`}
               style={{ backgroundColor: c.hex }}
               title={c.name}
@@ -332,20 +332,20 @@ export default function ArchitecturalRoomSection({
       {/* Openings Manager (Doors & Windows) */}
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-[#8B949E]">
             🚪 {isRo ? `Goluri Uși & Ferestre (${(roomConfig.openings || []).length})` : `Openings (${(roomConfig.openings || []).length})`}
           </div>
           <div className="flex gap-1">
             <button
               type="button"
-              className="rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+              className="rounded-md border border-white/[0.08] bg-[#1C2027] px-2 py-1 text-[11px] font-medium text-[#F5F7FA] hover:bg-[#262B34] transition-colors cursor-pointer"
               onClick={handleAddDoor}
             >
               ➕ {isRo ? 'Ușă' : 'Door'}
             </button>
             <button
               type="button"
-              className="rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+              className="rounded-md border border-white/[0.08] bg-[#1C2027] px-2 py-1 text-[11px] font-medium text-[#F5F7FA] hover:bg-[#262B34] transition-colors cursor-pointer"
               onClick={handleAddWindow}
             >
               ➕ {isRo ? 'Fereastră' : 'Window'}
@@ -356,16 +356,16 @@ export default function ArchitecturalRoomSection({
         {(roomConfig.openings || []).map((op, idx) => (
           <div
             key={op.id || idx}
-            className="mb-1.5 flex flex-col gap-1.5 rounded-md border border-slate-700/80 bg-slate-900/60 px-2.5 py-2"
+            className="mb-1.5 flex flex-col gap-1.5 rounded-md border border-white/[0.08] bg-[#14171C] px-2.5 py-2"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-50">
+              <span className="text-xs font-semibold text-[#F5F7FA]">
                 {op.type === 'door' ? '🚪 Ușă' : '🪟 Fereastră'} #{idx + 1} ({op.wallSide})
               </span>
               <button
                 type="button"
                 onClick={() => handleRemoveOpening(op.id)}
-                className="rounded px-1 text-xs text-red-400 hover:bg-red-500/15 cursor-pointer"
+                className="rounded px-1 text-xs text-[#8B949E] hover:bg-red-950/50 hover:text-red-300 cursor-pointer"
                 title="Remove Opening"
               >
                 ✕
@@ -373,7 +373,7 @@ export default function ArchitecturalRoomSection({
             </div>
             <div className="grid grid-cols-3 gap-1.5 text-[11px]">
               <div>
-                <label className="mb-0.5 block text-slate-400">Perete:</label>
+                <label className="mb-0.5 block text-[#8B949E]">Perete:</label>
                 <select
                   value={op.wallSide}
                   onChange={(e) => {
@@ -381,7 +381,7 @@ export default function ArchitecturalRoomSection({
                     ops[idx].wallSide = e.target.value as any;
                     updateConfig({ openings: ops });
                   }}
-                  className="w-full rounded border border-white/15 bg-slate-950/75 px-1.5 py-0.5 text-[11px] text-slate-100 outline-none focus:border-sky-400"
+                  className="w-full rounded border border-white/[0.1] bg-[#0F1115] px-1.5 py-0.5 text-[11px] text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                 >
                   <option value="front">Frontal</option>
                   <option value="back">Spate</option>
@@ -390,7 +390,7 @@ export default function ArchitecturalRoomSection({
                 </select>
               </div>
               <div>
-                <label className="mb-0.5 block text-slate-400">Distanță (cm):</label>
+                <label className="mb-0.5 block text-[#8B949E]">Distanță (cm):</label>
                 <input
                   type="number"
                   value={op.distanceCm}
@@ -399,11 +399,11 @@ export default function ArchitecturalRoomSection({
                     ops[idx].distanceCm = Number(e.target.value);
                     updateConfig({ openings: ops });
                   }}
-                  className="w-full rounded border border-white/15 bg-slate-950/75 px-1.5 py-0.5 text-[11px] text-slate-100 outline-none focus:border-sky-400"
+                  className="w-full rounded border border-white/[0.1] bg-[#0F1115] px-1.5 py-0.5 text-[11px] text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                 />
               </div>
               <div>
-                <label className="mb-0.5 block text-slate-400">Lățime (cm):</label>
+                <label className="mb-0.5 block text-[#8B949E]">Lățime (cm):</label>
                 <input
                   type="number"
                   value={op.widthCm}
@@ -412,7 +412,7 @@ export default function ArchitecturalRoomSection({
                     ops[idx].widthCm = Number(e.target.value);
                     updateConfig({ openings: ops });
                   }}
-                  className="w-full rounded border border-white/15 bg-slate-950/75 px-1.5 py-0.5 text-[11px] text-slate-100 outline-none focus:border-sky-400"
+                  className="w-full rounded border border-white/[0.1] bg-[#0F1115] px-1.5 py-0.5 text-[11px] text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                 />
               </div>
             </div>

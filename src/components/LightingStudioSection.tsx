@@ -28,17 +28,17 @@ export default function LightingStudioSection({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
-        <Sun className="h-4 w-4 text-amber-400" />
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#8B949E]">
+        <Sun className="h-4 w-4 text-[#C9D1D9]" />
         <span>{dict.lightStudioTitle}</span>
       </div>
 
-      <div className="space-y-3.5 rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
+      <div className="space-y-3.5 rounded-xl border border-white/[0.08] bg-[#14171C] p-3.5">
         {/* Kelvin */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-zinc-300">{dict.lightKelvinLbl}</span>
-            <span className="font-mono font-bold text-amber-300">{`${lightState.kelvin}K${kelvinTag}`}</span>
+            <span className="text-[#C9D1D9]">{dict.lightKelvinLbl}</span>
+            <span className="font-mono font-semibold text-[#F5F7FA]">{`${lightState.kelvin}K${kelvinTag}`}</span>
           </div>
           <Slider
             min={2700}
@@ -50,7 +50,7 @@ export default function LightingStudioSection({
           <div className="grid grid-cols-3 gap-1.5 pt-1">
             <button
               type="button"
-              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/[0.08] bg-[#1C2027] px-2 py-1.5 text-[11px] font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
               onClick={() => onChangeLightState({ kelvin: 2900 })}
             >
               <span>🌅</span>
@@ -58,7 +58,7 @@ export default function LightingStudioSection({
             </button>
             <button
               type="button"
-              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/[0.08] bg-[#1C2027] px-2 py-1.5 text-[11px] font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
               onClick={() => onChangeLightState({ kelvin: 4000 })}
             >
               <span>☀️</span>
@@ -66,7 +66,7 @@ export default function LightingStudioSection({
             </button>
             <button
               type="button"
-              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/[0.08] bg-[#1C2027] px-2 py-1.5 text-[11px] font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
               onClick={() => onChangeLightState({ kelvin: 6000 })}
             >
               <span>❄️</span>
@@ -78,8 +78,8 @@ export default function LightingStudioSection({
         {/* Main Light Intensity */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-zinc-300">{dict.lightIntensityLbl}</span>
-            <span className="font-mono font-bold text-amber-300">{`${lightState.mainPct}%`}</span>
+            <span className="text-[#C9D1D9]">{dict.lightIntensityLbl}</span>
+            <span className="font-mono font-semibold text-[#F5F7FA]">{`${lightState.mainPct}%`}</span>
           </div>
           <Slider
             min={0}
@@ -93,8 +93,8 @@ export default function LightingStudioSection({
         {/* Ambient Intensity */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-zinc-300">{dict.ambientIntensityLbl}</span>
-            <span className="font-mono font-bold text-amber-300">{`${lightState.ambientPct}%`}</span>
+            <span className="text-[#C9D1D9]">{dict.ambientIntensityLbl}</span>
+            <span className="font-mono font-semibold text-[#F5F7FA]">{`${lightState.ambientPct}%`}</span>
           </div>
           <Slider
             min={10}
@@ -107,11 +107,11 @@ export default function LightingStudioSection({
 
         {/* Light Position Presets */}
         <div className="space-y-1.5 pt-1">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{dict.lightPointTitle}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8B949E]">{dict.lightPointTitle}</div>
           <div className="grid grid-cols-2 gap-1.5">
             <button
               type="button"
-              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/[0.08] bg-[#1C2027] px-2 py-1.5 text-[11px] font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
               onClick={() => onChangeLightState(LIGHT_POS_PRESETS.front_right)}
             >
               <span>↘️</span>
@@ -119,7 +119,7 @@ export default function LightingStudioSection({
             </button>
             <button
               type="button"
-              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/[0.08] bg-[#1C2027] px-2 py-1.5 text-[11px] font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
               onClick={() => onChangeLightState(LIGHT_POS_PRESETS.front_left)}
             >
               <span>↙️</span>
@@ -127,7 +127,7 @@ export default function LightingStudioSection({
             </button>
             <button
               type="button"
-              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/[0.08] bg-[#1C2027] px-2 py-1.5 text-[11px] font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
               onClick={() => onChangeLightState(LIGHT_POS_PRESETS.ceiling)}
             >
               <span>⬆️</span>
@@ -135,7 +135,7 @@ export default function LightingStudioSection({
             </button>
             <button
               type="button"
-              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1 rounded-md border border-white/[0.08] bg-[#1C2027] px-2 py-1.5 text-[11px] font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
               onClick={() => onChangeLightState(LIGHT_POS_PRESETS.window)}
             >
               <span>🪟</span>
@@ -143,7 +143,7 @@ export default function LightingStudioSection({
             </button>
             <button
               type="button"
-              className="col-span-2 inline-flex items-center justify-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+              className="col-span-2 inline-flex items-center justify-center gap-1 rounded-md border border-white/[0.08] bg-[#1C2027] px-2 py-1.5 text-[11px] font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
               onClick={() => onChangeLightState(LIGHT_POS_PRESETS.low_dramatic)}
             >
               <span>🌇</span>
@@ -155,8 +155,8 @@ export default function LightingStudioSection({
         {/* Angle */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-zinc-300">{dict.lightAngleLbl}</span>
-            <span className="font-mono font-bold text-amber-300">{`${lightState.angleDeg}°`}</span>
+            <span className="text-[#C9D1D9]">{dict.lightAngleLbl}</span>
+            <span className="font-mono font-semibold text-[#F5F7FA]">{`${lightState.angleDeg}°`}</span>
           </div>
           <Slider
             min={-180}
@@ -170,8 +170,8 @@ export default function LightingStudioSection({
         {/* Height */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-zinc-300">{dict.lightHeightLbl}</span>
-            <span className="font-mono font-bold text-amber-300">{`${lightState.heightM.toFixed(1)}m`}</span>
+            <span className="text-[#C9D1D9]">{dict.lightHeightLbl}</span>
+            <span className="font-mono font-semibold text-[#F5F7FA]">{`${lightState.heightM.toFixed(1)}m`}</span>
           </div>
           <Slider
             min={0.8}
@@ -185,8 +185,8 @@ export default function LightingStudioSection({
         {/* Distance */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-zinc-300">{dict.lightDistLbl}</span>
-            <span className="font-mono font-bold text-amber-300">{`${lightState.distM.toFixed(1)}m`}</span>
+            <span className="text-[#C9D1D9]">{dict.lightDistLbl}</span>
+            <span className="font-mono font-semibold text-[#F5F7FA]">{`${lightState.distM.toFixed(1)}m`}</span>
           </div>
           <Slider
             min={1.5}
@@ -198,9 +198,9 @@ export default function LightingStudioSection({
         </div>
 
         {/* Show Light Orb Switch (Radix UI Switch) */}
-        <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/25 px-3 py-2">
-          <div className="flex items-center gap-2 text-xs font-medium text-zinc-200">
-            <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+        <div className="flex items-center justify-between rounded-lg border border-white/[0.08] bg-[#0F1115] px-3 py-2">
+          <div className="flex items-center gap-2 text-xs font-medium text-[#F5F7FA]">
+            <Sparkles className="h-3.5 w-3.5 text-[#8B949E]" />
             <span>{dict.showLightOrbBtn}</span>
           </div>
           <Switch checked={Boolean(showLightOrb)} onCheckedChange={onToggleLightOrb} />

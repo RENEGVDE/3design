@@ -152,7 +152,7 @@ export default function ParametricCabinetSection({
 
   return (
     <div className="flex flex-col gap-3" id="parametric-cabinet-studio">
-      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#8B949E]">
         <span>📐</span>
         <span>
           {isRo
@@ -163,7 +163,7 @@ export default function ParametricCabinetSection({
         </span>
       </div>
 
-      <div className="text-[11px] leading-relaxed text-slate-400">
+      <div className="text-[11px] leading-relaxed text-[#8B949E]">
         {isRo
           ? 'Configurează și adaugă corpuri modulare de bucătărie cu uși și sertare interactive, fără cunoștințe CAD.'
           : isRu
@@ -173,7 +173,7 @@ export default function ParametricCabinetSection({
 
       {/* Archetype Selector Badges */}
       <div>
-        <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        <label className="block text-[11px] font-semibold uppercase tracking-wide text-[#8B949E]">
           {isRo ? '1. Alege Tipul de Corp:' : isRu ? '1. Выберите тип корпуса:' : '1. Choose Cabinet Type:'}
         </label>
         <div className="mt-1.5 grid grid-cols-3 gap-1.5">
@@ -209,8 +209,8 @@ export default function ParametricCabinetSection({
                 onClick={() => handleSelectArchetype(arch)}
                 className={`flex flex-col items-center gap-0.5 rounded-lg border px-1 py-1.5 text-[11px] leading-tight transition-colors cursor-pointer ${
                   isSelected
-                    ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
-                    : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                    ? 'border-[#17789E] bg-[#0F5773] text-white'
+                    : 'border-white/[0.08] bg-[#14171C] text-[#C9D1D9] hover:bg-[#1C2027] hover:text-white'
                 }`}
               >
                 <span className="text-sm">{icons[arch.id] || '📦'}</span>
@@ -223,21 +223,21 @@ export default function ParametricCabinetSection({
 
       {/* Name Input */}
       <div>
-        <label className="mb-1 block text-[11px] font-semibold text-slate-400">
+        <label className="mb-1 block text-[11px] font-semibold text-[#8B949E]">
           {isRo ? 'Nume Corp:' : isRu ? 'Название корпуса:' : 'Cabinet Name:'}
         </label>
         <input
           type="text"
           value={cabinetName}
           onChange={(e) => setCabinetName(e.target.value)}
-          className="w-full rounded-lg border border-white/15 bg-slate-950/75 px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-sky-400"
+          className="w-full rounded-lg border border-white/[0.1] bg-[#14171C] px-3 py-1.5 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
         />
       </div>
 
       {/* Dimension Inputs */}
       <div className="grid grid-cols-3 gap-2">
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-slate-400">
+          <label className="mb-1 block text-[11px] font-medium text-[#8B949E]">
             {isRo ? 'Lățime' : isRu ? 'Ширина' : 'Width'}
           </label>
           <div className="flex items-center gap-1">
@@ -247,14 +247,14 @@ export default function ParametricCabinetSection({
               max="150"
               value={widthCm}
               onChange={(e) => setWidthCm(Number(e.target.value))}
-              className="w-full rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
+              className="w-full rounded-md border border-white/[0.1] bg-[#14171C] px-1.5 py-1 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
             />
-            <span className="text-[10px] text-slate-400">cm</span>
+            <span className="text-[10px] text-[#8B949E]">cm</span>
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-slate-400">
+          <label className="mb-1 block text-[11px] font-medium text-[#8B949E]">
             {isRo ? 'Înălțime' : isRu ? 'Высота' : 'Height'}
           </label>
           <div className="flex items-center gap-1">
@@ -264,14 +264,14 @@ export default function ParametricCabinetSection({
               max="260"
               value={heightCm}
               onChange={(e) => setHeightCm(Number(e.target.value))}
-              className="w-full rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
+              className="w-full rounded-md border border-white/[0.1] bg-[#14171C] px-1.5 py-1 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
             />
-            <span className="text-[10px] text-slate-400">cm</span>
+            <span className="text-[10px] text-[#8B949E]">cm</span>
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-slate-400">
+          <label className="mb-1 block text-[11px] font-medium text-[#8B949E]">
             {isRo ? 'Adâncime' : isRu ? 'Глубина' : 'Depth'}
           </label>
           <div className="flex items-center gap-1">
@@ -281,9 +281,9 @@ export default function ParametricCabinetSection({
               max="90"
               value={depthCm}
               onChange={(e) => setDepthCm(Number(e.target.value))}
-              className="w-full rounded-md border border-white/15 bg-white/5 px-1.5 py-1 text-xs text-white outline-none focus:border-sky-400"
+              className="w-full rounded-md border border-white/[0.1] bg-[#14171C] px-1.5 py-1 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
             />
-            <span className="text-[10px] text-slate-400">cm</span>
+            <span className="text-[10px] text-[#8B949E]">cm</span>
           </div>
         </div>
       </div>
@@ -297,8 +297,8 @@ export default function ParametricCabinetSection({
             onClick={() => setWidthCm(sz)}
             className={`rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors cursor-pointer ${
               widthCm === sz
-                ? 'border-sky-400 bg-sky-500/20 text-sky-300'
-                : 'border-white/10 bg-white/5 text-slate-400 hover:text-slate-200'
+                ? 'border-[#17789E] bg-[#0F5773] text-white'
+                : 'border-white/[0.08] bg-[#14171C] text-[#8B949E] hover:text-[#F5F7FA]'
             }`}
           >
             {sz}cm
@@ -309,9 +309,9 @@ export default function ParametricCabinetSection({
       {/* Shelves & Plinth */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] text-slate-300">
+          <label className="text-[11px] text-[#C9D1D9]">
             {isRo ? 'Număr Polițe:' : isRu ? 'Полок:' : 'Shelves:'}{' '}
-            <strong className="text-sky-400">{shelvesCount}</strong>
+            <strong className="text-[#F5F7FA]">{shelvesCount}</strong>
           </label>
           <Slider
             min={0}
@@ -323,9 +323,9 @@ export default function ParametricCabinetSection({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] text-slate-300">
+          <label className="text-[11px] text-[#C9D1D9]">
             {isRo ? 'Soclu / Plintă:' : isRu ? 'Цоколь:' : 'Plinth:'}{' '}
-            <strong className="text-sky-400">{plinthHeightCm}cm</strong>
+            <strong className="text-[#F5F7FA]">{plinthHeightCm}cm</strong>
           </label>
           <Slider
             min={0}
@@ -342,7 +342,7 @@ export default function ParametricCabinetSection({
         type="button"
         onClick={handleAddCabinet}
         disabled={generating}
-        className={`mt-1 w-full rounded-lg bg-gradient-to-br from-sky-600 to-sky-700 p-2.5 text-[13px] font-semibold text-white shadow-[0_4px_12px_rgba(2,132,199,0.35)] hover:brightness-110 transition ${
+        className={`mt-1 w-full rounded-lg border border-[#17789E] bg-[#0F5773] p-2.5 text-[13px] font-semibold text-white hover:bg-[#146E91] transition ${
           generating ? 'cursor-wait opacity-70' : 'cursor-pointer'
         }`}
       >
@@ -352,15 +352,15 @@ export default function ParametricCabinetSection({
       </button>
 
       {/* Production & Workshop Export Tools */}
-      <div className="mt-1 rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
-        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-sky-400">
+      <div className="mt-1 rounded-lg border border-white/[0.08] bg-[#14171C] p-2.5">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#8B949E]">
           {isRo ? 'Producție & Export Atelier (CAD / CNC)' : isRu ? 'Экспорт для производства' : 'Production & Workshop Export'}
         </div>
 
         <div className="flex flex-col gap-1.5">
           <button
             type="button"
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-[#355E43] bg-[#1F3627] px-2.5 py-1.5 text-[11px] font-medium text-white hover:bg-[#2A4935] transition-colors cursor-pointer"
             onClick={handleExportAllCuttingLists}
           >
             <span>📐</span>
@@ -376,7 +376,7 @@ export default function ParametricCabinetSection({
           {onCaptureScreenshot && (
             <button
               type="button"
-              className="flex items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-white/[0.08] bg-[#1C2027] px-2.5 py-1.5 text-[11px] font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
               onClick={onCaptureScreenshot}
             >
               <span>📸</span>

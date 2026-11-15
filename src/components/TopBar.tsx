@@ -121,23 +121,23 @@ export default function TopBar({
       className="pointer-events-none fixed left-3 right-3 top-3 z-20 flex items-center justify-between gap-2"
     >
       {/* Brand Card */}
-      <div className="pointer-events-auto flex min-w-0 items-center gap-2.5 rounded-2xl border border-white/12 bg-[#14171d]/90 px-3.5 py-2 shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-        <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-[9px] bg-gradient-to-br from-[#d4a359] to-[#9b6b29] text-sm font-extrabold text-zinc-950 shadow-[0_4px_12px_rgba(212,163,89,0.25)]">
+      <div className="pointer-events-auto flex min-w-0 items-center gap-2.5 rounded-lg border border-white/[0.08] bg-[#0F1115]/95 px-3 py-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[#17789E] bg-[#0F5773] text-xs font-bold tracking-wider text-white">
           3D
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="truncate text-[0.92rem] font-bold tracking-tight text-zinc-100">
+            <h1 className="truncate text-[0.88rem] font-semibold tracking-tight text-[#F5F7FA]">
               {dict.title}
             </h1>
             {isSharedReadOnly && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/50 bg-gradient-to-r from-emerald-500/25 to-cyan-500/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+              <span className="inline-flex items-center gap-1 rounded-md border border-[#355E43] bg-[#1F3627] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
                 <Eye className="h-3 w-3" />
                 {isRo ? 'Prezentare Client' : isRu ? 'Просмотр Клиента' : 'Client View'}
               </span>
             )}
           </div>
-          <p className="truncate text-[11px] text-zinc-400">
+          <p className="truncate text-[11px] text-[#8B949E]">
             {sharedMeta?.projectName
               ? `${sharedMeta.projectName} • ${sharedMeta.authorName || 'Design 3D'}`
               : dict.subtitle}
@@ -152,9 +152,9 @@ export default function TopBar({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="inline-flex h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border border-white/12 bg-[#14171d]/90 px-3 text-xs font-semibold text-zinc-100 shadow-lg backdrop-blur-xl transition hover:border-white/25 hover:bg-white/10 data-[state=open]:border-amber-400/50 data-[state=open]:bg-amber-500/15 data-[state=open]:text-amber-300"
+              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-white/[0.08] bg-[#0F1115]/95 px-2.5 text-xs font-medium text-[#F5F7FA] shadow-lg backdrop-blur-xl transition hover:border-white/20 hover:bg-[#1C2027] data-[state=open]:border-[#17789E] data-[state=open]:bg-[#0F5773] data-[state=open]:text-white"
             >
-              <FolderOpen className="h-3.5 w-3.5 text-amber-400" />
+              <FolderOpen className="h-3.5 w-3.5 text-[#8B949E]" />
               <span className="hidden lg:inline">
                 {isRo ? 'Proiect' : isRu ? 'Проект' : 'Project'}
               </span>
@@ -167,11 +167,11 @@ export default function TopBar({
               <>
                 <DropdownMenuItem
                   onClick={onOpenUserProfile}
-                  className="border border-sky-500/30 bg-gradient-to-r from-sky-500/15 to-indigo-500/15 hover:from-sky-500/25 hover:to-indigo-500/25"
+                  className="border border-[#17789E]/60 bg-[#0F5773]/25 hover:bg-[#0F5773]/40"
                 >
-                  <Cloud className="h-4 w-4 shrink-0 text-sky-400" />
+                  <Cloud className="h-4 w-4 shrink-0 text-white" />
                   <div className="flex flex-col">
-                    <span className="font-bold text-sky-300">
+                    <span className="font-semibold text-white">
                       {currentUser
                         ? isRo
                           ? `Proiecte Cloud (${currentUser.displayName})`
@@ -182,7 +182,7 @@ export default function TopBar({
                         ? 'Мой профиль и облачные проекты'
                         : 'My Account & Cloud Projects'}
                     </span>
-                    <span className="text-[10px] text-zinc-400">
+                    <span className="text-[10px] text-[#C9D1D9]">
                       {isRo
                         ? 'Salvează și deschide proiectele de pe orice dispozitiv'
                         : isRu
@@ -198,18 +198,18 @@ export default function TopBar({
             {onOpenShareModal && (
               <DropdownMenuItem
                 onClick={onOpenShareModal}
-                className="mb-1 border border-emerald-500/35 bg-gradient-to-r from-emerald-500/15 to-cyan-500/15 hover:from-emerald-500/25 hover:to-cyan-500/25"
+                className="mb-1 border border-[#355E43]/70 bg-[#1F3627]/60 hover:bg-[#2A4935]"
               >
-                <Share2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                <Share2 className="h-4 w-4 shrink-0 text-white" />
                 <div className="flex flex-col">
-                  <span className="font-bold text-emerald-300">
+                  <span className="font-semibold text-white">
                     {isRo
                       ? 'Partajează cu Clientul (Link 3D)'
                       : isRu
                       ? 'Поделиться 3D с клиентом'
                       : 'Share 3D with Client'}
                   </span>
-                  <span className="text-[10px] text-zinc-400">
+                  <span className="text-[10px] text-[#C9D1D9]">
                     {isRo
                       ? 'Link public pentru telefon, tabletă sau PC fără cont'
                       : isRu
@@ -221,16 +221,16 @@ export default function TopBar({
             )}
 
             <DropdownMenuItem onClick={() => onNewProject?.()}>
-              <FilePlus className="h-4 w-4 shrink-0 text-zinc-300" />
+              <FilePlus className="h-4 w-4 shrink-0 text-[#8B949E]" />
               <div className="flex flex-col">
-                <span className="font-semibold">
+                <span className="font-medium text-[#F5F7FA]">
                   {isRo
                     ? 'Proiect Nou (Scenă Curată CAD)'
                     : isRu
                     ? 'Новый проект (Чистая сцена)'
                     : 'New Project (Clean CAD Space)'}
                 </span>
-                <span className="text-[10px] text-zinc-400">
+                <span className="text-[10px] text-[#8B949E]">
                   {isRo
                     ? 'Spațiu de lucru liber cu grilă milimetrică CAD'
                     : 'Clean workspace with millimeter CAD grid'}
@@ -241,16 +241,16 @@ export default function TopBar({
             <DropdownMenuSeparator />
 
             <DropdownMenuItem onClick={() => onSaveProject?.()}>
-              <Save className="h-4 w-4 shrink-0 text-amber-400" />
+              <Save className="h-4 w-4 shrink-0 text-[#8B949E]" />
               <div className="flex flex-col">
-                <span className="font-semibold">
+                <span className="font-medium text-[#F5F7FA]">
                   {isRo
                     ? 'Salvează Proiect (.json / .cadproj)'
                     : isRu
                     ? 'Сохранить проект (.json / .cadproj)'
                     : 'Save Project (.json / .cadproj)'}
                 </span>
-                <span className="text-[10px] text-zinc-400">
+                <span className="text-[10px] text-[#8B949E]">
                   {isRo
                     ? 'Fișier standard cu corpuri, cote și finisaje'
                     : 'Standard project file with models & materials'}
@@ -259,16 +259,16 @@ export default function TopBar({
             </DropdownMenuItem>
 
             <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
-              <Upload className="h-4 w-4 shrink-0 text-sky-400" />
+              <Upload className="h-4 w-4 shrink-0 text-[#8B949E]" />
               <div className="flex flex-col">
-                <span className="font-semibold">
+                <span className="font-medium text-[#F5F7FA]">
                   {isRo
                     ? 'Încarcă Proiect sau Model (.glb, .b3d, .obj)'
                     : isRu
                     ? 'Открыть проект или модель (.glb, .b3d, .obj)'
                     : 'Open Project or 3D Model (.glb, .b3d, .obj)'}
                 </span>
-                <span className="text-[10px] text-zinc-400">
+                <span className="text-[10px] text-[#8B949E]">
                   {isRo
                     ? 'Recunoaște automat modele 3D și proiecte'
                     : 'Auto-detects 3D models & projects'}
@@ -277,36 +277,36 @@ export default function TopBar({
             </DropdownMenuItem>
 
             <DropdownMenuItem onClick={() => onExportSceneGlb?.()}>
-              <Box className="h-4 w-4 shrink-0 text-indigo-400" />
+              <Box className="h-4 w-4 shrink-0 text-[#8B949E]" />
               <div className="flex flex-col">
-                <span className="font-semibold">
+                <span className="font-medium text-[#F5F7FA]">
                   {isRo ? 'Exportă Scenă 3D (.glb)' : isRu ? 'Экспорт 3D сцены (.glb)' : 'Export 3D Scene (.glb)'}
                 </span>
-                <span className="text-[10px] text-zinc-400">
+                <span className="text-[10px] text-[#8B949E]">
                   {isRo ? 'Model 3D complet pentru Blender / 3ds Max' : 'Binary 3D model for rendering'}
                 </span>
               </div>
             </DropdownMenuItem>
 
             <DropdownMenuItem onClick={() => onExportSceneB3D?.()}>
-              <Layers className="h-4 w-4 shrink-0 text-emerald-400" />
+              <Layers className="h-4 w-4 shrink-0 text-[#8B949E]" />
               <div className="flex flex-col">
-                <span className="font-semibold">
+                <span className="font-medium text-[#F5F7FA]">
                   {isRo ? 'Exportă Model Tehnic CAD (.b3d)' : isRu ? 'Экспорт CAD (.b3d)' : 'Export Technical CAD (.b3d)'}
                 </span>
-                <span className="text-[10px] text-zinc-400">
+                <span className="text-[10px] text-[#8B949E]">
                   {isRo ? 'Panouri (mm), canturi ABS și feronerie' : 'Panels (mm), ABS edge bands & hardware'}
                 </span>
               </div>
             </DropdownMenuItem>
 
             <DropdownMenuItem onClick={() => onExportSceneObj?.()}>
-              <Box className="h-4 w-4 shrink-0 text-zinc-400" />
+              <Box className="h-4 w-4 shrink-0 text-[#8B949E]" />
               <div className="flex flex-col">
-                <span className="font-semibold">
+                <span className="font-medium text-[#F5F7FA]">
                   {isRo ? 'Exportă Geometrie CAD (.obj + .mtl)' : isRu ? 'Экспорт геометрии (.obj + .mtl)' : 'Export CAD Geometry (.obj + .mtl)'}
                 </span>
-                <span className="text-[10px] text-zinc-400">
+                <span className="text-[10px] text-[#8B949E]">
                   {isRo ? 'Format geometric universal CAD & CNC' : 'Universal geometric format for CAD & CNC'}
                 </span>
               </div>
@@ -316,9 +316,9 @@ export default function TopBar({
 
             {onToggle2DPlanMode && (
               <DropdownMenuItem onClick={onToggle2DPlanMode}>
-                <Map className="h-4 w-4 shrink-0 text-cyan-400" />
+                <Map className="h-4 w-4 shrink-0 text-[#8B949E]" />
                 <div className="flex flex-col">
-                  <span className="font-semibold">
+                  <span className="font-medium text-[#F5F7FA]">
                     {is2DPlanMode
                       ? isRo
                         ? 'Comută la Vedere 3D CAD'
@@ -331,7 +331,7 @@ export default function TopBar({
                       ? '2D Архитектурный план'
                       : '2D Floor Plan'}
                   </span>
-                  <span className="text-[10px] text-zinc-400">
+                  <span className="text-[10px] text-[#8B949E]">
                     {isRo ? 'Vedere tehnică de sus cu pereți și cote' : 'Top-down layout of room & furniture'}
                   </span>
                 </div>
@@ -340,16 +340,16 @@ export default function TopBar({
 
             {onOpenPhotorealRender && (
               <DropdownMenuItem onClick={onOpenPhotorealRender}>
-                <Sparkles className="h-4 w-4 shrink-0 text-amber-300" />
+                <Sparkles className="h-4 w-4 shrink-0 text-[#F5F7FA]" />
                 <div className="flex flex-col">
-                  <span className="font-bold text-amber-200">
+                  <span className="font-semibold text-white">
                     {isRo
                       ? 'Studio Randare 3D Fotorealistă'
                       : isRu
                       ? 'Фотореалистичный 3D Рендер'
                       : 'Photorealistic 3D Render Studio'}
                   </span>
-                  <span className="text-[10px] text-zinc-400">
+                  <span className="text-[10px] text-[#8B949E]">
                     {isRo ? 'Umbre moi, iluminare 5500K și export 4K' : 'Soft shadows, lighting & 4K export'}
                   </span>
                 </div>
@@ -357,16 +357,16 @@ export default function TopBar({
             )}
 
             <DropdownMenuItem onClick={() => onOpenTechnicalReport?.()}>
-              <FileSpreadsheet className="h-4 w-4 shrink-0 text-amber-400" />
+              <FileSpreadsheet className="h-4 w-4 shrink-0 text-[#8B949E]" />
               <div className="flex flex-col">
-                <span className="font-semibold">
+                <span className="font-medium text-[#F5F7FA]">
                   {isRo
                     ? 'Fișă Tehnică & Raport Fabricație'
                     : isRu
                     ? 'Техническая карта'
                     : 'Technical Spec & Cutting List'}
                 </span>
-                <span className="text-[10px] text-zinc-400">
+                <span className="text-[10px] text-[#8B949E]">
                   {isRo ? 'Tabel debitare, suprafețe m² și consum PAL' : 'Cutting list & board area'}
                 </span>
               </div>
@@ -389,10 +389,10 @@ export default function TopBar({
               type="button"
               onClick={onToggleMagneticSnap}
               className={cn(
-                'hidden h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border px-2.5 text-xs font-semibold shadow-lg backdrop-blur-xl transition md:inline-flex',
+                'hidden h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium shadow-lg backdrop-blur-xl transition md:inline-flex',
                 magneticSnapEnabled
-                  ? 'border-amber-400/50 bg-amber-500/15 text-amber-300'
-                  : 'border-white/12 bg-[#14171d]/90 text-zinc-300 hover:bg-white/10'
+                  ? 'border-[#17789E] bg-[#0F5773] text-white'
+                  : 'border-white/[0.08] bg-[#0F1115]/95 text-[#C9D1D9] hover:bg-[#1C2027]'
               )}
             >
               <Magnet className="h-3.5 w-3.5" />
@@ -410,9 +410,9 @@ export default function TopBar({
             <button
               type="button"
               onClick={onOpenPhotorealRender || onCaptureScreenshot}
-              className="inline-flex h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border border-amber-500/45 bg-gradient-to-r from-amber-500/20 to-pink-500/15 px-3 text-xs font-semibold text-amber-200 shadow-lg backdrop-blur-xl transition hover:from-amber-500/30 hover:to-pink-500/25"
+              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-[#17789E] bg-[#0F5773] px-2.5 text-xs font-medium text-white shadow-lg backdrop-blur-xl transition hover:bg-[#146E91]"
             >
-              <Camera className="h-3.5 w-3.5 text-amber-300" />
+              <Camera className="h-3.5 w-3.5" />
               <span className="hidden lg:inline">
                 {isRo ? 'Render Foto 3D' : isRu ? '3D Рендер' : '3D Render'}
               </span>
@@ -430,9 +430,9 @@ export default function TopBar({
               <button
                 type="button"
                 onClick={onOpenShareModal}
-                className="inline-flex h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border border-emerald-500/50 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 px-3 text-xs font-semibold text-emerald-200 shadow-lg backdrop-blur-xl transition hover:from-emerald-500/30 hover:to-cyan-500/30"
+                className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-[#355E43] bg-[#1F3627] px-2.5 text-xs font-medium text-white shadow-lg backdrop-blur-xl transition hover:bg-[#2A4935]"
               >
-                <Share2 className="h-3.5 w-3.5 text-emerald-300" />
+                <Share2 className="h-3.5 w-3.5" />
                 <span className="hidden lg:inline">
                   {isRo ? 'Partajează' : isRu ? 'Поделиться' : 'Share 3D'}
                 </span>
@@ -452,7 +452,7 @@ export default function TopBar({
               id="btn-top-undo"
               disabled={!canUndo}
               onClick={onUndo}
-              className="hidden h-8.5 cursor-pointer items-center gap-1 rounded-xl border border-white/12 bg-[#14171d]/90 px-2.5 text-xs font-semibold text-zinc-200 shadow-lg backdrop-blur-xl transition hover:bg-white/10 disabled:pointer-events-none disabled:opacity-35 md:inline-flex"
+              className="hidden h-8 cursor-pointer items-center gap-1 rounded-lg border border-white/[0.08] bg-[#0F1115]/95 px-2.5 text-xs font-medium text-[#C9D1D9] shadow-lg backdrop-blur-xl transition hover:bg-[#1C2027] hover:text-white disabled:pointer-events-none disabled:opacity-35 md:inline-flex"
             >
               <Undo2 className="h-3.5 w-3.5" />
               <span className="hidden xl:inline">{dict.undoBtn}</span>
@@ -468,7 +468,7 @@ export default function TopBar({
               id="btn-top-redo"
               disabled={!canRedo}
               onClick={onRedo}
-              className="hidden h-8.5 cursor-pointer items-center gap-1 rounded-xl border border-white/12 bg-[#14171d]/90 px-2.5 text-xs font-semibold text-zinc-200 shadow-lg backdrop-blur-xl transition hover:bg-white/10 disabled:pointer-events-none disabled:opacity-35 md:inline-flex"
+              className="hidden h-8 cursor-pointer items-center gap-1 rounded-lg border border-white/[0.08] bg-[#0F1115]/95 px-2.5 text-xs font-medium text-[#C9D1D9] shadow-lg backdrop-blur-xl transition hover:bg-[#1C2027] hover:text-white disabled:pointer-events-none disabled:opacity-35 md:inline-flex"
             >
               <Redo2 className="h-3.5 w-3.5" />
               <span className="hidden xl:inline">{dict.redoBtn}</span>
@@ -485,13 +485,13 @@ export default function TopBar({
               id="btn-top-dims"
               onClick={onToggleDims}
               className={cn(
-                'inline-flex h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border px-2.5 text-xs font-semibold shadow-lg backdrop-blur-xl transition',
+                'inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium shadow-lg backdrop-blur-xl transition',
                 dimsEnabled && !isTapeActive
-                  ? 'border-amber-400/55 bg-amber-500/20 text-amber-200'
-                  : 'border-white/12 bg-[#14171d]/90 text-zinc-200 hover:bg-white/10'
+                  ? 'border-[#17789E] bg-[#0F5773] text-white'
+                  : 'border-white/[0.08] bg-[#0F1115]/95 text-[#C9D1D9] hover:bg-[#1C2027]'
               )}
             >
-              <Ruler className="h-3.5 w-3.5 text-amber-400" />
+              <Ruler className="h-3.5 w-3.5" />
               <span className="hidden lg:inline">{dict.showDims}</span>
             </button>
           </TooltipTrigger>
@@ -508,13 +508,13 @@ export default function TopBar({
               id="btn-top-tape"
               onClick={onToggleTapeMeasure}
               className={cn(
-                'inline-flex h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border px-2.5 text-xs font-semibold shadow-lg backdrop-blur-xl transition',
+                'inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium shadow-lg backdrop-blur-xl transition',
                 isTapeActive
-                  ? 'border-rose-500/70 bg-rose-500/25 text-rose-200 shadow-[0_0_18px_rgba(244,63,94,0.25)]'
-                  : 'border-white/12 bg-[#14171d]/90 text-zinc-200 hover:bg-white/10'
+                  ? 'border-[#355E43] bg-[#1F3627] text-white'
+                  : 'border-white/[0.08] bg-[#0F1115]/95 text-[#C9D1D9] hover:bg-[#1C2027]'
               )}
             >
-              <Crosshair className={cn('h-3.5 w-3.5', isTapeActive ? 'text-rose-300' : 'text-rose-400')} />
+              <Crosshair className="h-3.5 w-3.5" />
               <span className="hidden lg:inline">
                 {dict.dimModeTape || (isRo ? 'Ruletă (2 Puncte)' : 'Tape Measure')}
               </span>
@@ -528,17 +528,17 @@ export default function TopBar({
         </Tooltip>
 
         {/* Language Switch */}
-        <div className="hidden items-center rounded-xl border border-white/12 bg-[#14171d]/90 p-0.5 shadow-lg backdrop-blur-xl sm:inline-flex">
+        <div className="hidden items-center rounded-lg border border-white/[0.08] bg-[#0F1115]/95 p-0.5 shadow-lg backdrop-blur-xl sm:inline-flex">
           {['en', 'ru', 'ro'].map((l) => (
             <button
               type="button"
               key={l}
               onClick={() => onChangeLang(l)}
               className={cn(
-                'cursor-pointer rounded-lg px-2 py-1 text-[11px] font-bold transition',
+                'cursor-pointer rounded-md px-2 py-1 text-[11px] font-semibold transition',
                 lang === l
-                  ? 'bg-amber-500/25 text-amber-300'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-[#0F5773] text-white'
+                  : 'text-[#8B949E] hover:text-[#F5F7FA]'
               )}
             >
               {l.toUpperCase()}
@@ -552,10 +552,10 @@ export default function TopBar({
           id="btn-toggle-panel"
           onClick={onTogglePanel}
           className={cn(
-            'inline-flex h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold shadow-lg backdrop-blur-xl transition',
+            'inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium shadow-lg backdrop-blur-xl transition',
             panelOpen
-              ? 'border-amber-400/55 bg-amber-500/20 text-amber-200'
-              : 'border-white/12 bg-[#14171d]/90 text-zinc-100 hover:bg-white/10'
+              ? 'border-[#17789E] bg-[#0F5773] text-white'
+              : 'border-white/[0.08] bg-[#0F1115]/95 text-[#F5F7FA] hover:bg-[#1C2027]'
           )}
         >
           <SlidersHorizontal className="h-3.5 w-3.5" />

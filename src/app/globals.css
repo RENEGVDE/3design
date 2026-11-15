@@ -3,28 +3,28 @@
 @source "../app";
 
 @theme {
-  --color-studio-bg: #111317;
-  --color-studio-panel: rgba(20, 23, 29, 0.90);
-  --color-studio-accent: #d4a359;
-  --color-studio-cyan: #38bdf8;
-  --color-studio-paint: #a855f7;
+  --color-studio-bg: #090a0c;
+  --color-studio-panel: rgba(15, 17, 21, 0.94);
+  --color-studio-surface: #14171c;
+  --color-studio-surface-hover: #1c2027;
+  --color-studio-green: #1f3627;
+  --color-studio-blue: #0f5773;
 }
 
 @layer base {
   :root {
-    --bg-dark: #111317;
-    --panel-bg: rgba(20, 23, 29, 0.90);
-    --panel-border: rgba(255, 255, 255, 0.12);
-    --accent: #d4a359;
-    --accent-hover: #e3b56b;
-    --accent-glow: rgba(212, 163, 89, 0.25);
-    --cyan: #38bdf8;
-    --cyan-glow: rgba(56, 189, 248, 0.24);
-    --paint: #a855f7;
-    --paint-glow: rgba(168, 85, 247, 0.28);
-    --text-main: #f3f4f6;
-    --text-muted: #9ca3af;
-    --success: #34d399;
+    --bg-dark: #090a0c;
+    --panel-bg: rgba(15, 17, 21, 0.94);
+    --panel-border: rgba(255, 255, 255, 0.08);
+    --surface-1: #14171c;
+    --surface-2: #1c2027;
+    --accent: #0f5773;
+    --accent-hover: #146e91;
+    --accent-glow: rgba(15, 87, 115, 0.25);
+    --green: #1f3627;
+    --green-hover: #2a4935;
+    --text-main: #f5f7fa;
+    --text-muted: #8b949e;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-left: env(safe-area-inset-left, 0px);

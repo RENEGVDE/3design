@@ -63,15 +63,15 @@ export default function MaterialStudioSection({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#8B949E]">
         <span>🎨 {dict.customStudioTitle}</span>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-slate-900/50 p-3">
+      <div className="flex flex-col gap-3 rounded-xl border border-white/[0.08] bg-[#14171C] p-3">
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-amber-400/35 bg-amber-500/15 px-2.5 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/25 transition-colors cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#17789E] bg-[#0F5773] px-2.5 py-2 text-xs font-semibold text-white hover:bg-[#146E91] transition-colors cursor-pointer"
             onClick={() => fileInputRef.current && fileInputRef.current.click()}
           >
             <span>📸</span>
@@ -80,7 +80,7 @@ export default function MaterialStudioSection({
 
           <button
             type="button"
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/[0.08] bg-[#1C2027] px-2.5 py-2 text-xs font-medium text-[#F5F7FA] hover:bg-[#262B34] transition-colors cursor-pointer"
             onClick={() => colorInputRef.current && colorInputRef.current.click()}
           >
             <span>🎨</span>
@@ -107,7 +107,7 @@ export default function MaterialStudioSection({
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/[0.08] bg-[#1C2027] px-2.5 py-1.5 text-xs font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
             onClick={onResetFurnitureToWhite}
           >
             <span>🔄</span>
@@ -116,7 +116,7 @@ export default function MaterialStudioSection({
 
           <button
             type="button"
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-rose-500/35 bg-rose-500/10 px-2.5 py-1.5 text-xs font-medium text-rose-300 hover:bg-rose-500/20 transition-colors cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/[0.08] bg-[#1C2027] px-2.5 py-1.5 text-xs font-medium text-[#C9D1D9] hover:border-red-500/50 hover:bg-red-950/40 hover:text-red-200 transition-colors cursor-pointer"
             onClick={onDeleteAllMaterials}
           >
             <span>🗑️</span>
@@ -126,7 +126,7 @@ export default function MaterialStudioSection({
 
         <div className="grid grid-cols-3 gap-2">
           {materials.length === 0 ? (
-            <div className="col-span-full py-2.5 px-1.5 text-center text-[11.5px] text-slate-400">
+            <div className="col-span-full py-2.5 px-1.5 text-center text-[11.5px] text-[#8B949E]">
               {dict.emptyMatHint}
             </div>
           ) : (
@@ -137,22 +137,22 @@ export default function MaterialStudioSection({
                   key={mat.id}
                   className={`group relative flex cursor-pointer flex-col items-center gap-1 rounded-lg border p-1.5 transition-all ${
                     isSelected
-                      ? 'border-amber-400 bg-amber-500/15 shadow-[0_0_12px_rgba(212,163,89,0.2)]'
-                      : 'border-white/10 bg-slate-950/60 hover:border-white/25'
+                      ? 'border-[#17789E] bg-[#0F5773]/30'
+                      : 'border-white/[0.08] bg-[#0F1115] hover:border-white/25'
                   }`}
                   title={mat.name}
                   onClick={() => onSelectMaterial(mat.id)}
                 >
                   <div
-                    className="h-9 w-full rounded border border-white/15"
+                    className="h-9 w-full rounded border border-white/[0.12]"
                     style={{ background: mat.thumbCss }}
                   />
-                  <div className="w-full truncate text-center text-[10.5px] font-medium text-slate-200">
+                  <div className="w-full truncate text-center text-[10.5px] font-medium text-[#C9D1D9]">
                     {mat.name}
                   </div>
                   <button
                     type="button"
-                    className="absolute -right-1.5 -top-1.5 hidden h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[10px] font-bold text-white shadow group-hover:flex cursor-pointer"
+                    className="absolute -right-1.5 -top-1.5 hidden h-4 w-4 items-center justify-center rounded-full bg-[#1C2027] border border-white/20 text-[10px] font-bold text-white shadow group-hover:flex cursor-pointer hover:bg-red-700"
                     title="Șterge materialul"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -167,10 +167,10 @@ export default function MaterialStudioSection({
           )}
         </div>
 
-        <div className="flex flex-col gap-2 rounded-lg border border-white/10 bg-black/25 p-2.5">
-          <div className="flex items-center justify-between text-xs text-slate-300">
+        <div className="flex flex-col gap-2 rounded-lg border border-white/[0.08] bg-[#0F1115] p-2.5">
+          <div className="flex items-center justify-between text-xs text-[#C9D1D9]">
             <span>{dict.grainScaleLbl}</span>
-            <span className="font-mono font-semibold text-amber-300">
+            <span className="font-mono font-semibold text-[#F5F7FA]">
               {activeMat ? `${activeMat.scale.toFixed(1)}x` : '1.0x'}
             </span>
           </div>
@@ -185,7 +185,7 @@ export default function MaterialStudioSection({
           <div className="grid grid-cols-2 gap-1.5 pt-1">
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 disabled:opacity-40 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center rounded-md border border-white/[0.08] bg-[#1C2027] px-2 py-1.5 text-[11px] font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white disabled:opacity-40 transition-colors cursor-pointer"
               disabled={!activeMat}
               onClick={() =>
                 onUpdateActiveMaterialProp('rotate90', activeMat ? !activeMat.rotate90 : false)
@@ -198,7 +198,7 @@ export default function MaterialStudioSection({
 
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/10 disabled:opacity-40 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center rounded-md border border-white/[0.08] bg-[#1C2027] px-2 py-1.5 text-[11px] font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white disabled:opacity-40 transition-colors cursor-pointer"
               disabled={!activeMat}
               onClick={() =>
                 onUpdateActiveMaterialProp(
@@ -216,8 +216,8 @@ export default function MaterialStudioSection({
           type="button"
           className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border px-2.5 py-2 text-xs font-semibold transition-colors cursor-pointer ${
             paintModeActive
-              ? 'border-purple-400 bg-purple-500/25 text-purple-200 shadow-[0_0_16px_rgba(168,85,247,0.3)]'
-              : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+              ? 'border-[#355E43] bg-[#1F3627] text-white'
+              : 'border-white/[0.08] bg-[#1C2027] text-[#C9D1D9] hover:bg-[#262B34] hover:text-white'
           }`}
           onClick={onTogglePaintMode}
         >
@@ -226,13 +226,13 @@ export default function MaterialStudioSection({
         </button>
 
         <div className="mt-1 flex flex-col gap-1.5">
-          <div className="text-[11.5px] font-semibold text-slate-400">
+          <div className="text-[11.5px] font-semibold text-[#8B949E]">
             {isRo ? 'Aplicare Finisaj Activ pe Mobilier:' : isRu ? 'Применить активный материал:' : 'Apply Active Material to Furniture:'}
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             <button
               type="button"
-              className="inline-flex items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 px-1.5 py-1.5 text-[11.5px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1 rounded-lg border border-white/[0.08] bg-[#1C2027] px-1.5 py-1.5 text-[11.5px] font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
               title={isRo ? 'Aplică finisajul pe corpul CAD selectat în scenă' : 'Apply to selected model'}
               onClick={onApplyToSelectedModel}
             >
@@ -241,7 +241,7 @@ export default function MaterialStudioSection({
             </button>
             <button
               type="button"
-              className="inline-flex items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 px-1.5 py-1.5 text-[11.5px] font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1 rounded-lg border border-white/[0.08] bg-[#1C2027] px-1.5 py-1.5 text-[11.5px] font-medium text-[#C9D1D9] hover:bg-[#262B34] hover:text-white transition-colors cursor-pointer"
               title={isRo ? 'Aplică finisajul pe toate corpurile de mobilier din scenă' : 'Apply to all models in scene'}
               onClick={onApplyToAllModels}
             >

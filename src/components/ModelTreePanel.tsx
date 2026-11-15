@@ -81,18 +81,18 @@ export default function ModelTreePanel({
   return (
     <div className="flex flex-col gap-3">
       {/* Quick Add Custom Panel Action */}
-      <div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2.5">
+      <div className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.08] bg-[#14171C] px-3 py-2.5">
         <div>
-          <strong className="block text-[13px] font-bold text-slate-50">
+          <strong className="block text-[13px] font-semibold text-[#F5F7FA]">
             {isRo ? 'Corpuri & Piese CAD' : isRu ? 'Модули и детали CAD' : 'CAD Modules & Panels'}
           </strong>
-          <small className="text-[11px] text-slate-400">
+          <small className="text-[11px] text-[#8B949E]">
             {importedModels.length} {isRo ? 'corpuri de mobilier în scenă' : 'cabinets in scene'}
           </small>
         </div>
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 px-2.5 py-1.5 text-[11.5px] font-semibold text-slate-950 whitespace-nowrap hover:brightness-110 transition cursor-pointer"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[#17789E] bg-[#0F5773] px-2.5 py-1.5 text-[11.5px] font-semibold text-white whitespace-nowrap hover:bg-[#146E91] transition cursor-pointer"
           onClick={() => setNewPanelModalOpen(true)}
         >
           <span>➕</span>
@@ -101,8 +101,8 @@ export default function ModelTreePanel({
       </div>
 
       {/* Hierarchical Model Structural Tree */}
-      <div className="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/50">
-        <div className="flex items-center gap-2 border-b border-white/10 bg-black/25 px-3 py-2 text-xs font-bold text-slate-100">
+      <div className="flex flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-[#14171C]">
+        <div className="flex items-center gap-2 border-b border-white/[0.08] bg-[#0F1115] px-3 py-2 text-xs font-semibold text-[#F5F7FA]">
           <span className="text-base">🌲</span>
           <strong>{isRo ? 'Arbore Structură Model' : isRu ? 'Структурное дерево модели' : 'Model Structure Tree'}</strong>
         </div>
@@ -110,10 +110,10 @@ export default function ModelTreePanel({
         <div className="max-h-[460px] overflow-y-auto p-2 text-xs">
           {/* Root Project Node */}
           <div>
-            <div className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-slate-100 hover:bg-white/5">
+            <div className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[#F5F7FA] hover:bg-[#1C2027]">
               <button
                 type="button"
-                className="w-4 text-center text-[10px] text-slate-400 hover:text-white cursor-pointer"
+                className="w-4 text-center text-[10px] text-[#8B949E] hover:text-white cursor-pointer"
                 onClick={() => toggleNode('root')}
               >
                 {expandedNodes.root ? '▼' : '▶'}
@@ -125,13 +125,13 @@ export default function ModelTreePanel({
             </div>
 
             {expandedNodes.root && (
-              <div className="ml-3 flex flex-col gap-1 border-l border-white/10 pl-2 pt-1">
+              <div className="ml-3 flex flex-col gap-1 border-l border-white/[0.08] pl-2 pt-1">
                 {/* 1. Custom Imported & Parametric Furniture Modules Node */}
                 <div>
-                  <div className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-slate-200 hover:bg-white/5">
+                  <div className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[#C9D1D9] hover:bg-[#1C2027]">
                     <button
                       type="button"
-                      className="w-4 text-center text-[10px] text-slate-400 hover:text-white cursor-pointer"
+                      className="w-4 text-center text-[10px] text-[#8B949E] hover:text-white cursor-pointer"
                       onClick={() => toggleNode('furnitureModels')}
                     >
                       {expandedNodes.furnitureModels ? '▼' : '▶'}
@@ -139,14 +139,14 @@ export default function ModelTreePanel({
                     <span>📦</span>
                     <span className="truncate font-semibold">
                       {isRo ? 'Corpuri de Mobilier Parametrice' : isRu ? 'Параметрические модули мебели' : 'Furniture Cabinets'}
-                      <small className="ml-1.5 text-slate-400">({importedModels.length})</small>
+                      <small className="ml-1.5 text-[#8B949E]">({importedModels.length})</small>
                     </span>
                   </div>
 
                   {expandedNodes.furnitureModels && (
-                    <div className="ml-3 flex flex-col gap-1.5 border-l border-white/10 pl-2 pt-1">
+                    <div className="ml-3 flex flex-col gap-1.5 border-l border-white/[0.08] pl-2 pt-1">
                       {importedModels.length === 0 ? (
-                        <div className="px-3 py-1.5 text-[11px] italic text-slate-500">
+                        <div className="px-3 py-1.5 text-[11px] italic text-[#8B949E]">
                           {isRo ? 'Niciun corp creat încă. Adaugă dulapuri, comode, dressinguri sau bucătării modulare.' : isRu ? 'Нет добавленных модулей. Создайте мебель во вкладке CAD.' : 'No custom cabinets yet. Create one in Furniture CAD tab.'}
                         </div>
                       ) : (
@@ -160,8 +160,8 @@ export default function ModelTreePanel({
                               key={model.id || idx}
                               className={`overflow-hidden rounded-lg border transition-colors ${
                                 isSelected
-                                  ? 'border-sky-400/70 bg-sky-500/15'
-                                  : 'border-white/10 bg-slate-950/60 hover:border-white/20'
+                                  ? 'border-[#17789E] bg-[#0F5773]/30'
+                                  : 'border-white/[0.08] bg-[#0F1115] hover:border-white/20'
                               }`}
                             >
                               <div
@@ -170,16 +170,16 @@ export default function ModelTreePanel({
                               >
                                 <span>🛋️</span>
                                 <div className="min-w-0 flex-1">
-                                  <div className="truncate text-xs font-semibold text-slate-100">
+                                  <div className="truncate text-xs font-semibold text-[#F5F7FA]">
                                     {model.name || `Corp #${idx + 1}`}
                                   </div>
-                                  <div className="truncate text-[10.5px] text-slate-400">
+                                  <div className="truncate text-[10.5px] text-[#8B949E]">
                                     {model.furnitureConfig?.category || 'Corp Mobilier'} • {cuttingList.length} {isRo ? 'piese' : 'repere'}
                                   </div>
                                 </div>
                                 <button
                                   type="button"
-                                  className="rounded px-1 py-0.5 text-xs hover:bg-white/10 cursor-pointer"
+                                  className="rounded px-1 py-0.5 text-xs hover:bg-[#1C2027] cursor-pointer"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (onTogglePartVisibility) onTogglePartVisibility(model.id);
@@ -191,7 +191,7 @@ export default function ModelTreePanel({
                                 {onDeleteModel && (
                                   <button
                                     type="button"
-                                    className="rounded px-1 py-0.5 text-xs text-red-400 hover:bg-red-500/15 cursor-pointer"
+                                    className="rounded px-1 py-0.5 text-xs text-[#8B949E] hover:bg-red-950/50 hover:text-red-300 cursor-pointer"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       onDeleteModel(model.id);
@@ -205,12 +205,12 @@ export default function ModelTreePanel({
 
                               {/* Sub-panels inside cabinet */}
                               {cuttingList.length > 0 && (
-                                <div className="flex flex-col gap-0.5 border-t border-white/10 bg-black/25 px-2 py-1.5">
+                                <div className="flex flex-col gap-0.5 border-t border-white/[0.08] bg-[#090A0C]/60 px-2 py-1.5">
                                   {cuttingList.map((p: any, pIdx: number) => (
-                                    <div key={pIdx} className="flex items-center gap-1.5 text-[10.5px] text-slate-300">
-                                      <span className="text-sky-400">▫</span>
+                                    <div key={pIdx} className="flex items-center gap-1.5 text-[10.5px] text-[#C9D1D9]">
+                                      <span className="text-[#8B949E]">▫</span>
                                       <span className="min-w-0 flex-1 truncate">{p.partName || p.name}</span>
-                                      <span className="font-mono text-slate-400">
+                                      <span className="font-mono text-[#8B949E]">
                                         {p.lengthMm || p.length}×{p.widthMm || p.width} mm
                                       </span>
                                     </div>
@@ -227,10 +227,10 @@ export default function ModelTreePanel({
 
                 {/* 2. Appliances Node */}
                 <div>
-                  <div className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-slate-200 hover:bg-white/5">
+                  <div className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[#C9D1D9] hover:bg-[#1C2027]">
                     <button
                       type="button"
-                      className="w-4 text-center text-[10px] text-slate-400 hover:text-white cursor-pointer"
+                      className="w-4 text-center text-[10px] text-[#8B949E] hover:text-white cursor-pointer"
                       onClick={() => toggleNode('appliancesNode')}
                     >
                       {expandedNodes.appliancesNode ? '▼' : '▶'}
@@ -238,14 +238,14 @@ export default function ModelTreePanel({
                     <span>🍳</span>
                     <span className="truncate font-semibold">
                       {isRo ? 'Electrocasnice & Dotări Tehnice' : isRu ? 'Встраиваемая техника' : 'Built-in Appliances'}
-                      <small className="ml-1.5 text-slate-400">({appliances.length})</small>
+                      <small className="ml-1.5 text-[#8B949E]">({appliances.length})</small>
                     </span>
                   </div>
 
                   {expandedNodes.appliancesNode && (
-                    <div className="ml-3 flex flex-col gap-1.5 border-l border-white/10 pl-2 pt-1">
+                    <div className="ml-3 flex flex-col gap-1.5 border-l border-white/[0.08] pl-2 pt-1">
                       {appliances.length === 0 ? (
-                        <div className="px-3 py-1.5 text-[11px] italic text-slate-500">
+                        <div className="px-3 py-1.5 text-[11px] italic text-[#8B949E]">
                           {isRo ? 'Niciun aparat electrocasnic adăugat încă. Deschide secțiunea "Tehnică & Dotări".' : isRu ? 'Техника не добавлена.' : 'No appliances added yet.'}
                         </div>
                       ) : (
@@ -257,8 +257,8 @@ export default function ModelTreePanel({
                               key={app.id || idx}
                               className={`overflow-hidden rounded-lg border transition-colors ${
                                 isSelected
-                                  ? 'border-sky-400/70 bg-sky-500/15'
-                                  : 'border-white/10 bg-slate-950/60 hover:border-white/20'
+                                  ? 'border-[#17789E] bg-[#0F5773]/30'
+                                  : 'border-white/[0.08] bg-[#0F1115] hover:border-white/20'
                               }`}
                             >
                               <div
@@ -267,14 +267,14 @@ export default function ModelTreePanel({
                               >
                                 <span>⚡</span>
                                 <div className="min-w-0 flex-1">
-                                  <div className="truncate text-xs font-semibold text-slate-100">{app.name}</div>
-                                  <div className="truncate text-[10.5px] text-slate-400">
+                                  <div className="truncate text-xs font-semibold text-[#F5F7FA]">{app.name}</div>
+                                  <div className="truncate text-[10.5px] text-[#8B949E]">
                                     {app.dimensions?.width}×{app.dimensions?.height} mm • {app.powerKw > 0 ? `${app.powerKw} kW` : 'Plumbing'}
                                   </div>
                                 </div>
                                 <button
                                   type="button"
-                                  className="rounded px-1 py-0.5 text-xs hover:bg-white/10 cursor-pointer"
+                                  className="rounded px-1 py-0.5 text-xs hover:bg-[#1C2027] cursor-pointer"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (onTogglePartVisibility) onTogglePartVisibility(app.id);
@@ -286,7 +286,7 @@ export default function ModelTreePanel({
                                 {onDeleteModel && (
                                   <button
                                     type="button"
-                                    className="rounded px-1 py-0.5 text-xs text-red-400 hover:bg-red-500/15 cursor-pointer"
+                                    className="rounded px-1 py-0.5 text-xs text-[#8B949E] hover:bg-red-950/50 hover:text-red-300 cursor-pointer"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       onDeleteModel(app.id);
@@ -325,19 +325,19 @@ export default function ModelTreePanel({
 
           <div className="flex flex-col gap-3 pt-1">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-300">
+              <label className="mb-1 block text-xs font-semibold text-[#C9D1D9]">
                 {isRo ? 'Denumire Piesă:' : isRu ? 'Название детали:' : 'Part Name:'}
               </label>
               <input
                 type="text"
-                className="w-full rounded-lg border border-white/15 bg-slate-950/75 px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-sky-400"
+                className="w-full rounded-lg border border-white/[0.1] bg-[#14171C] px-3 py-1.5 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                 value={newPanelConfig.name}
                 onChange={(e) => setNewPanelConfig({ ...newPanelConfig, name: e.target.value })}
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-300">
+              <label className="mb-1 block text-xs font-semibold text-[#C9D1D9]">
                 {isRo ? 'Orientare Spațială:' : isRu ? 'Ориентация в пространстве:' : 'Orientation:'}
               </label>
               <div className="grid grid-cols-3 gap-1.5">
@@ -353,8 +353,8 @@ export default function ModelTreePanel({
                       type="button"
                       className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
                         isActive
-                          ? 'border-amber-400/50 bg-amber-500/20 text-amber-300'
-                          : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                          ? 'border-[#17789E] bg-[#0F5773] text-white'
+                          : 'border-white/[0.08] bg-[#14171C] text-[#C9D1D9] hover:bg-[#1C2027]'
                       }`}
                       onClick={() => setNewPanelConfig({ ...newPanelConfig, orientation: o.id })}
                     >
@@ -367,23 +367,23 @@ export default function ModelTreePanel({
 
             <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-300">
+                <label className="mb-1 block text-xs font-semibold text-[#C9D1D9]">
                   {isRo ? 'Lungime (mm):' : isRu ? 'Длина (мм):' : 'Length (mm):'}
                 </label>
                 <input
                   type="number"
-                  className="w-full rounded-lg border border-white/15 bg-slate-950/75 px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-sky-400"
+                  className="w-full rounded-lg border border-white/[0.1] bg-[#14171C] px-3 py-1.5 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                   value={newPanelConfig.lengthMm}
                   onChange={(e) => setNewPanelConfig({ ...newPanelConfig, lengthMm: Number(e.target.value) })}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-300">
+                <label className="mb-1 block text-xs font-semibold text-[#C9D1D9]">
                   {isRo ? 'Lățime (mm):' : isRu ? 'Ширина (мм):' : 'Width (mm):'}
                 </label>
                 <input
                   type="number"
-                  className="w-full rounded-lg border border-white/15 bg-slate-950/75 px-3 py-1.5 text-xs text-slate-100 outline-none focus:border-sky-400"
+                  className="w-full rounded-lg border border-white/[0.1] bg-[#14171C] px-3 py-1.5 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                   value={newPanelConfig.widthMm}
                   onChange={(e) => setNewPanelConfig({ ...newPanelConfig, widthMm: Number(e.target.value) })}
                 />
@@ -392,11 +392,11 @@ export default function ModelTreePanel({
 
             <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-300">
+                <label className="mb-1 block text-xs font-semibold text-[#C9D1D9]">
                   {isRo ? 'Grosime:' : isRu ? 'Толщина:' : 'Thickness:'}
                 </label>
                 <select
-                  className="w-full rounded-lg border border-white/15 bg-slate-950/75 px-2.5 py-1.5 text-xs text-slate-100 outline-none focus:border-sky-400"
+                  className="w-full rounded-lg border border-white/[0.1] bg-[#14171C] px-2.5 py-1.5 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                   value={newPanelConfig.thicknessMm}
                   onChange={(e) => setNewPanelConfig({ ...newPanelConfig, thicknessMm: Number(e.target.value) })}
                 >
@@ -408,11 +408,11 @@ export default function ModelTreePanel({
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-300">
+                <label className="mb-1 block text-xs font-semibold text-[#C9D1D9]">
                   {isRo ? 'Finisaj Cant:' : isRu ? 'Кромка:' : 'Edge Banding:'}
                 </label>
                 <select
-                  className="w-full rounded-lg border border-white/15 bg-slate-950/75 px-2.5 py-1.5 text-xs text-slate-100 outline-none focus:border-sky-400"
+                  className="w-full rounded-lg border border-white/[0.1] bg-[#14171C] px-2.5 py-1.5 text-xs text-[#F5F7FA] outline-none focus:border-[#0F5773]"
                   value={newPanelConfig.edgeBanding}
                   onChange={(e) => setNewPanelConfig({ ...newPanelConfig, edgeBanding: e.target.value })}
                 >
@@ -426,7 +426,7 @@ export default function ModelTreePanel({
 
             <button
               type="button"
-              className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 px-3 py-2 text-xs font-bold text-slate-950 hover:brightness-110 transition cursor-pointer"
+              className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#17789E] bg-[#0F5773] px-3 py-2 text-xs font-semibold text-white hover:bg-[#146E91] transition cursor-pointer"
               onClick={handleCreatePanel}
             >
               <span>➕</span>
