@@ -14,7 +14,9 @@ import {
   mergeCompartmentNode,
   generateAssemblyCncHoles,
   buildAssemblyThreeGroup,
-  assemblyToPanelCuttingList
+  assemblyToPanelCuttingList,
+  detectAssemblyCollisions,
+  generatePanelDxf
 } from '../furnitureCadEngine';
 
 describe('furnitureCadEngine', () => {
@@ -131,6 +133,43 @@ describe('furnitureCadEngine', () => {
     const lPanel = cutList.find((row) => row.shape === 'l_cut');
     expect(lPanel).toBeDefined();
     expect(lPanel?.edges).toBeDefined();
+  });
+
+  it('computes raw cut sizes minus ABS edging, detects collisions, punches cutouts, and exports multi-layer DXF', () => {
+    let asm = createAssemblyFromTemplate('base_cabinet');
+    // Clean template should have 0 collisions
+    expect(detectAssemblyCollisions(asm)).toHaveLength(0);
+
+    // Raw cut size must deduct edge banding from finished dimensions
+    const cutList = assemblyToPanelCuttingList(asm);
+    const frontRow = cutList.find((r) => r.edges.left !== 'none' || r.edges.right !== 'none');
+    expect(frontRow).toBeDefined();
+    if (frontRow) {
+      expect(frontRow.rawLengthMm).toBeLessThan(frontRow.lengthMm);
+    }
+
+    // Add a manual shelf with a circular cutout + back groove, then verify DXF & cutout geometry
+    const added = addManualPart(asm, 'horizontal');
+    asm = updateCadPart(added.assembly, added.part.id, {
+      cutouts: [{ id: 'c1', shape: 'circle', xMm: 0, yMm: 0, widthMm: 60, heightMm: 60 }],
+      groove: { edge: 'back', offsetMm: 18, widthMm: 4, depthMm: 8 }
+    });
+    const editedPart = asm.parts.find((p) => p.id === added.part.id)!;
+    const geo = createShapeGeometryMm(editedPart);
+    expect(geo.attributes.position.count).toBeGreaterThan(24);
+
+    const holes = generateAssemblyCncHoles(asm);
+    const dxf = generatePanelDxf(editedPart, holes);
+    expect(dxf).toContain('SECTION');
+    expect(dxf).toContain('CONTUR');
+    expect(dxf).toContain('DECUPAJ');
+    expect(dxf).toContain('CANAL_HDF');
+    expect(dxf).toContain('EOF');
+
+    // Duplicate manual part at identical position -> must trigger collision warning
+    const dup = duplicateCadPart(asm, editedPart.id);
+    const collisions = detectAssemblyCollisions(dup.assembly);
+    expect(collisions.length).toBeGreaterThan(0);
   });
 });
 

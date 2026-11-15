@@ -607,6 +607,45 @@ export function drawPanelBlueprint(canvas: HTMLCanvasElement, panel: any, drillH
     ctx.stroke();
   }
 
+  // Draw inner cutouts (sink, hob, cable grommet, etc.)
+  if (Array.isArray(panel?.cutouts) && panel.cutouts.length > 0) {
+    for (const c of panel.cutouts) {
+      const cx = startX + drawW / 2 + (c.xMm || 0) * scale;
+      const cy = startY + drawH / 2 - (c.yMm || 0) * scale;
+      const cw = Math.max(8, (c.widthMm || 60) * scale);
+      const ch = Math.max(8, (c.heightMm || 60) * scale);
+      ctx.save();
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#f43f5e';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 3]);
+      ctx.beginPath();
+      if (c.shape === 'circle') {
+        const r = Math.min(cw, ch) / 2;
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      } else {
+        ctx.rect(cx - cw / 2, cy - ch / 2, cw, ch);
+      }
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // Draw back HDF groove if configured
+  if (panel?.groove) {
+    const offPx = Math.max(4, (panel.groove.offsetMm || 18) * scale);
+    const gwPx = Math.max(2, (panel.groove.widthMm || 4) * scale);
+    ctx.save();
+    ctx.fillStyle = 'rgba(168, 85, 247, 0.28)';
+    ctx.strokeStyle = '#a855f7';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 2]);
+    ctx.fillRect(startX, startY + offPx, drawW, gwPx);
+    ctx.strokeRect(startX, startY + offPx, drawW, gwPx);
+    ctx.restore();
+  }
+
   // Dimension lines: Horizontal (Length)
   ctx.strokeStyle = '#94a3b8';
   ctx.fillStyle = '#e2e8f0';
@@ -743,4 +782,140 @@ export function generateCncDrillingCsv(drillHoles: any[] = [], panelName = 'Pane
     csv += `${idx + 1};${h.panel || panelName};${h.type || 'BORE'};${h.diaMm};${h.depthMm};${h.x.toFixed(1)};${h.y.toFixed(1)};${tool}\n`;
   });
   return csv;
+}
+
+/**
+ * Draw orthogonal Front or Side elevation view of an entire FurnitureAssembly with automatic mm dimensions
+ */
+export function drawAssemblyOrthogonalView(
+  canvas: HTMLCanvasElement,
+  assembly: any,
+  view: 'front' | 'side' = 'front'
+) {
+  if (!canvas || !assembly) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const width = canvas.width;
+  const height = canvas.height;
+  ctx.fillStyle = '#0b1120';
+  ctx.fillRect(0, 0, width, height);
+
+  // Subtle blueprint grid
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.06)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= width; x += 25) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= height; y += 25) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+
+  const totalW = view === 'front' ? assembly.widthMm || 800 : assembly.depthMm || 560;
+  const totalH = assembly.heightMm || 720;
+  const padX = 75;
+  const padY = 60;
+  const scale = Math.min((width - padX * 2) / totalW, (height - padY * 2) / totalH);
+  const drawW = totalW * scale;
+  const drawH = totalH * scale;
+  const originX = (width - drawW) / 2;
+  const originY = (height - drawH) / 2 + drawH; // floor Y=0 at bottom
+
+  const parts = Array.isArray(assembly.parts) ? assembly.parts : [];
+  for (const p of parts) {
+    if (p.role === 'hardware') continue;
+    const L = p.dimensionsMm?.length || 100;
+    const W = p.dimensionsMm?.width || 100;
+    const T = p.dimensionsMm?.thickness || 18;
+    const rx = Math.abs(Math.round(p.localRotDeg?.x || 0)) % 180;
+    const rz = Math.abs(Math.round(p.localRotDeg?.z || 0)) % 180;
+    const ry = Math.abs(Math.round(p.localRotDeg?.y || 0)) % 180;
+
+    let sx = L;
+    let sy = T;
+    let sz = W;
+    if (rx === 90) {
+      sy = W;
+      sz = T;
+    } else if (rz === 90) {
+      sx = T;
+      sy = L;
+    }
+    if (ry === 90) {
+      const tmp = sx;
+      sx = sz;
+      sz = tmp;
+    }
+
+    const spanX = view === 'front' ? sx : sz;
+    const centerX = view === 'front' ? p.localPosMm?.x || 0 : p.localPosMm?.z || 0;
+    const centerY = p.localPosMm?.y || 0;
+
+    const px = originX + (totalW / 2 + centerX - spanX / 2) * scale;
+    const py = originY - (centerY + sy / 2) * scale;
+    const pw = Math.max(2, spanX * scale);
+    const ph = Math.max(2, sy * scale);
+
+    ctx.fillStyle =
+      p.role === 'front'
+        ? 'rgba(56, 189, 248, 0.22)'
+        : p.role === 'back'
+          ? 'rgba(168, 85, 247, 0.18)'
+          : 'rgba(30, 41, 59, 0.85)';
+    ctx.strokeStyle = p.role === 'front' ? '#38bdf8' : '#94a3b8';
+    ctx.lineWidth = p.role === 'front' ? 1.5 : 1;
+    ctx.fillRect(px, py, pw, ph);
+    ctx.strokeRect(px, py, pw, ph);
+  }
+
+  // Overall Horizontal & Vertical Dimensions
+  ctx.strokeStyle = '#38bdf8';
+  ctx.fillStyle = '#e2e8f0';
+  ctx.font = '12px "JetBrains Mono", monospace';
+  ctx.lineWidth = 1;
+
+  // Top overall width/depth
+  const topY = originY - drawH - 22;
+  ctx.beginPath();
+  ctx.moveTo(originX, topY);
+  ctx.lineTo(originX + drawW, topY);
+  ctx.moveTo(originX, topY - 5);
+  ctx.lineTo(originX, topY + 5);
+  ctx.moveTo(originX + drawW, topY - 5);
+  ctx.lineTo(originX + drawW, topY + 5);
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.fillText(`${Math.round(totalW)} mm`, originX + drawW / 2, topY - 8);
+
+  // Left overall height
+  const leftX = originX - 24;
+  ctx.beginPath();
+  ctx.moveTo(leftX, originY - drawH);
+  ctx.lineTo(leftX, originY);
+  ctx.moveTo(leftX - 5, originY - drawH);
+  ctx.lineTo(leftX + 5, originY - drawH);
+  ctx.moveTo(leftX - 5, originY);
+  ctx.lineTo(leftX + 5, originY);
+  ctx.stroke();
+  ctx.save();
+  ctx.translate(leftX - 10, originY - drawH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(`${Math.round(totalH)} mm`, 0, 0);
+  ctx.restore();
+
+  // Header label
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText(
+    `${(assembly.name || 'CORP CAD').toUpperCase()} — VEDERE ${view === 'front' ? 'FAȚĂ' : 'LATERALĂ'}`,
+    18,
+    24
+  );
 }

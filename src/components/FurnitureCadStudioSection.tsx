@@ -25,6 +25,7 @@ import {
   computeAssemblyBom,
   createKitchenLayoutAssemblies,
   buildAssemblyThreeGroup,
+  detectAssemblyCollisions,
   PlacedAssemblyUnit
 } from '../utils/furnitureCadEngine';
 
@@ -168,6 +169,11 @@ export default function FurnitureCadStudioSection({
 
   const bom = useMemo(
     () => (activeAssembly ? computeAssemblyBom(activeAssembly) : null),
+    [activeAssembly]
+  );
+
+  const collisions = useMemo(
+    () => (activeAssembly ? detectAssemblyCollisions(activeAssembly) : []),
     [activeAssembly]
   );
 
@@ -980,9 +986,34 @@ export default function FurnitureCadStudioSection({
 
               {/* Parts List */}
               <div className={cardCls}>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-[#8B949E]">
-                  {isRo ? `Piese (${activeAssembly.parts.length})` : `Parts (${activeAssembly.parts.length})`}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B949E]">
+                    {isRo ? `Piese (${activeAssembly.parts.length})` : `Parts (${activeAssembly.parts.length})`}
+                  </span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      collisions.length === 0
+                        ? 'bg-[#1F3627] text-emerald-300 border border-[#355E43]'
+                        : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    }`}
+                  >
+                    {collisions.length === 0
+                      ? isRo
+                        ? '0 Coliziuni'
+                        : '0 Collisions'
+                      : `${collisions.length} ${isRo ? 'Coliziuni' : 'Collisions'}`}
+                  </span>
                 </div>
+                {collisions.length > 0 && (
+                  <div className="rounded-lg border border-rose-500/30 bg-rose-950/30 p-2 space-y-1 text-[10px] text-rose-200">
+                    {collisions.slice(0, 3).map((c, idx) => (
+                      <div key={idx}>
+                        ⚠ <strong>{c.partAName}</strong> ↔ <strong>{c.partBName}</strong> (
+                        {c.overlapMm.x}×{c.overlapMm.y}×{c.overlapMm.z} mm)
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="max-h-36 overflow-y-auto space-y-1 pr-0.5">
                   {activeAssembly.parts.map((p) => {
                     const isSel = activePart?.id === p.id;
@@ -1295,6 +1326,138 @@ export default function FurnitureCadStudioSection({
                         className={inputCls}
                       />
                     </div>
+                  </div>
+
+                  {/* Inner Cutouts & Back HDF Groove */}
+                  <div className="rounded-lg border border-white/[0.08] bg-[#090A0C] p-2 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10.5px] font-bold uppercase tracking-wider text-[#8B949E]">
+                        {isRo ? 'Decupaje & Canal HDF' : 'Cutouts & Groove'}
+                      </span>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextCutouts = [
+                              ...(activePart.cutouts || []),
+                              {
+                                id: `cut_${Date.now()}`,
+                                shape: 'rect' as const,
+                                xMm: 0,
+                                yMm: 0,
+                                widthMm: Math.min(240, Math.round(activePart.dimensionsMm.length * 0.4)),
+                                heightMm: Math.min(180, Math.round(activePart.dimensionsMm.width * 0.4))
+                              }
+                            ];
+                            commitAssembly(
+                              updateCadPart(activeAssembly, activePart.id, { cutouts: nextCutouts })
+                            );
+                          }}
+                          className="rounded border border-[#355E43] bg-[#1F3627] px-1.5 py-0.5 text-[10px] text-[#F5F7FA] cursor-pointer"
+                        >
+                          + □ Decupaj
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextCutouts = [
+                              ...(activePart.cutouts || []),
+                              {
+                                id: `cut_${Date.now()}`,
+                                shape: 'circle' as const,
+                                xMm: 0,
+                                yMm: 0,
+                                widthMm: 60,
+                                heightMm: 60
+                              }
+                            ];
+                            commitAssembly(
+                              updateCadPart(activeAssembly, activePart.id, { cutouts: nextCutouts })
+                            );
+                          }}
+                          className="rounded border border-[#17789E] bg-[#0F5773]/40 px-1.5 py-0.5 text-[10px] text-[#F5F7FA] cursor-pointer"
+                        >
+                          + ○ Trecere
+                        </button>
+                      </div>
+                    </div>
+
+                    {(activePart.cutouts || []).map((cut, cIdx) => (
+                      <div
+                        key={cut.id}
+                        className="grid grid-cols-5 gap-1 items-center text-[10px] bg-[#14171C] p-1.5 rounded border border-white/[0.06]"
+                      >
+                        <span className="text-[#C9D1D9] font-semibold">
+                          {cut.shape === 'circle' ? '○' : '□'} #{cIdx + 1}
+                        </span>
+                        <input
+                          type="number"
+                          title="X (mm)"
+                          value={Math.round(cut.xMm)}
+                          onChange={(e) => {
+                            const next = (activePart.cutouts || []).map((item) =>
+                              item.id === cut.id ? { ...item, xMm: Number(e.target.value) || 0 } : item
+                            );
+                            commitAssembly(updateCadPart(activeAssembly, activePart.id, { cutouts: next }));
+                          }}
+                          className="rounded bg-[#090A0C] border border-[#262B34] px-1 py-0.5 text-[#F5F7FA] font-mono"
+                        />
+                        <input
+                          type="number"
+                          title="Y (mm)"
+                          value={Math.round(cut.yMm)}
+                          onChange={(e) => {
+                            const next = (activePart.cutouts || []).map((item) =>
+                              item.id === cut.id ? { ...item, yMm: Number(e.target.value) || 0 } : item
+                            );
+                            commitAssembly(updateCadPart(activeAssembly, activePart.id, { cutouts: next }));
+                          }}
+                          className="rounded bg-[#090A0C] border border-[#262B34] px-1 py-0.5 text-[#F5F7FA] font-mono"
+                        />
+                        <input
+                          type="number"
+                          title="Lățime/Ø (mm)"
+                          min={10}
+                          value={Math.round(cut.widthMm)}
+                          onChange={(e) => {
+                            const v = Math.max(10, Number(e.target.value) || 60);
+                            const next = (activePart.cutouts || []).map((item) =>
+                              item.id === cut.id
+                                ? { ...item, widthMm: v, heightMm: cut.shape === 'circle' ? v : item.heightMm }
+                                : item
+                            );
+                            commitAssembly(updateCadPart(activeAssembly, activePart.id, { cutouts: next }));
+                          }}
+                          className="rounded bg-[#090A0C] border border-[#262B34] px-1 py-0.5 text-[#F5F7FA] font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = (activePart.cutouts || []).filter((item) => item.id !== cut.id);
+                            commitAssembly(updateCadPart(activeAssembly, activePart.id, { cutouts: next }));
+                          }}
+                          className="text-rose-400 hover:text-rose-300 font-bold cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+
+                    <label className="flex items-center justify-between text-[10.5px] text-[#C9D1D9] pt-1 border-t border-white/[0.06] cursor-pointer">
+                      <span>{isRo ? 'Canal HDF Spate (4×8mm la 18mm)' : 'Back HDF Groove (4×8mm)'}</span>
+                      <Switch
+                        checked={Boolean(activePart.groove)}
+                        onCheckedChange={(checked) =>
+                          commitAssembly(
+                            updateCadPart(activeAssembly, activePart.id, {
+                              groove: checked
+                                ? { edge: 'back', offsetMm: 18, widthMm: 4, depthMm: 8 }
+                                : undefined
+                            })
+                          )
+                        }
+                      />
+                    </label>
                   </div>
 
                   {/* Shape & Grain */}

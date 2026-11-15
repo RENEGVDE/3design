@@ -55,6 +55,24 @@ export interface ShapeParams {
   slopeDropMm?: number;
 }
 
+export interface PanelCutout {
+  id: string;
+  shape: 'rect' | 'circle';
+  /** Center X offset from panel center in mm */
+  xMm: number;
+  /** Center Y/Z offset from panel center in mm */
+  yMm: number;
+  widthMm: number;
+  heightMm: number;
+}
+
+export interface PanelGroove {
+  edge: 'back';
+  offsetMm: number;
+  widthMm: number;
+  depthMm: number;
+}
+
 export interface CadPart {
   id: string;
   name: string;
@@ -91,6 +109,8 @@ export interface CadPart {
   };
   materialId?: string | null;
   sourceNodeId?: string;
+  cutouts?: PanelCutout[];
+  groove?: PanelGroove;
 }
 
 export interface CompartmentNode {
@@ -1107,8 +1127,9 @@ export function createShapeGeometryMm(part: CadPart): THREE.BufferGeometry {
   const L = Math.max(10, part.dimensionsMm.length) * 0.001;
   const W = Math.max(10, part.dimensionsMm.width) * 0.001;
   const T = Math.max(2, part.dimensionsMm.thickness) * 0.001;
+  const hasCutouts = Boolean(part.cutouts && part.cutouts.length > 0);
 
-  if (part.shape === 'rect') {
+  if (part.shape === 'rect' && !hasCutouts) {
     const geo = new THREE.BoxGeometry(L, T, W);
     applyPlanarBoxUVs(geo);
     geo.computeBoundingBox();
@@ -1119,7 +1140,13 @@ export function createShapeGeometryMm(part: CadPart): THREE.BufferGeometry {
   const hw = L / 2;
   const hd = W / 2;
 
-  if (part.shape === 'l_cut') {
+  if (part.shape === 'rect') {
+    shape.moveTo(-hw, -hd);
+    shape.lineTo(hw, -hd);
+    shape.lineTo(hw, hd);
+    shape.lineTo(-hw, hd);
+    shape.closePath();
+  } else if (part.shape === 'l_cut') {
     const cw = Math.min(L * 0.8, Math.max(0.05, (part.shapeParams?.cutWidthMm || 400) * 0.001));
     const cd = Math.min(W * 0.8, Math.max(0.05, (part.shapeParams?.cutDepthMm || 400) * 0.001));
     shape.moveTo(-hw, -hd);
@@ -1156,6 +1183,27 @@ export function createShapeGeometryMm(part: CadPart): THREE.BufferGeometry {
     shape.lineTo(hw, hd - drop);
     shape.lineTo(-hw, hd);
     shape.closePath();
+  }
+
+  if (part.cutouts && part.cutouts.length > 0) {
+    for (const c of part.cutouts) {
+      const cx = (c.xMm || 0) * 0.001;
+      const cy = (c.yMm || 0) * 0.001;
+      const cw = Math.min(L * 0.85, Math.max(0.01, (c.widthMm || 60) * 0.001));
+      const ch = Math.min(W * 0.85, Math.max(0.01, (c.heightMm || 60) * 0.001));
+      const hole = new THREE.Path();
+      if (c.shape === 'circle') {
+        const r = Math.min(cw, ch) / 2;
+        hole.absarc(cx, cy, r, 0, Math.PI * 2, true);
+      } else {
+        hole.moveTo(cx - cw / 2, cy - ch / 2);
+        hole.lineTo(cx - cw / 2, cy + ch / 2);
+        hole.lineTo(cx + cw / 2, cy + ch / 2);
+        hole.lineTo(cx + cw / 2, cy - ch / 2);
+        hole.closePath();
+      }
+      shape.holes.push(hole);
+    }
   }
 
   const geo = new THREE.ExtrudeGeometry(shape, { depth: T, bevelEnabled: false });
@@ -1361,6 +1409,13 @@ export function computeAssemblyBom(assembly: FurnitureAssembly): AssemblyBomSumm
   };
 }
 
+function edgeThicknessMm(band: EdgeThickness): number {
+  if (band === '2mm') return 2;
+  if (band === '1mm') return 1;
+  if (band === '0.4mm') return 0.4;
+  return 0;
+}
+
 export function assemblyToPanelCuttingList(assembly: FurnitureAssembly) {
   return assembly.parts
     .filter((p) => p.role !== 'hardware')
@@ -1372,10 +1427,20 @@ export function assemblyToPanelCuttingList(assembly: FurnitureAssembly) {
         p.edges.right !== 'none' ? `Dr:${p.edges.right}` : ''
       ].filter(Boolean);
 
+      const lengthMm = Math.round(p.dimensionsMm.length);
+      const widthMm = Math.round(p.dimensionsMm.width);
+      const deductL = edgeThicknessMm(p.edges.left) + edgeThicknessMm(p.edges.right);
+      const deductW = edgeThicknessMm(p.edges.top) + edgeThicknessMm(p.edges.bottom);
+      const rawLengthMm = Math.max(10, Math.round((lengthMm - deductL) * 10) / 10);
+      const rawWidthMm = Math.max(10, Math.round((widthMm - deductW) * 10) / 10);
+
       return {
+        partId: p.id,
         partName: p.name,
-        lengthMm: Math.round(p.dimensionsMm.length),
-        widthMm: Math.round(p.dimensionsMm.width),
+        lengthMm,
+        widthMm,
+        rawLengthMm,
+        rawWidthMm,
         thicknessMm: Math.round(p.dimensionsMm.thickness),
         qty: 1,
         material:
@@ -1395,7 +1460,9 @@ export function assemblyToPanelCuttingList(assembly: FurnitureAssembly) {
         edgeBanding: edgeList.length > 0 ? edgeList.join(' | ') : 'Fără Cant',
         shape: p.shape,
         shapeParams: p.shapeParams,
-        edges: p.edges
+        edges: p.edges,
+        cutouts: p.cutouts,
+        groove: p.groove
       };
     });
 }
@@ -1619,4 +1686,163 @@ export function generateAssemblyCncHoles(assembly: FurnitureAssembly): CadCncDri
     }
   }
   return rows;
+}
+
+export interface CadCollisionWarning {
+  partAId: string;
+  partAName: string;
+  partBId: string;
+  partBName: string;
+  overlapMm: { x: number; y: number; z: number };
+}
+
+function getPartWorldBoundsMm(part: CadPart) {
+  const L = part.dimensionsMm.length;
+  const W = part.dimensionsMm.width;
+  const T = part.dimensionsMm.thickness;
+  const rx = Math.abs(Math.round(part.localRotDeg.x)) % 180;
+  const rz = Math.abs(Math.round(part.localRotDeg.z)) % 180;
+  const ry = Math.abs(Math.round(part.localRotDeg.y)) % 180;
+
+  let sx = L;
+  let sy = T;
+  let sz = W;
+  if (rx === 90) {
+    sy = W;
+    sz = T;
+  } else if (rz === 90) {
+    sx = T;
+    sy = L;
+  }
+  if (ry === 90) {
+    const tmp = sx;
+    sx = sz;
+    sz = tmp;
+  }
+
+  return {
+    minX: part.localPosMm.x - sx / 2,
+    maxX: part.localPosMm.x + sx / 2,
+    minY: part.localPosMm.y - sy / 2,
+    maxY: part.localPosMm.y + sy / 2,
+    minZ: part.localPosMm.z - sz / 2,
+    maxZ: part.localPosMm.z + sz / 2
+  };
+}
+
+export function detectAssemblyCollisions(assembly: FurnitureAssembly): CadCollisionWarning[] {
+  const parts = assembly.parts.filter((p) => p.role !== 'hardware');
+  const warnings: CadCollisionWarning[] = [];
+  const tol = 2; // ignore <=2mm rabbet / flush tolerance
+
+  for (let i = 0; i < parts.length; i++) {
+    const a = parts[i];
+    const ba = getPartWorldBoundsMm(a);
+    for (let j = i + 1; j < parts.length; j++) {
+      const b = parts[j];
+      // HDF back panel sits intentionally in a rabbet/groove against carcass panels
+      if ((a.role === 'back' && b.role === 'carcass') || (b.role === 'back' && a.role === 'carcass')) {
+        continue;
+      }
+      const bb = getPartWorldBoundsMm(b);
+      const ox = Math.min(ba.maxX, bb.maxX) - Math.max(ba.minX, bb.minX);
+      const oy = Math.min(ba.maxY, bb.maxY) - Math.max(ba.minY, bb.minY);
+      const oz = Math.min(ba.maxZ, bb.maxZ) - Math.max(ba.minZ, bb.minZ);
+      if (ox > tol && oy > tol && oz > tol) {
+        warnings.push({
+          partAId: a.id,
+          partAName: a.name,
+          partBId: b.id,
+          partBName: b.name,
+          overlapMm: {
+            x: Math.round(ox * 10) / 10,
+            y: Math.round(oy * 10) / 10,
+            z: Math.round(oz * 10) / 10
+          }
+        });
+      }
+    }
+  }
+  return warnings;
+}
+
+export function generatePanelDxf(part: CadPart, cncHoles: CadCncDrillRow[] = []): string {
+  const L = Math.max(10, Math.round(part.dimensionsMm.length));
+  const W = Math.max(10, Math.round(part.dimensionsMm.width));
+  const lines: string[] = [
+    '0', 'SECTION', '2', 'HEADER',
+    '9', '$ACADVER', '1', 'AC1009',
+    '9', '$INSUNITS', '70', '4',
+    '0', 'ENDSEC',
+    '0', 'SECTION', '2', 'ENTITIES'
+  ];
+
+  const addPolyline = (pts: Array<[number, number]>, layer: string, closed = true) => {
+    lines.push('0', 'POLYLINE', '8', layer, '66', '1', '70', closed ? '1' : '0');
+    for (const [x, y] of pts) {
+      lines.push('0', 'VERTEX', '8', layer, '10', x.toFixed(2), '20', y.toFixed(2), '30', '0.00');
+    }
+    lines.push('0', 'SEQEND');
+  };
+
+  const addCircle = (cx: number, cy: number, r: number, layer: string) => {
+    lines.push(
+      '0', 'CIRCLE',
+      '8', layer,
+      '10', cx.toFixed(2),
+      '20', cy.toFixed(2),
+      '30', '0.00',
+      '40', r.toFixed(2)
+    );
+  };
+
+  // Outer contour (origin 0,0 at bottom-left of panel)
+  if (part.shape === 'l_cut') {
+    const cw = Math.min(L * 0.8, Math.max(20, part.shapeParams?.cutWidthMm || L * 0.35));
+    const cd = Math.min(W * 0.8, Math.max(20, part.shapeParams?.cutDepthMm || W * 0.35));
+    addPolyline([[0, 0], [L, 0], [L, W - cd], [L - cw, W - cd], [L - cw, W], [0, W]], 'CONTUR');
+  } else if (part.shape === 'chamfer') {
+    const ch = Math.min(L * 0.45, W * 0.45, Math.max(10, part.shapeParams?.chamferMm || 60));
+    addPolyline([[0, 0], [L - ch, 0], [L, ch], [L, W], [0, W]], 'CONTUR');
+  } else if (part.shape === 'mansard_slope') {
+    const drop = Math.min(W * 0.8, Math.max(20, part.shapeParams?.slopeDropMm || 450));
+    addPolyline([[0, 0], [L, 0], [L, W - drop], [0, W]], 'CONTUR');
+  } else {
+    addPolyline([[0, 0], [L, 0], [L, W], [0, W]], 'CONTUR');
+  }
+
+  // Inner cutouts
+  if (part.cutouts) {
+    for (const c of part.cutouts) {
+      const cx = L / 2 + (c.xMm || 0);
+      const cy = W / 2 + (c.yMm || 0);
+      if (c.shape === 'circle') {
+        addCircle(cx, cy, Math.max(5, Math.min(c.widthMm, c.heightMm) / 2), 'DECUPAJ');
+      } else {
+        const hw = Math.max(5, c.widthMm / 2);
+        const hh = Math.max(5, c.heightMm / 2);
+        addPolyline(
+          [[cx - hw, cy - hh], [cx + hw, cy - hh], [cx + hw, cy + hh], [cx - hw, cy + hh]],
+          'DECUPAJ'
+        );
+      }
+    }
+  }
+
+  // Back HDF groove
+  if (part.groove) {
+    const off = Math.max(4, part.groove.offsetMm);
+    const gw = Math.max(2, part.groove.widthMm);
+    addPolyline([[0, off], [L, off], [L, off + gw], [0, off + gw]], 'CANAL_HDF');
+  }
+
+  // CNC holes matching this part
+  for (const h of cncHoles) {
+    if (h.partName === part.name) {
+      addCircle(h.xMm, h.yMm, h.diameterMm / 2, 'GAURI_FATA');
+    }
+  }
+
+  lines.push('0', 'ENDSEC', '0', 'EOF');
+  return lines.join('\n');
 }

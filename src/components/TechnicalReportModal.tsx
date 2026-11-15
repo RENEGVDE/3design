@@ -4,9 +4,10 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   calculateCuttingNesting,
   drawPanelBlueprint,
+  drawAssemblyOrthogonalView,
   generateCncDrillingCsv
 } from '../utils/furnitureEngineering';
-import { generateAssemblyCncHoles } from '../utils/furnitureCadEngine';
+import { generateAssemblyCncHoles, generatePanelDxf } from '../utils/furnitureCadEngine';
 import {
   Dialog,
   DialogContent,
@@ -40,8 +41,9 @@ export default function TechnicalReportModal({
   const [sheetFormat, setSheetFormat] = useState('2800x2070'); // '2800x2070' | '2440x1830'
   const [activeSheetIndex, setActiveSheetIndex] = useState(0);
 
-  // 2D Blueprint state (Чертёж детали)
+  // 2D Blueprint & Orthogonal CAD state
   const [selectedBlueprintPartId, setSelectedBlueprintPartId] = useState(null);
+  const [blueprintMode, setBlueprintMode] = useState<'panel' | 'ortho_front' | 'ortho_side' | 'labels'>('panel');
   const blueprintCanvasRef = useRef(null);
   const nestingCanvasRef = useRef(null);
 
@@ -70,10 +72,14 @@ export default function TechnicalReportModal({
         cList.forEach((p, pIdx) => {
           list.push({
             id: `${model.id}_${pIdx}`,
+            modelId: model.id,
+            partId: p.partId,
             cabinet: model.name || `Corp ${mIdx + 1}`,
             partName: p.partName,
             lengthMm: p.lengthMm,
             widthMm: p.widthMm,
+            rawLengthMm: p.rawLengthMm ?? p.lengthMm,
+            rawWidthMm: p.rawWidthMm ?? p.widthMm,
             thicknessMm: p.thicknessMm || 18,
             qty: p.qty || 1,
             material: p.material || 'PAL 18mm',
@@ -81,7 +87,9 @@ export default function TechnicalReportModal({
             edgeBanding: p.edgeBanding || 'Cant ABS 1mm',
             shape: p.shape,
             shapeParams: p.shapeParams,
-            edges: p.edges
+            edges: p.edges,
+            cutouts: p.cutouts,
+            groove: p.groove
           });
         });
       } else {
@@ -428,6 +436,16 @@ export default function TechnicalReportModal({
       );
     }, [activeTab, nestingResult, activeSheetIndex, sheetFormat]);
 
+    const cadCncRows = useMemo(() => {
+      const rows = [];
+      for (const m of importedModels) {
+        if (m.isCadAssembly && m.cadAssembly) {
+          rows.push(...generateAssemblyCncHoles(m.cadAssembly));
+        }
+      }
+      return rows;
+    }, [importedModels]);
+
     // Draw 2D Blueprint for Selected Part (Чертёж детали)
     useEffect(() => {
       if (activeTab !== 'blueprint') return;
@@ -436,9 +454,29 @@ export default function TechnicalReportModal({
 
       const selectedPart = aggregatedParts.find((p) => p.id === selectedBlueprintPartId) || aggregatedParts[0];
 
-      // Example engineering drill holes on this panel
-      const holes = [];
-      if (selectedPart) {
+      if (blueprintMode === 'ortho_front' || blueprintMode === 'ortho_side') {
+        const cadModel =
+          importedModels.find((m) => m.id === selectedPart?.modelId && m.isCadAssembly && m.cadAssembly) ||
+          importedModels.find((m) => m.isCadAssembly && m.cadAssembly);
+        if (cadModel?.cadAssembly) {
+          drawAssemblyOrthogonalView(
+            canvas,
+            cadModel.cadAssembly,
+            blueprintMode === 'ortho_front' ? 'front' : 'side'
+          );
+          return;
+        }
+      }
+
+      // Use real CAD CNC holes when available, otherwise fallback heuristic holes
+      const matchingCadHoles = selectedPart
+        ? cadCncRows
+            .filter((r) => r.cabinet === selectedPart.cabinet && r.partName === selectedPart.partName)
+            .map((r) => ({ diameter: r.diameterMm, depth: r.depthMm, x: r.xMm, y: r.yMm }))
+        : [];
+
+      const holes = [...matchingCadHoles];
+      if (holes.length === 0 && selectedPart) {
         const pL = selectedPart.lengthMm;
         const pW = selectedPart.widthMm;
 
@@ -459,7 +497,41 @@ export default function TechnicalReportModal({
       }
 
       drawPanelBlueprint(canvas, selectedPart, holes);
-    }, [activeTab, selectedBlueprintPartId, aggregatedParts]);
+    }, [activeTab, selectedBlueprintPartId, aggregatedParts, blueprintMode, importedModels, cadCncRows]);
+
+    const handleDownloadPanelDxf = () => {
+      const selectedPart = aggregatedParts.find((p) => p.id === selectedBlueprintPartId) || aggregatedParts[0];
+      if (!selectedPart) return;
+      const cadModel = importedModels.find((m) => m.id === selectedPart.modelId && m.isCadAssembly && m.cadAssembly);
+      const realPart = cadModel?.cadAssembly?.parts?.find((pt: any) => pt.id === selectedPart.partId || pt.name === selectedPart.partName);
+      const partObj = realPart || {
+        id: selectedPart.id,
+        name: selectedPart.partName,
+        role: 'carcass' as const,
+        shape: selectedPart.shape || 'rect',
+        shapeParams: selectedPart.shapeParams,
+        dimensionsMm: {
+          length: selectedPart.lengthMm,
+          width: selectedPart.widthMm,
+          thickness: selectedPart.thicknessMm
+        },
+        localPosMm: { x: 0, y: 0, z: 0 },
+        localRotDeg: { x: 0, y: 0, z: 0 },
+        grain: 'length' as const,
+        edges: selectedPart.edges || { top: 'none', bottom: 'none', left: 'none', right: 'none' },
+        motion: { type: 'fixed' as const },
+        cutouts: selectedPart.cutouts,
+        groove: selectedPart.groove
+      };
+      const dxfContent = generatePanelDxf(partObj as any, cadCncRows);
+      const blob = new Blob([dxfContent], { type: 'application/dxf;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${selectedPart.partName.replace(/\s+/g, '_')}_${selectedPart.lengthMm}x${selectedPart.widthMm}.dxf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
 
     // Handlers for CSV, WhatsApp & Print
     const handleDownloadCsv = () => {
@@ -475,16 +547,6 @@ export default function TechnicalReportModal({
       a.click();
       URL.revokeObjectURL(url);
     };
-
-    const cadCncRows = useMemo(() => {
-      const rows = [];
-      for (const m of importedModels) {
-        if (m.isCadAssembly && m.cadAssembly) {
-          rows.push(...generateAssemblyCncHoles(m.cadAssembly));
-        }
-      }
-      return rows;
-    }, [importedModels]);
 
     const handleDownloadCnc = () => {
       const drillHoles =
@@ -807,8 +869,8 @@ export default function TechnicalReportModal({
                                         <th className={thClass}>#</th>
                                         <th className={thClass}>{isRo ? 'Corp / Modul' : isRu ? 'Изделие' : 'Cabinet'}</th>
                                         <th className={thClass}>{isRo ? 'Denumire Piesă' : isRu ? 'Деталь' : 'Part Name'}</th>
-                                        <th className={thClass}>{isRo ? 'Lungime (mm)' : isRu ? 'Длина (мм)' : 'Length (mm)'}</th>
-                                        <th className={thClass}>{isRo ? 'Lățime (mm)' : isRu ? 'Ширина (мм)' : 'Width (mm)'}</th>
+                                        <th className={thClass}>{isRo ? 'Finit (mm)' : isRu ? 'Готовый (мм)' : 'Finished (mm)'}</th>
+                                        <th className={thClass}>{isRo ? 'Brut Tăiere (mm)' : isRu ? 'Раскрой (мм)' : 'Raw Cut (mm)'}</th>
                                         <th className={thClass}>{isRo ? 'Grosime' : isRu ? 'Толщ.' : 'Thk'}</th>
                                         <th className={thClass}>{isRo ? 'Buc' : isRu ? 'Кол-во' : 'Qty'}</th>
                                         <th className={thClass}>{isRo ? 'Material' : isRu ? 'Материал' : 'Material'}</th>
@@ -822,8 +884,8 @@ export default function TechnicalReportModal({
                                           <td className={tdClass}>{idx + 1}</td>
                                           <td className={tdClass}><strong>{p.cabinet}</strong></td>
                                           <td className={tdClass}>{p.partName}</td>
-                                          <td className={`${tdClass} font-mono text-right`}>{p.lengthMm}</td>
-                                          <td className={`${tdClass} font-mono text-right`}>{p.widthMm}</td>
+                                          <td className={`${tdClass} font-mono text-right`}>{p.lengthMm} × {p.widthMm}</td>
+                                          <td className={`${tdClass} font-mono text-right text-sky-300`}>{p.rawLengthMm} × {p.rawWidthMm}</td>
                                           <td className={`${tdClass} font-mono text-right`}>{p.thicknessMm} mm</td>
                                           <td className={`${tdClass} font-mono text-right`}><strong>{p.qty}</strong></td>
                                           <td className={tdClass}>{p.material}</td>
@@ -980,36 +1042,112 @@ export default function TechnicalReportModal({
                                         </div>
           )}
 
-                                          {/* TAB 3: 2D Panel Blueprint & Cotation (Чертёж детали) */}
+                                          {/* TAB 3: 2D Panel Blueprint, Orthogonal CAD & Production Labels */}
                                           {activeTab === 'blueprint' && (
                                             <div className="flex flex-col gap-3.5">
-                                              {/* Part Selector Bar */}
-                                              <div className="flex flex-wrap items-center gap-3 print:hidden">
-                                                <span className="text-[0.82rem] text-[#8B949E] font-semibold">
-                                                  {isRo ? 'Alege Piesa pentru Desenare Tehnică:' : isRu ? 'Выберите деталь для чертежа:' : 'Select Panel for Blueprint:'}
-                                                </span>
-                                                <select
-                                                  value={selectedBlueprintPartId || ''}
-                                                  onChange={(e) => setSelectedBlueprintPartId(e.target.value)}
-                                                  className={`${selectClass} flex-1 max-w-[420px] py-1.5 px-2.5`}
-                                                >
-                                                  {aggregatedParts.map((p) => (
-                                                    <option key={p.id} value={p.id}>
-                                                      {p.cabinet} — {p.partName} ({p.lengthMm} × {p.widthMm} mm)
-                                                    </option>
+                                              {/* Part Selector & View Mode Bar */}
+                                              <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+                                                <div className="flex flex-wrap items-center gap-2 flex-1">
+                                                  <span className="text-[0.82rem] text-[#8B949E] font-semibold">
+                                                    {isRo ? 'Piesă / Corp:' : isRu ? 'Деталь:' : 'Panel / Unit:'}
+                                                  </span>
+                                                  <select
+                                                    value={selectedBlueprintPartId || ''}
+                                                    onChange={(e) => setSelectedBlueprintPartId(e.target.value)}
+                                                    className={`${selectClass} flex-1 max-w-[360px] py-1.5 px-2.5`}
+                                                  >
+                                                    {aggregatedParts.map((p) => (
+                                                      <option key={p.id} value={p.id}>
+                                                        {p.cabinet} — {p.partName} ({p.lengthMm} × {p.widthMm} mm)
+                                                      </option>
+                                                    ))}
+                                                  </select>
+                                                </div>
+
+                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                  {(
+                                                    [
+                                                      { id: 'panel', label: isRo ? 'Schiță Panou' : 'Panel 2D' },
+                                                      { id: 'ortho_front', label: isRo ? 'Vedere Față' : 'Front View' },
+                                                      { id: 'ortho_side', label: isRo ? 'Vedere Laterală' : 'Side View' },
+                                                      { id: 'labels', label: isRo ? 'Etichete Atelier' : 'Shop Labels' }
+                                                    ] as const
+                                                  ).map((m) => (
+                                                    <button
+                                                      key={m.id}
+                                                      type="button"
+                                                      onClick={() => setBlueprintMode(m.id)}
+                                                      className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold cursor-pointer transition ${
+                                                        blueprintMode === m.id
+                                                          ? 'border-[#17789E] bg-[#0F5773] text-[#F5F7FA]'
+                                                          : 'border-[#262B34] bg-[#14171C] text-[#C9D1D9] hover:border-white/25'
+                                                      }`}
+                                                    >
+                                                      {m.label}
+                                                    </button>
                                                   ))}
-                                                </select>
+                                                  <button
+                                                    type="button"
+                                                    onClick={handleDownloadPanelDxf}
+                                                    className="inline-flex items-center gap-1 rounded-lg border border-[#355E43] bg-[#1F3627] px-2.5 py-1.5 text-xs font-bold text-[#F5F7FA] hover:bg-[#2A4935] cursor-pointer transition"
+                                                  >
+                                                    <span>📐</span>
+                                                    <span>{isRo ? 'Export DXF' : 'Export DXF'}</span>
+                                                  </button>
+                                                </div>
                                               </div>
 
-                                              {/* 2D Blueprint Canvas Viewport */}
-                                              <div className="rounded-xl border border-white/[0.08] bg-[#090A0C] p-3 flex justify-center overflow-hidden">
-                                                <canvas
-                                                  ref={blueprintCanvasRef}
-                                                  width={960}
-                                                  height={560}
-                                                  className="w-full max-w-[960px] h-auto block rounded-lg"
-                                                />
-                                              </div>
+                                              {blueprintMode === 'labels' ? (
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                                                  {aggregatedParts.map((p, idx) => (
+                                                    <div
+                                                      key={p.id}
+                                                      className="rounded-lg border border-white/15 bg-[#090A0C] p-3 text-xs space-y-1.5 print:border-slate-400 print:bg-white print:text-slate-900"
+                                                    >
+                                                      <div className="flex items-center justify-between border-b border-white/10 pb-1">
+                                                        <span className="font-mono font-bold text-sky-400 print:text-slate-900">
+                                                          #{String(idx + 1).padStart(2, '0')}
+                                                        </span>
+                                                        <span className="text-[10px] font-mono text-[#8B949E] truncate max-w-[160px]">
+                                                          {p.cabinet}
+                                                        </span>
+                                                      </div>
+                                                      <div className="font-bold text-sm text-[#F5F7FA] print:text-slate-900 truncate">
+                                                        {p.partName}
+                                                      </div>
+                                                      <div className="grid grid-cols-2 gap-1 font-mono text-[11px]">
+                                                        <div>
+                                                          <span className="text-[#8B949E]">Finit: </span>
+                                                          <strong className="text-[#F5F7FA] print:text-slate-900">
+                                                            {p.lengthMm}×{p.widthMm}
+                                                          </strong>
+                                                        </div>
+                                                        <div>
+                                                          <span className="text-[#8B949E]">Brut: </span>
+                                                          <strong className="text-sky-300 print:text-slate-900">
+                                                            {p.rawLengthMm}×{p.rawWidthMm}
+                                                          </strong>
+                                                        </div>
+                                                      </div>
+                                                      <div className="text-[10.5px] text-[#C9D1D9] print:text-slate-700">
+                                                        {p.material} • {p.grain}
+                                                      </div>
+                                                      <div className="text-[10px] font-mono text-emerald-300 print:text-slate-700">
+                                                        Cant: {p.edgeBanding}
+                                                      </div>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              ) : (
+                                                <div className="rounded-xl border border-white/[0.08] bg-[#090A0C] p-3 flex justify-center overflow-hidden">
+                                                  <canvas
+                                                    ref={blueprintCanvasRef}
+                                                    width={960}
+                                                    height={560}
+                                                    className="w-full max-w-[960px] h-auto block rounded-lg"
+                                                  />
+                                                </div>
+                                              )}
                                             </div>
                                           )}
 
