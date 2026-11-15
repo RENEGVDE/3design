@@ -16,18 +16,28 @@ import {
   regenerateAssemblyParts,
   splitCompartmentNode,
   updateCompartmentNode,
+  updateCompartmentRatios,
+  mergeCompartmentNode,
   addManualPart,
   updateCadPart,
   duplicateCadPart,
   removeCadPart,
   computeAssemblyBom,
   createKitchenLayoutAssemblies,
+  buildAssemblyThreeGroup,
   PlacedAssemblyUnit
 } from '../utils/furnitureCadEngine';
 
 export interface FurnitureCadStudioSectionProps {
   lang?: string;
-  placedAssemblies?: Array<{ id: string; name: string; cadAssembly: FurnitureAssembly }>;
+  materials?: Array<{ id: string; name: string; colorHex?: string }>;
+  activeMatId?: string | null;
+  placedAssemblies?: Array<{
+    id: string;
+    name: string;
+    position?: number[];
+    cadAssembly: FurnitureAssembly;
+  }>;
   selectedModelId?: string | null;
   selectedPartId?: string | null;
   onSelectModel?: (id: string) => void;
@@ -72,8 +82,15 @@ function collectLeafNodes(node: CompartmentNode, depth = 0): Array<{ node: Compa
   return node.children.flatMap((c) => collectLeafNodes(c, depth + 1));
 }
 
+function collectSplitNodes(node: CompartmentNode): CompartmentNode[] {
+  if (!node.splitAxis || !node.children || node.children.length < 2) return [];
+  return [node, ...node.children.flatMap((c) => collectSplitNodes(c))];
+}
+
 export default function FurnitureCadStudioSection({
   lang = 'ro',
+  materials = [],
+  activeMatId = null,
   placedAssemblies = [],
   selectedModelId = null,
   selectedPartId = null,
@@ -89,6 +106,8 @@ export default function FurnitureCadStudioSection({
   const [mode, setMode] = useState<StudioMode>('create');
   const [templateCat, setTemplateCat] = useState<string>('all');
   const [draftTemplateId, setDraftTemplateId] = useState<FurnitureTemplateId>('base_cabinet');
+  const [snapNextToSelected, setSnapNextToSelected] = useState(true);
+  const [exportingGlb, setExportingGlb] = useState(false);
 
   // Multi-unit kitchen layout generator state
   const [kitchenLayout, setKitchenLayout] = useState<'linear' | 'l_corner' | 'u_shape' | 'l_peninsula'>('l_peninsula');
@@ -136,14 +155,61 @@ export default function FurnitureCadStudioSection({
     onUpdateAssembly(activeAssembly.id, finalAsm);
   };
 
+  const splitNodes = useMemo(
+    () => (activeAssembly ? collectSplitNodes(activeAssembly.rootNode) : []),
+    [activeAssembly]
+  );
+
   const handleInsertTemplate = (tId: FurnitureTemplateId) => {
     const meta = FURNITURE_TEMPLATES.find((t) => t.id === tId);
     const label = isRo ? meta?.nameRo : meta?.nameEn;
     const asm = createAssemblyFromTemplate(tId, label);
-    const spawnX = 0.6 + placedAssemblies.length * 0.85;
+    let spawnX = 0.6 + placedAssemblies.length * 0.85;
+    let spawnZ = 1.8;
+    if (snapNextToSelected && selectedEntry?.position) {
+      const prevW = selectedEntry.cadAssembly.widthMm * 0.001;
+      const nextW = asm.widthMm * 0.001;
+      spawnX = selectedEntry.position[0] + prevW / 2 + nextW / 2;
+      spawnZ = selectedEntry.position[2];
+    }
     const spawnY = tId === 'upper_cabinet' || tId === 'bathroom_vanity' ? 1.4 : 0;
-    onMountAssembly?.(asm, [spawnX, spawnY, 1.8], 0);
+    onMountAssembly?.(asm, [spawnX, spawnY, spawnZ], 0);
     setMode('structure');
+  };
+
+  const handleApplyMaterialToRole = (role: 'carcass' | 'front' | 'countertop') => {
+    if (!activeAssembly || !activeMatId) return;
+    const nextParts = activeAssembly.parts.map((p) =>
+      p.role === role ? { ...p, materialId: activeMatId } : p
+    );
+    commitAssembly({ ...activeAssembly, parts: nextParts }, false);
+  };
+
+  const handleExportAssemblyGlb = async () => {
+    if (!activeAssembly) return;
+    setExportingGlb(true);
+    try {
+      const { GLTFExporter } = await import('three/examples/jsm/exporters/GLTFExporter.js');
+      const group = buildAssemblyThreeGroup(activeAssembly);
+      const exporter = new GLTFExporter();
+      const buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+        exporter.parse(
+          group,
+          (res) => resolve(res as ArrayBuffer),
+          (err) => reject(err),
+          { binary: true }
+        );
+      });
+      const blob = new Blob([buffer], { type: 'model/gltf-binary' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${activeAssembly.name.replace(/\s+/g, '_')}.glb`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportingGlb(false);
+    }
   };
 
   const handleGenerateKitchenLayout = () => {
@@ -233,6 +299,12 @@ export default function FurnitureCadStudioSection({
       {/* MODE 1: CREATE / TEMPLATES / BLANK */}
       {mode === 'create' && (
         <div className={cardCls}>
+          {placedAssemblies.length > 0 && (
+            <label className="flex items-center justify-between text-[11px] text-[#C9D1D9] pb-1 border-b border-white/[0.06] cursor-pointer">
+              <span>{isRo ? 'Lipește automat lângă corpul selectat' : 'Flush-snap next to selected'}</span>
+              <Switch checked={snapNextToSelected} onCheckedChange={setSnapNextToSelected} />
+            </label>
+          )}
           <div className="flex flex-wrap gap-1">
             {[
               { id: 'all', label: 'Toate' },
@@ -429,7 +501,118 @@ export default function FurnitureCadStudioSection({
                     <span>Blat 38mm</span>
                   </label>
                 </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <label className={labelCls}>Mânere 3D</label>
+                    <select
+                      value={activeAssembly.handleType}
+                      onChange={(e) =>
+                        commitAssembly(
+                          { ...activeAssembly, handleType: e.target.value as FurnitureAssembly['handleType'] },
+                          true
+                        )
+                      }
+                      className={inputCls}
+                    >
+                      <option value="bar">Bară Metalică</option>
+                      <option value="knob">Buton</option>
+                      <option value="gola">Profil Gola</option>
+                      <option value="none">Fără Mâner</option>
+                    </select>
+                  </div>
+                  {activeMatId && (
+                    <div>
+                      <label className={labelCls}>Aplică Material Activ</label>
+                      <div className="grid grid-cols-3 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleApplyMaterialToRole('carcass')}
+                          className="rounded border border-[#262B34] bg-[#090A0C] py-1.5 text-[10px] text-[#C9D1D9] hover:bg-[#1C2027] cursor-pointer"
+                        >
+                          Carcasă
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyMaterialToRole('front')}
+                          className="rounded border border-[#262B34] bg-[#090A0C] py-1.5 text-[10px] text-[#C9D1D9] hover:bg-[#1C2027] cursor-pointer"
+                        >
+                          Fronturi
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyMaterialToRole('countertop')}
+                          className="rounded border border-[#262B34] bg-[#090A0C] py-1.5 text-[10px] text-[#C9D1D9] hover:bg-[#1C2027] cursor-pointer"
+                        >
+                          Blat
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* Split Ratios & Merge Controls */}
+              {splitNodes.length > 0 && (
+                <div className={cardCls}>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#8B949E]">
+                    Proporții Împărțire & Unire
+                  </div>
+                  <div className="space-y-2">
+                    {splitNodes.map((sn) => {
+                      const r0 = Math.round(
+                        ((sn.ratios?.[0] ?? 0.5) /
+                          ((sn.ratios || [0.5, 0.5]).reduce((a, b) => a + b, 0) || 1)) *
+                          100
+                      );
+                      return (
+                        <div key={sn.id} className="rounded-lg border border-[#262B34] bg-[#090A0C] p-2 space-y-1.5">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-[#C9D1D9]">
+                              {sn.label || 'Împărțire'} ({sn.splitAxis === 'vertical' ? 'Col' : 'Zone'}: {r0}% / {100 - r0}%)
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                commitAssembly(
+                                  {
+                                    ...activeAssembly,
+                                    rootNode: mergeCompartmentNode(activeAssembly.rootNode, sn.id)
+                                  },
+                                  true
+                                )
+                              }
+                              className="rounded border border-[#262B34] bg-[#14171C] px-1.5 py-0.5 text-[10px] text-[#C9D1D9] hover:text-[#F5F7FA] cursor-pointer"
+                            >
+                              Unește
+                            </button>
+                          </div>
+                          {sn.children && sn.children.length === 2 && (
+                            <Slider
+                              min={15}
+                              max={85}
+                              step={5}
+                              value={[r0]}
+                              onValueChange={([pct]) =>
+                                commitAssembly(
+                                  {
+                                    ...activeAssembly,
+                                    rootNode: updateCompartmentRatios(activeAssembly.rootNode, sn.id, [
+                                      pct / 100,
+                                      (100 - pct) / 100
+                                    ])
+                                  },
+                                  true
+                                )
+                              }
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Recursive Compartment Splitter */}
               {activeAssembly.templateId !== 'blank' && (
@@ -935,6 +1118,145 @@ export default function FurnitureCadStudioSection({
                     </div>
                   </div>
 
+                  {/* Conditional Shape Params */}
+                  {activePart.shape === 'l_cut' && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className={labelCls}>Decupaj Lățime (mm)</label>
+                        <input
+                          type="number"
+                          min={50}
+                          step={10}
+                          value={activePart.shapeParams?.cutWidthMm ?? 400}
+                          onChange={(e) =>
+                            commitAssembly(
+                              updateCadPart(activeAssembly, activePart.id, {
+                                shapeParams: {
+                                  ...activePart.shapeParams,
+                                  cutWidthMm: Number(e.target.value) || 400
+                                }
+                              })
+                            )
+                          }
+                          className={inputCls}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Decupaj Adâncime (mm)</label>
+                        <input
+                          type="number"
+                          min={50}
+                          step={10}
+                          value={activePart.shapeParams?.cutDepthMm ?? 400}
+                          onChange={(e) =>
+                            commitAssembly(
+                              updateCadPart(activeAssembly, activePart.id, {
+                                shapeParams: {
+                                  ...activePart.shapeParams,
+                                  cutDepthMm: Number(e.target.value) || 400
+                                }
+                              })
+                            )
+                          }
+                          className={inputCls}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {activePart.shape === 'chamfer' && (
+                    <div>
+                      <label className={labelCls}>Teșitură Colț (mm)</label>
+                      <input
+                        type="number"
+                        min={20}
+                        step={10}
+                        value={activePart.shapeParams?.chamferMm ?? 120}
+                        onChange={(e) =>
+                          commitAssembly(
+                            updateCadPart(activeAssembly, activePart.id, {
+                              shapeParams: {
+                                ...activePart.shapeParams,
+                                chamferMm: Number(e.target.value) || 120
+                              }
+                            })
+                          )
+                        }
+                        className={inputCls}
+                      />
+                    </div>
+                  )}
+
+                  {activePart.shape === 'rounded' && (
+                    <div>
+                      <label className={labelCls}>Rază Colț (mm)</label>
+                      <input
+                        type="number"
+                        min={10}
+                        step={5}
+                        value={activePart.shapeParams?.radiusMm ?? 40}
+                        onChange={(e) =>
+                          commitAssembly(
+                            updateCadPart(activeAssembly, activePart.id, {
+                              shapeParams: {
+                                ...activePart.shapeParams,
+                                radiusMm: Number(e.target.value) || 40
+                              }
+                            })
+                          )
+                        }
+                        className={inputCls}
+                      />
+                    </div>
+                  )}
+
+                  {activePart.shape === 'mansard_slope' && (
+                    <div>
+                      <label className={labelCls}>Diferență Pantă (mm)</label>
+                      <input
+                        type="number"
+                        min={50}
+                        step={20}
+                        value={activePart.shapeParams?.slopeDropMm ?? 450}
+                        onChange={(e) =>
+                          commitAssembly(
+                            updateCadPart(activeAssembly, activePart.id, {
+                              shapeParams: {
+                                ...activePart.shapeParams,
+                                slopeDropMm: Number(e.target.value) || 450
+                              }
+                            })
+                          )
+                        }
+                        className={inputCls}
+                      />
+                    </div>
+                  )}
+
+                  {materials.length > 0 && (
+                    <div>
+                      <label className={labelCls}>Material Piesă</label>
+                      <select
+                        value={activePart.materialId || ''}
+                        onChange={(e) =>
+                          commitAssembly(
+                            updateCadPart(activeAssembly, activePart.id, {
+                              materialId: e.target.value || null
+                            })
+                          )
+                        }
+                        className={inputCls}
+                      >
+                        <option value="">Default (Alb / Culoare Globală)</option>
+                        {materials.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   {/* 4-Edge Banding */}
                   <div>
                     <label className={labelCls}>Cant ABS (4 Laturi)</label>
@@ -1087,15 +1409,25 @@ export default function FurnitureCadStudioSection({
             <span>• Front <strong className="text-[#F5F7FA]">{bom.facadeSqM}m²</strong></span>
             <span>• Cant <strong className="text-[#F5F7FA]">{bom.edgeMeters}ml</strong></span>
           </div>
-          {onOpenTechnicalReport && (
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
-              onClick={onOpenTechnicalReport}
-              className="shrink-0 rounded-md border border-[#355E43] bg-[#1F3627] px-2 py-1 text-[10.5px] font-semibold text-[#F5F7FA] hover:bg-[#2A4935] cursor-pointer"
+              disabled={exportingGlb}
+              onClick={handleExportAssemblyGlb}
+              className="rounded-md border border-[#262B34] bg-[#14171C] px-2 py-1 text-[10.5px] font-semibold text-[#C9D1D9] hover:text-[#F5F7FA] cursor-pointer disabled:opacity-50"
             >
-              Raport CNC
+              {exportingGlb ? '...' : '.GLB'}
             </button>
-          )}
+            {onOpenTechnicalReport && (
+              <button
+                type="button"
+                onClick={onOpenTechnicalReport}
+                className="rounded-md border border-[#355E43] bg-[#1F3627] px-2 py-1 text-[10.5px] font-semibold text-[#F5F7FA] hover:bg-[#2A4935] cursor-pointer"
+              >
+                Raport CNC
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

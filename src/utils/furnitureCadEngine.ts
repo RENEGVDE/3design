@@ -947,6 +947,43 @@ export function updateCompartmentNode(
   };
 }
 
+export function updateCompartmentRatios(
+  root: CompartmentNode,
+  parentId: string,
+  ratios: number[]
+): CompartmentNode {
+  if (root.id === parentId) {
+    return { ...root, ratios };
+  }
+  if (!root.children) return root;
+  return {
+    ...root,
+    children: root.children.map((c) => updateCompartmentRatios(c, parentId, ratios))
+  };
+}
+
+export function mergeCompartmentNode(
+  root: CompartmentNode,
+  parentId: string
+): CompartmentNode {
+  if (root.id === parentId) {
+    return {
+      id: root.id,
+      label: root.label || 'Spațiu Unit',
+      splitAxis: null,
+      children: undefined,
+      ratios: undefined,
+      fill: 'open',
+      shelvesCount: 1
+    };
+  }
+  if (!root.children) return root;
+  return {
+    ...root,
+    children: root.children.map((c) => mergeCompartmentNode(c, parentId))
+  };
+}
+
 export function addManualPart(
   assembly: FurnitureAssembly,
   preset: 'vertical' | 'horizontal' | 'front' | 'back' | 'custom' = 'horizontal'
@@ -1040,6 +1077,32 @@ export function removeCadPart(
   };
 }
 
+function applyPlanarBoxUVs(geo: THREE.BufferGeometry, uvScale = 2.0) {
+  const pos = geo.attributes.position;
+  const norm = geo.attributes.normal;
+  if (!pos || !norm) return;
+  const uvs = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i++) {
+    const px = pos.getX(i) * uvScale;
+    const py = pos.getY(i) * uvScale;
+    const pz = pos.getZ(i) * uvScale;
+    const nx = Math.abs(norm.getX(i));
+    const ny = Math.abs(norm.getY(i));
+    const nz = Math.abs(norm.getZ(i));
+    if (ny >= nx && ny >= nz) {
+      uvs[i * 2] = px;
+      uvs[i * 2 + 1] = pz;
+    } else if (nx >= nz) {
+      uvs[i * 2] = pz;
+      uvs[i * 2 + 1] = py;
+    } else {
+      uvs[i * 2] = px;
+      uvs[i * 2 + 1] = py;
+    }
+  }
+  geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+}
+
 export function createShapeGeometryMm(part: CadPart): THREE.BufferGeometry {
   const L = Math.max(10, part.dimensionsMm.length) * 0.001;
   const W = Math.max(10, part.dimensionsMm.width) * 0.001;
@@ -1047,6 +1110,7 @@ export function createShapeGeometryMm(part: CadPart): THREE.BufferGeometry {
 
   if (part.shape === 'rect') {
     const geo = new THREE.BoxGeometry(L, T, W);
+    applyPlanarBoxUVs(geo);
     geo.computeBoundingBox();
     return geo;
   }
@@ -1097,8 +1161,57 @@ export function createShapeGeometryMm(part: CadPart): THREE.BufferGeometry {
   const geo = new THREE.ExtrudeGeometry(shape, { depth: T, bevelEnabled: false });
   geo.rotateX(-Math.PI / 2);
   geo.translate(0, -T / 2, 0);
+  geo.computeVertexNormals();
+  applyPlanarBoxUVs(geo);
   geo.computeBoundingBox();
   return geo;
+}
+
+function attachHandleToFrontMesh(
+  mesh: THREE.Mesh,
+  part: CadPart,
+  handleType: FurnitureAssembly['handleType']
+) {
+  if (part.role !== 'front' || handleType === 'none' || handleType === 'gola') return;
+  const handleMat = new THREE.MeshStandardMaterial({
+    color: '#2c313a',
+    roughness: 0.28,
+    metalness: 0.88
+  });
+  const T = Math.max(2, part.dimensionsMm.thickness) * 0.001;
+  const L = Math.max(10, part.dimensionsMm.length) * 0.001;
+  const W = Math.max(10, part.dimensionsMm.width) * 0.001;
+
+  // Front mesh has localRotDeg.x = 90: local +Y points out toward +Z in assembly space?
+  // Wait: BoxGeometry(L, T, W) rotated +90° around X maps local +Y -> -Z, local -Y -> +Z (front face)!
+  const faceY = -T / 2 - 0.012;
+
+  if (handleType === 'knob') {
+    const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.009, 0.02, 12), handleMat);
+    knob.position.set(
+      part.motion.type === 'hinge_l' ? L / 2 - 0.045 : part.motion.type === 'hinge_r' ? -L / 2 + 0.045 : 0,
+      faceY,
+      0
+    );
+    mesh.add(knob);
+    return;
+  }
+
+  const barLen = Math.min(0.16, Math.max(0.08, L * 0.45));
+  const isVertical = part.motion.type === 'hinge_l' || part.motion.type === 'hinge_r';
+  const barGeo = isVertical
+    ? new THREE.CylinderGeometry(0.005, 0.005, barLen, 10).rotateX(Math.PI / 2)
+    : new THREE.CylinderGeometry(0.005, 0.005, barLen, 10).rotateZ(Math.PI / 2);
+  const bar = new THREE.Mesh(barGeo, handleMat);
+  const offsetX =
+    part.motion.type === 'hinge_l'
+      ? L / 2 - 0.045
+      : part.motion.type === 'hinge_r'
+        ? -L / 2 + 0.045
+        : 0;
+  const offsetZ = part.motion.type === 'lift' ? W / 2 - 0.045 : 0;
+  bar.position.set(offsetX, faceY, offsetZ);
+  mesh.add(bar);
 }
 
 export function buildAssemblyThreeGroup(
@@ -1135,6 +1248,7 @@ export function buildAssemblyThreeGroup(
     mesh.userData.cadPartId = part.id;
     mesh.userData.partRole = part.role;
     mesh.userData.assignedMatId = part.materialId || null;
+    attachHandleToFrontMesh(mesh, part, assembly.handleType);
     root.add(mesh);
   }
 
@@ -1363,4 +1477,97 @@ export function createKitchenLayoutAssemblies(options: {
   }
 
   return units;
+}
+
+export interface CadCncDrillRow {
+  cabinet: string;
+  partName: string;
+  operation: string;
+  diameterMm: number;
+  depthMm: number;
+  xMm: number;
+  yMm: number;
+  face: string;
+}
+
+export function generateAssemblyCncHoles(assembly: FurnitureAssembly): CadCncDrillRow[] {
+  const rows: CadCncDrillRow[] = [];
+  for (const part of assembly.parts) {
+    if (part.role === 'hardware' || part.role === 'back') continue;
+    const L = Math.round(part.dimensionsMm.length);
+    const W = Math.round(part.dimensionsMm.width);
+
+    if (
+      part.role === 'front' &&
+      (part.motion.type === 'hinge_l' || part.motion.type === 'hinge_r' || part.motion.type === 'lift')
+    ) {
+      const cupCount = W > 1400 ? 4 : W > 900 ? 3 : 2;
+      const xEdge = part.motion.type === 'hinge_r' ? L - 22.5 : 22.5;
+      for (let i = 0; i < cupCount; i++) {
+        const yPos =
+          cupCount === 2
+            ? i === 0
+              ? 100
+              : Math.max(120, W - 100)
+            : Math.round(100 + ((W - 200) * i) / (cupCount - 1));
+        rows.push({
+          cabinet: assembly.name,
+          partName: part.name,
+          operation: 'Oală Balama Ø35 mm',
+          diameterMm: 35,
+          depthMm: 12.5,
+          xMm: xEdge,
+          yMm: yPos,
+          face: 'Față Interioară'
+        });
+      }
+    } else if (part.role === 'shelf') {
+      rows.push(
+        {
+          cabinet: assembly.name,
+          partName: part.name,
+          operation: 'Suport Poliță / Minifix Ø15',
+          diameterMm: 15,
+          depthMm: 13.5,
+          xMm: 34,
+          yMm: 37,
+          face: 'Față Inferioară'
+        },
+        {
+          cabinet: assembly.name,
+          partName: part.name,
+          operation: 'Suport Poliță / Minifix Ø15',
+          diameterMm: 15,
+          depthMm: 13.5,
+          xMm: Math.max(40, L - 34),
+          yMm: Math.max(40, W - 37),
+          face: 'Față Inferioară'
+        }
+      );
+    } else if (part.role === 'carcass') {
+      rows.push(
+        {
+          cabinet: assembly.name,
+          partName: part.name,
+          operation: 'Confirmat Ø7 mm (Trecere)',
+          diameterMm: 7,
+          depthMm: part.dimensionsMm.thickness,
+          xMm: 50,
+          yMm: 9,
+          face: 'Față Exterioară'
+        },
+        {
+          cabinet: assembly.name,
+          partName: part.name,
+          operation: 'System 32 (Ø5 mm Polițe)',
+          diameterMm: 5,
+          depthMm: 10,
+          xMm: Math.round(L / 2),
+          yMm: 37,
+          face: 'Față Interioară'
+        }
+      );
+    }
+  }
+  return rows;
 }

@@ -9,7 +9,10 @@ import {
   duplicateCadPart,
   removeCadPart,
   computeAssemblyBom,
-  createShapeGeometryMm
+  createShapeGeometryMm,
+  updateCompartmentRatios,
+  mergeCompartmentNode,
+  generateAssemblyCncHoles
 } from '../furnitureCadEngine';
 
 describe('furnitureCadEngine', () => {
@@ -83,6 +86,21 @@ describe('furnitureCadEngine', () => {
     expect(bom.edgeMeters).toBeGreaterThan(0);
     expect(bom.slidesCount).toBe(4);
     expect(bom.handlesCount).toBe(4);
+  });
+
+  it('supports asymmetric compartment ratios, merging splits, and joint-aware CNC drilling', () => {
+    let asm = createAssemblyFromTemplate('wardrobe_hinged');
+    asm = regenerateAssemblyParts({
+      ...asm,
+      rootNode: updateCompartmentRatios(asm.rootNode, asm.rootNode.id, [0.3, 0.7])
+    });
+    const cncRows = generateAssemblyCncHoles(asm);
+    expect(cncRows.some((r) => r.diameterMm === 35)).toBe(true);
+    expect(cncRows.some((r) => r.diameterMm === 5)).toBe(true);
+
+    const mergedRoot = mergeCompartmentNode(asm.rootNode, asm.rootNode.id);
+    expect(mergedRoot.splitAxis).toBeNull();
+    expect(mergedRoot.children).toBeUndefined();
   });
 });
 

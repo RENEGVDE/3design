@@ -6,6 +6,7 @@ import {
   drawPanelBlueprint,
   generateCncDrillingCsv
 } from '../utils/furnitureEngineering';
+import { generateAssemblyCncHoles } from '../utils/furnitureCadEngine';
 import {
   Dialog,
   DialogContent,
@@ -472,14 +473,38 @@ export default function TechnicalReportModal({
       URL.revokeObjectURL(url);
     };
 
+    const cadCncRows = useMemo(() => {
+      const rows = [];
+      for (const m of importedModels) {
+        if (m.isCadAssembly && m.cadAssembly) {
+          rows.push(...generateAssemblyCncHoles(m.cadAssembly));
+        }
+      }
+      return rows;
+    }, [importedModels]);
+
     const handleDownloadCnc = () => {
-      const drillHoles = [];
-      aggregatedParts.forEach((p) => {
-        drillHoles.push(
-          { panel: p.partName, cabinet: p.cabinet, holeType: 'Confirmat Ø7', diameter: 7, depth: 18, x: 50, y: 9, face: 'Față' },
-          { panel: p.partName, cabinet: p.cabinet, holeType: 'Minifix Ø15', diameter: 15, depth: 13.5, x: 34, y: 32, face: 'Față' }
-        );
-      });
+      const drillHoles =
+        cadCncRows.length > 0
+          ? cadCncRows.map((r) => ({
+              panel: r.partName,
+              cabinet: r.cabinet,
+              holeType: r.operation,
+              diameter: r.diameterMm,
+              depth: r.depthMm,
+              x: r.xMm,
+              y: r.yMm,
+              face: r.face
+            }))
+          : [];
+      if (drillHoles.length === 0) {
+        aggregatedParts.forEach((p) => {
+          drillHoles.push(
+            { panel: p.partName, cabinet: p.cabinet, holeType: 'Confirmat Ø7', diameter: 7, depth: 18, x: 50, y: 9, face: 'Față' },
+            { panel: p.partName, cabinet: p.cabinet, holeType: 'Minifix Ø15', diameter: 15, depth: 13.5, x: 34, y: 32, face: 'Față' }
+          );
+        });
+      }
       const csv = generateCncDrillingCsv(drillHoles, 'Total_Project');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -1019,7 +1044,21 @@ export default function TechnicalReportModal({
                                                           </tr>
                                                     </thead>
                                                     <tbody>
-                                                      {aggregatedParts.slice(0, 20).map((p, idx) => (
+                                                      {cadCncRows.length > 0
+                                                        ? cadCncRows.slice(0, 60).map((r, idx) => (
+                                                            <tr key={idx} className="hover:bg-white/[0.03]">
+                                                              <td className={tdClass}>{idx + 1}</td>
+                                                              <td className={tdClass}><strong>{r.partName}</strong></td>
+                                                              <td className={tdClass}>{r.cabinet}</td>
+                                                              <td className={tdClass}>{r.operation}</td>
+                                                              <td className={`${tdClass} font-mono text-right`}>{r.diameterMm} mm</td>
+                                                              <td className={`${tdClass} font-mono text-right`}>{r.depthMm} mm</td>
+                                                              <td className={`${tdClass} font-mono text-right`}>{r.xMm} mm</td>
+                                                              <td className={`${tdClass} font-mono text-right`}>{r.yMm} mm</td>
+                                                              <td className={tdClass}>{r.face}</td>
+                                                            </tr>
+                                                          ))
+                                                        : aggregatedParts.slice(0, 20).map((p, idx) => (
                                                         <React.Fragment key={idx}>
                                                           <tr className="hover:bg-white/[0.03]">
                                                             <td className={tdClass}>{idx * 2 + 1}</td>

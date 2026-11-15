@@ -670,8 +670,9 @@ export default function KitchenViewer() {
           child.userData.mechTarget = 0;
 
           const savedSp = savedSubParts?.[subIdx];
-          if (savedSp?.assignedMatId) {
-            const matEntry = availableMats.find((m) => m.id === savedSp.assignedMatId);
+          const matIdToApply = part?.materialId || savedSp?.assignedMatId;
+          if (matIdToApply) {
+            const matEntry = availableMats.find((m) => m.id === matIdToApply);
             if (matEntry) {
               applyMatEntryToMesh(child, matEntry, stateRef.current.xrayActive);
             }
@@ -1135,6 +1136,23 @@ export default function KitchenViewer() {
     onSetGizmoMode: setGizmoMode,
     onCancelPlacement: handleCancelPlacementShortcut
   });
+
+  // Subtle 3D emissive highlight for selected CAD part
+  useEffect(() => {
+    const ctx = sceneRef.current;
+    if (!ctx) return;
+    for (const m of ctx.importedMeshes) {
+      if (!m?.material || !('emissive' in m.material)) continue;
+      const isSelectedCadPart =
+        activeStudioTab === 'furniture' &&
+        Boolean(selectedCadPartId) &&
+        m.userData?.cadPartId === selectedCadPartId;
+      (m.material as THREE.MeshStandardMaterial).emissive.setHex(
+        isSelectedCadPart ? 0x0f5773 : 0x000000
+      );
+      (m.material as THREE.MeshStandardMaterial).emissiveIntensity = isSelectedCadPart ? 0.35 : 0;
+    }
+  }, [selectedCadPartId, activeStudioTab, importedModels]);
 
   // Initialize Three.js Scene
   useEffect(() => {
@@ -5487,9 +5505,16 @@ export default function KitchenViewer() {
           {activeStudioTab === 'furniture' && (
             <FurnitureCadStudioSection
               lang={lang}
+              materials={materials}
+              activeMatId={activeMatId}
               placedAssemblies={importedModels
                 .filter((im) => im.isCadAssembly && im.cadAssembly)
-                .map((im) => ({ id: im.id, name: im.name, cadAssembly: im.cadAssembly }))}
+                .map((im) => ({
+                  id: im.id,
+                  name: im.name,
+                  position: im.position,
+                  cadAssembly: im.cadAssembly
+                }))}
               selectedModelId={selectedGlbId}
               selectedPartId={selectedCadPartId}
               onSelectModel={(id) => {
