@@ -78,7 +78,10 @@ export default function TechnicalReportModal({
             qty: p.qty || 1,
             material: p.material || 'PAL 18mm',
             grain: p.grain || 'Vertical',
-            edgeBanding: p.edgeBanding || 'Cant ABS 1mm'
+            edgeBanding: p.edgeBanding || 'Cant ABS 1mm',
+            shape: p.shape,
+            shapeParams: p.shapeParams,
+            edges: p.edges
           });
         });
       } else {

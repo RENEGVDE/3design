@@ -40,6 +40,10 @@ export interface FurnitureCadStudioSectionProps {
   }>;
   selectedModelId?: string | null;
   selectedPartId?: string | null;
+  editPartIn3D?: boolean;
+  onToggleEditPartIn3D?: (next: boolean) => void;
+  explodedProgress?: number;
+  onChangeExplodedProgress?: (val: number) => void;
   onSelectModel?: (id: string) => void;
   onSelectPartId?: (partId: string | null) => void;
   onMountAssembly?: (
@@ -94,6 +98,10 @@ export default function FurnitureCadStudioSection({
   placedAssemblies = [],
   selectedModelId = null,
   selectedPartId = null,
+  editPartIn3D = false,
+  onToggleEditPartIn3D,
+  explodedProgress = 0,
+  onChangeExplodedProgress,
   onSelectModel,
   onSelectPartId,
   onMountAssembly,
@@ -108,6 +116,30 @@ export default function FurnitureCadStudioSection({
   const [draftTemplateId, setDraftTemplateId] = useState<FurnitureTemplateId>('base_cabinet');
   const [snapNextToSelected, setSnapNextToSelected] = useState(true);
   const [exportingGlb, setExportingGlb] = useState(false);
+
+  const CUSTOM_TPL_KEY = '3design_custom_cad_templates_v1';
+  const [customTemplates, setCustomTemplates] = useState<
+    Array<{ id: string; name: string; assembly: FurnitureAssembly }>
+  >(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = window.localStorage.getItem(CUSTOM_TPL_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const saveCustomTemplatesToStorage = (
+    next: Array<{ id: string; name: string; assembly: FurnitureAssembly }>
+  ) => {
+    setCustomTemplates(next);
+    try {
+      window.localStorage.setItem(CUSTOM_TPL_KEY, JSON.stringify(next));
+    } catch {
+      // ignore quota errors
+    }
+  };
 
   // Multi-unit kitchen layout generator state
   const [kitchenLayout, setKitchenLayout] = useState<'linear' | 'l_corner' | 'u_shape' | 'l_peninsula'>('l_peninsula');
@@ -355,6 +387,90 @@ export default function FurnitureCadStudioSection({
                 </button>
               );
             })}
+          </div>
+
+          {/* Custom User Template Library */}
+          <div className="pt-2 border-t border-white/[0.06] space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B949E]">
+                {isRo ? 'Șabloane Personale' : 'Custom Templates'}
+              </span>
+              {activeAssembly && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const cloned: FurnitureAssembly = JSON.parse(JSON.stringify(activeAssembly));
+                    const tplEntry = {
+                      id: `ctpl_${Date.now()}`,
+                      name: activeAssembly.name,
+                      assembly: cloned
+                    };
+                    saveCustomTemplatesToStorage([tplEntry, ...customTemplates]);
+                  }}
+                  className="rounded-md border border-[#355E43] bg-[#1F3627] px-2 py-1 text-[10px] font-semibold text-[#F5F7FA] hover:bg-[#2A4935] cursor-pointer transition"
+                >
+                  {isRo ? '+ Salvează Corpul Selectat' : '+ Save Selected'}
+                </button>
+              )}
+            </div>
+
+            {customTemplates.length === 0 ? (
+              <div className="text-[10.5px] text-[#8B949E]">
+                {isRo
+                  ? 'Niciun șablon salvat. Selectează un corp și apasă „Salvează Corpul Selectat”.'
+                  : 'No custom templates yet. Select an assembly and click Save Selected.'}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-0.5">
+                {customTemplates.map((ct) => (
+                  <div
+                    key={ct.id}
+                    className="flex items-center justify-between rounded-lg border border-[#262B34] bg-[#090A0C] p-1.5 gap-1"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cloned: FurnitureAssembly = JSON.parse(JSON.stringify(ct.assembly));
+                        cloned.id = `cad_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+                        let pos: [number, number, number] = [0.8, 0, 1.8];
+                        if (snapNextToSelected && selectedEntry?.position) {
+                          const sw = (selectedEntry.cadAssembly.widthMm || 600) * 0.001;
+                          const nw = (cloned.widthMm || 600) * 0.001;
+                          pos = [
+                            Number((selectedEntry.position[0] + sw / 2 + nw / 2 + 0.002).toFixed(3)),
+                            selectedEntry.position[1],
+                            selectedEntry.position[2]
+                          ];
+                        }
+                        onMountAssembly?.(cloned, pos, 0);
+                        setMode('structure');
+                      }}
+                      className="flex-1 text-left cursor-pointer min-w-0"
+                    >
+                      <div className="text-[11px] font-semibold text-[#F5F7FA] truncate">
+                        {ct.name}
+                      </div>
+                      <div className="text-[9.5px] font-mono text-[#8B949E]">
+                        {ct.assembly.widthMm}×{ct.assembly.heightMm}×
+                        {ct.assembly.depthMm}
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      title={isRo ? 'Șterge șablon' : 'Delete template'}
+                      onClick={() =>
+                        saveCustomTemplatesToStorage(
+                          customTemplates.filter((item) => item.id !== ct.id)
+                        )
+                      }
+                      className="px-1.5 py-0.5 text-[11px] text-[#8B949E] hover:text-rose-400 cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -796,6 +912,26 @@ export default function FurnitureCadStudioSection({
                   </div>
                 </div>
               )}
+
+              {onChangeExplodedProgress && (
+                <div className={cardCls}>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold uppercase tracking-wider text-[#8B949E]">
+                      {isRo ? 'Vedere Explodată (Asamblare)' : 'Exploded Assembly View'}
+                    </span>
+                    <span className="font-mono font-semibold text-[#F5F7FA]">
+                      {Math.round(explodedProgress)}%
+                    </span>
+                  </div>
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={[explodedProgress]}
+                    onValueChange={([v]) => onChangeExplodedProgress(v)}
+                  />
+                </div>
+              )}
             </div>
           )}
         </>
@@ -970,6 +1106,91 @@ export default function FurnitureCadStudioSection({
                         }
                         className={inputCls}
                       />
+                    </div>
+                  </div>
+
+                  {/* Direct 3D Part Gizmo & Alignment Tools */}
+                  <div className="rounded-lg border border-white/[0.08] bg-[#090A0C] p-2 space-y-2">
+                    {onToggleEditPartIn3D && (
+                      <label className="flex items-center justify-between text-[11px] text-[#F5F7FA] cursor-pointer">
+                        <span className="font-semibold">
+                          {isRo ? '🎯 Editează Piesa în 3D (Gizmo)' : '🎯 Edit Part in 3D (Gizmo)'}
+                        </span>
+                        <Switch checked={editPartIn3D} onCheckedChange={onToggleEditPartIn3D} />
+                      </label>
+                    )}
+                    <div className="grid grid-cols-3 gap-1">
+                      {[
+                        {
+                          label: isRo ? 'Centru X' : 'Center X',
+                          apply: () => ({ localPosMm: { ...activePart.localPosMm, x: 0 } })
+                        },
+                        {
+                          label: isRo ? 'Stânga' : 'Flush L',
+                          apply: () => ({
+                            localPosMm: {
+                              ...activePart.localPosMm,
+                              x: Math.round(
+                                -activeAssembly.widthMm / 2 +
+                                  activePart.dimensionsMm.thickness / 2
+                              )
+                            }
+                          })
+                        },
+                        {
+                          label: isRo ? 'Dreapta' : 'Flush R',
+                          apply: () => ({
+                            localPosMm: {
+                              ...activePart.localPosMm,
+                              x: Math.round(
+                                activeAssembly.widthMm / 2 -
+                                  activePart.dimensionsMm.thickness / 2
+                              )
+                            }
+                          })
+                        },
+                        {
+                          label: isRo ? 'Jos Y=0' : 'Floor Y=0',
+                          apply: () => ({
+                            localPosMm: {
+                              ...activePart.localPosMm,
+                              y: Math.round(activePart.dimensionsMm.thickness / 2)
+                            }
+                          })
+                        },
+                        {
+                          label: isRo ? 'Sus' : 'Flush Top',
+                          apply: () => ({
+                            localPosMm: {
+                              ...activePart.localPosMm,
+                              y: Math.round(
+                                activeAssembly.heightMm -
+                                  activePart.dimensionsMm.thickness / 2
+                              )
+                            }
+                          })
+                        },
+                        {
+                          label: isRo ? 'Oglindește X' : 'Mirror X',
+                          apply: () => ({
+                            localPosMm: {
+                              ...activePart.localPosMm,
+                              x: Math.round(-activePart.localPosMm.x)
+                            }
+                          })
+                        }
+                      ].map((al) => (
+                        <button
+                          key={al.label}
+                          type="button"
+                          onClick={() =>
+                            commitAssembly(updateCadPart(activeAssembly, activePart.id, al.apply()))
+                          }
+                          className="rounded border border-[#262B34] bg-[#14171C] py-1 text-[10px] text-[#C9D1D9] hover:border-[#17789E] hover:text-[#F5F7FA] cursor-pointer transition"
+                        >
+                          {al.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
 

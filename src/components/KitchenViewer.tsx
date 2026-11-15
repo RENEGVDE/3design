@@ -206,6 +206,7 @@ export default function KitchenViewer() {
   // Studio Tabs & Navigation State
   const [activeStudioTab, setActiveStudioTab] = useState('furniture'); // 'furniture' | 'appliances' | 'materials' | 'models' | 'architecture' | 'tree' | 'lighting'
   const [selectedCadPartId, setSelectedCadPartId] = useState<string | null>(null);
+  const [editPartIn3D, setEditPartIn3D] = useState(false);
 
   // CAD Engineering & Model Tree States
   const [explodedProgress, setExplodedProgress] = useState(0);
@@ -284,7 +285,9 @@ export default function KitchenViewer() {
     roomConfig,
     appliances,
     selectedApplianceId,
-    is2DPlanMode
+    is2DPlanMode,
+    selectedCadPartId,
+    editPartIn3D
   });
   useEffect(() => {
     stateRef.current = {
@@ -304,7 +307,9 @@ export default function KitchenViewer() {
       roomConfig,
       appliances,
       selectedApplianceId,
-      is2DPlanMode
+      is2DPlanMode,
+      selectedCadPartId,
+      editPartIn3D
     };
   }, [
     lang,
@@ -322,7 +327,9 @@ export default function KitchenViewer() {
     roomConfig,
     appliances,
     selectedApplianceId,
-    is2DPlanMode
+    is2DPlanMode,
+    selectedCadPartId,
+    editPartIn3D
   ]);
 
   const syncPartsMetaToReact = useCallback(() => {}, []);
@@ -1115,10 +1122,20 @@ export default function KitchenViewer() {
     }
 
     const entry = ctx.importedMap[selectedGlbId];
+    if (editPartIn3D && selectedCadPartId && entry.meshes) {
+      const partMesh = entry.meshes.find((m: any) => m.userData?.cadPartId === selectedCadPartId);
+      if (partMesh) {
+        tc.setMode(gizmoMode === 'scale' ? 'translate' : gizmoMode);
+        tc.attach(partMesh);
+        tc.visible = true;
+        return;
+      }
+    }
+
     tc.setMode(gizmoMode);
     tc.attach(entry.wrapperGroup);
     tc.visible = true;
-  }, [selectedGlbId, gizmoMode, importedModels, loading]);
+  }, [selectedGlbId, gizmoMode, importedModels, loading, editPartIn3D, selectedCadPartId]);
 
   const hasSelectedModelForShortcuts = useCallback(
     () => Boolean(stateRef.current.selectedGlbId),
@@ -1268,6 +1285,49 @@ export default function KitchenViewer() {
           const gid = stateRef.current.selectedGlbId;
           const entry = sceneRef.current?.importedMap?.[gid];
           if (entry) {
+            if (stateRef.current.editPartIn3D && stateRef.current.selectedCadPartId) {
+              const partId = stateRef.current.selectedCadPartId;
+              const partMesh = entry.meshes?.find((m: any) => m.userData?.cadPartId === partId);
+              const targetModel = (stateRef.current.importedModels || []).find((im) => im.id === gid);
+              if (partMesh && targetModel?.isCadAssembly && targetModel.cadAssembly) {
+                const shiftMm = partMesh.userData?.pivotShiftMm || { x: 0, y: 0 };
+                const nextPosMm = {
+                  x: Math.round(partMesh.position.x * 1000 - shiftMm.x),
+                  y: Math.round(partMesh.position.y * 1000 - shiftMm.y),
+                  z: Math.round(partMesh.position.z * 1000)
+                };
+                const nextRotDeg = {
+                  x: Math.round(THREE.MathUtils.radToDeg(partMesh.rotation.x)),
+                  y: Math.round(THREE.MathUtils.radToDeg(partMesh.rotation.y)),
+                  z: Math.round(THREE.MathUtils.radToDeg(partMesh.rotation.z))
+                };
+                const nextAsm: FurnitureAssembly = {
+                  ...targetModel.cadAssembly,
+                  parts: targetModel.cadAssembly.parts.map((pt: any) =>
+                    pt.id === partId
+                      ? { ...pt, localPosMm: nextPosMm, localRotDeg: nextRotDeg }
+                      : pt
+                  )
+                };
+                partMesh.userData.basePos = partMesh.position.clone();
+                partMesh.userData.baseRot = partMesh.rotation.clone();
+                const updatedModels = (stateRef.current.importedModels || []).map((im) =>
+                  im.id === gid
+                    ? {
+                        ...im,
+                        cadAssembly: nextAsm,
+                        panelCuttingList: assemblyToPanelCuttingList(nextAsm)
+                      }
+                    : im
+                );
+                stateRef.current.importedModels = updatedModels;
+                setImportedModels(updatedModels);
+                persistWorkspace({ importedModels: updatedModels });
+                pushHistoryRef.current?.('Editare Piesă 3D');
+                return;
+              }
+            }
+
             const p = entry.wrapperGroup.position;
             const ry = THREE.MathUtils.radToDeg(entry.wrapperGroup.rotation.y);
             const s = entry.wrapperGroup.scale;
@@ -4353,6 +4413,20 @@ export default function KitchenViewer() {
       const restoredModels: any[] = [];
       if (Array.isArray(proj.importedModels)) {
         for (const m of proj.importedModels) {
+          if (m.isCadAssembly && m.cadAssembly && sceneRef.current) {
+            const mounted = mountCadAssemblyIntoScene(
+              m.cadAssembly,
+              {
+                position: m.position,
+                rotationYDeg: m.rotationYDeg,
+                scale: m.scale
+              },
+              stateRef.current.materials,
+              m.subParts || null
+            );
+            if (mounted) restoredModels.push(mounted);
+            continue;
+          }
           const b64 = m.b64Data || glbBinaryCacheRef.current.get(m.id);
           if (b64) {
             glbBinaryCacheRef.current.set(m.id, b64);
@@ -4984,6 +5058,29 @@ export default function KitchenViewer() {
       const entry = ctx.importedMap[m.id];
       if (!entry || !entry.wrapperGroup) return;
 
+      if (m.isCadAssembly && m.cadAssembly) {
+        const cy = (m.cadAssembly.heightMm * 0.001) / 2;
+        const explodeScale = (val / 100) * 0.65;
+        entry.wrapperGroup.traverse((child: any) => {
+          if (child.isMesh && child !== entry.wrapperGroup && child.userData?.cadPartId) {
+            if (!child.userData.cadOrigPos) {
+              child.userData.cadOrigPos = child.position.clone();
+            }
+            const orig = child.userData.cadOrigPos;
+            const role = child.userData.partRole;
+            const dx = orig.x;
+            const dy = orig.y - cy;
+            const dz = orig.z + (role === 'front' ? 0.12 : role === 'back' ? -0.12 : 0);
+            child.position.set(
+              orig.x + dx * explodeScale,
+              orig.y + dy * explodeScale,
+              orig.z + dz * explodeScale
+            );
+          }
+        });
+        return;
+      }
+
       entry.wrapperGroup.traverse((child) => {
         if (child.isMesh && child !== entry.wrapperGroup) {
           if (!child.userData.cadOrigPos) {
@@ -5517,6 +5614,10 @@ export default function KitchenViewer() {
                 }))}
               selectedModelId={selectedGlbId}
               selectedPartId={selectedCadPartId}
+              editPartIn3D={editPartIn3D}
+              onToggleEditPartIn3D={setEditPartIn3D}
+              explodedProgress={explodedProgress}
+              onChangeExplodedProgress={handleExplodedProgressChange}
               onSelectModel={(id) => {
                 setSelectedGlbId(id);
                 setGizmoMode('translate');

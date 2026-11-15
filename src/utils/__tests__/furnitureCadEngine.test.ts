@@ -12,7 +12,9 @@ import {
   createShapeGeometryMm,
   updateCompartmentRatios,
   mergeCompartmentNode,
-  generateAssemblyCncHoles
+  generateAssemblyCncHoles,
+  buildAssemblyThreeGroup,
+  assemblyToPanelCuttingList
 } from '../furnitureCadEngine';
 
 describe('furnitureCadEngine', () => {
@@ -101,6 +103,34 @@ describe('furnitureCadEngine', () => {
     const mergedRoot = mergeCompartmentNode(asm.rootNode, asm.rootNode.id);
     expect(mergedRoot.splitAxis).toBeNull();
     expect(mergedRoot.children).toBeUndefined();
+  });
+
+  it('applies hinge-edge pivots, exploded view offsets, and preserves shape/edges in cutting list', () => {
+    const asm = createAssemblyFromTemplate('base_cabinet');
+    const normalGroup = buildAssemblyThreeGroup(asm, '#f4f4f2', 0);
+    const explodedGroup = buildAssemblyThreeGroup(asm, '#f4f4f2', 1);
+
+    const normalFront = normalGroup.children.find((c) => c.userData?.partRole === 'front') as any;
+    const explodedFront = explodedGroup.children.find((c) => c.userData?.partRole === 'front') as any;
+    expect(normalFront).toBeDefined();
+    expect(explodedFront).toBeDefined();
+    expect(explodedFront.position.z).toBeGreaterThan(normalFront.position.z);
+
+    // Left-hinged door geometry should span [0, L] along X so pivot sits on left hinge edge
+    const leftDoor = normalGroup.children.find((c) => {
+      const p = asm.parts.find((pt) => pt.id === c.userData?.cadPartId);
+      return p?.role === 'front' && p.motion.type === 'hinge_l';
+    }) as any;
+    if (leftDoor) {
+      expect(leftDoor.geometry.boundingBox.min.x).toBeCloseTo(0, 3);
+      expect(leftDoor.geometry.boundingBox.max.x).toBeGreaterThan(0.1);
+    }
+
+    const lDesk = createAssemblyFromTemplate('l_desk');
+    const cutList = assemblyToPanelCuttingList(lDesk);
+    const lPanel = cutList.find((row) => row.shape === 'l_cut');
+    expect(lPanel).toBeDefined();
+    expect(lPanel?.edges).toBeDefined();
   });
 });
 

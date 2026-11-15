@@ -521,14 +521,91 @@ export function drawPanelBlueprint(canvas: HTMLCanvasElement, panel: any, drillH
   const startX = (width - drawW) / 2;
   const startY = margin + (availH - drawH) / 2;
 
-  // Draw panel main body
+  // Draw panel main body (supports rectangle, l_cut, chamfer, rounded, mansard_slope)
+  const pShape = panel?.shape || 'rectangle';
+  const sp = panel?.shapeParams || {};
+  ctx.beginPath();
+  if (pShape === 'l_cut') {
+    const cutW = Math.min(drawW * 0.75, Math.max(12, (sp.cutWidthMm || pL * 0.35) * scale));
+    const cutH = Math.min(drawH * 0.75, Math.max(12, (sp.cutDepthMm || pW * 0.35) * scale));
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(startX + drawW - cutW, startY);
+    ctx.lineTo(startX + drawW - cutW, startY + cutH);
+    ctx.lineTo(startX + drawW, startY + cutH);
+    ctx.lineTo(startX + drawW, startY + drawH);
+    ctx.lineTo(startX, startY + drawH);
+    ctx.closePath();
+  } else if (pShape === 'chamfer') {
+    const ch = Math.min(Math.min(drawW, drawH) * 0.45, Math.max(10, (sp.chamferMm || 60) * scale));
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(startX + drawW - ch, startY);
+    ctx.lineTo(startX + drawW, startY + ch);
+    ctx.lineTo(startX + drawW, startY + drawH);
+    ctx.lineTo(startX, startY + drawH);
+    ctx.closePath();
+  } else if (pShape === 'rounded') {
+    const r = Math.min(Math.min(drawW, drawH) * 0.45, Math.max(6, (sp.radiusMm || 20) * scale));
+    ctx.moveTo(startX + r, startY);
+    ctx.lineTo(startX + drawW - r, startY);
+    ctx.quadraticCurveTo(startX + drawW, startY, startX + drawW, startY + r);
+    ctx.lineTo(startX + drawW, startY + drawH - r);
+    ctx.quadraticCurveTo(startX + drawW, startY + drawH, startX + drawW - r, startY + drawH);
+    ctx.lineTo(startX + r, startY + drawH);
+    ctx.quadraticCurveTo(startX, startY + drawH, startX, startY + drawH - r);
+    ctx.lineTo(startX, startY + r);
+    ctx.quadraticCurveTo(startX, startY, startX + r, startY);
+    ctx.closePath();
+  } else if (pShape === 'mansard_slope') {
+    const drop = Math.min(drawH * 0.8, Math.max(12, (sp.slopeDropMm || 450) * scale));
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(startX + drawW, startY);
+    ctx.lineTo(startX + drawW, startY + drawH - drop);
+    ctx.lineTo(startX, startY + drawH);
+    ctx.closePath();
+  } else {
+    ctx.rect(startX, startY, drawW, drawH);
+  }
   ctx.fillStyle = '#1e293b';
-  ctx.fillRect(startX, startY, drawW, drawH);
+  ctx.fill();
 
-  // Draw Edge Banding (distinct colored borders)
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = '#38bdf8'; // Blue cyan: ABS 1mm / 2mm
-  ctx.strokeRect(startX, startY, drawW, drawH);
+  // Draw 4-Edge ABS Banding Indicators
+  const edgeCfg = panel?.edges;
+  if (edgeCfg && pShape === 'rectangle') {
+    const edgeColor = (band?: string) =>
+      band === '2mm'
+        ? '#f59e0b'
+        : band === '1mm'
+          ? '#38bdf8'
+          : band === '0.4mm'
+            ? '#10b981'
+            : '#475569';
+    const edgeWidth = (band?: string) => (band === '2mm' ? 4 : band === '1mm' ? 3 : band === '0.4mm' ? 2 : 1);
+    const drawEdge = (
+      x1: number,
+      y1: number,
+      x2: number,
+      y2: number,
+      band?: string
+    ) => {
+      ctx.save();
+      ctx.beginPath();
+      if (!band || band === 'none') ctx.setLineDash([4, 4]);
+      ctx.lineWidth = edgeWidth(band);
+      ctx.strokeStyle = edgeColor(band);
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.restore();
+    };
+    drawEdge(startX, startY, startX + drawW, startY, edgeCfg.top);
+    drawEdge(startX, startY + drawH, startX + drawW, startY + drawH, edgeCfg.bottom);
+    drawEdge(startX, startY, startX, startY + drawH, edgeCfg.left);
+    drawEdge(startX + drawW, startY, startX + drawW, startY + drawH, edgeCfg.right);
+  } else {
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#38bdf8';
+    ctx.stroke();
+  }
 
   // Dimension lines: Horizontal (Length)
   ctx.strokeStyle = '#94a3b8';

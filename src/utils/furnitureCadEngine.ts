@@ -1170,7 +1170,9 @@ export function createShapeGeometryMm(part: CadPart): THREE.BufferGeometry {
 function attachHandleToFrontMesh(
   mesh: THREE.Mesh,
   part: CadPart,
-  handleType: FurnitureAssembly['handleType']
+  handleType: FurnitureAssembly['handleType'],
+  pivotOffsetX = 0,
+  pivotOffsetZ = 0
 ) {
   if (part.role !== 'front' || handleType === 'none' || handleType === 'gola') return;
   const handleMat = new THREE.MeshStandardMaterial({
@@ -1182,16 +1184,16 @@ function attachHandleToFrontMesh(
   const L = Math.max(10, part.dimensionsMm.length) * 0.001;
   const W = Math.max(10, part.dimensionsMm.width) * 0.001;
 
-  // Front mesh has localRotDeg.x = 90: local +Y points out toward +Z in assembly space?
-  // Wait: BoxGeometry(L, T, W) rotated +90° around X maps local +Y -> -Z, local -Y -> +Z (front face)!
+  // Front mesh has localRotDeg.x = 90: local -Y -> +Z (front face)
   const faceY = -T / 2 - 0.012;
 
   if (handleType === 'knob') {
     const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.009, 0.02, 12), handleMat);
     knob.position.set(
-      part.motion.type === 'hinge_l' ? L / 2 - 0.045 : part.motion.type === 'hinge_r' ? -L / 2 + 0.045 : 0,
+      (part.motion.type === 'hinge_l' ? L / 2 - 0.045 : part.motion.type === 'hinge_r' ? -L / 2 + 0.045 : 0) +
+        pivotOffsetX,
       faceY,
-      0
+      pivotOffsetZ
     );
     mesh.add(knob);
     return;
@@ -1204,27 +1206,56 @@ function attachHandleToFrontMesh(
     : new THREE.CylinderGeometry(0.005, 0.005, barLen, 10).rotateZ(Math.PI / 2);
   const bar = new THREE.Mesh(barGeo, handleMat);
   const offsetX =
-    part.motion.type === 'hinge_l'
+    (part.motion.type === 'hinge_l'
       ? L / 2 - 0.045
       : part.motion.type === 'hinge_r'
         ? -L / 2 + 0.045
-        : 0;
-  const offsetZ = part.motion.type === 'lift' ? W / 2 - 0.045 : 0;
+        : 0) + pivotOffsetX;
+  const offsetZ = (part.motion.type === 'lift' ? W / 2 - 0.045 : 0) + pivotOffsetZ;
   bar.position.set(offsetX, faceY, offsetZ);
   mesh.add(bar);
 }
 
 export function buildAssemblyThreeGroup(
   assembly: FurnitureAssembly,
-  defaultHex = '#f4f4f2'
+  defaultHex = '#f4f4f2',
+  explodeFactor = 0
 ): THREE.Group {
   const root = new THREE.Group();
   root.name = assembly.name;
   root.userData.assemblyId = assembly.id;
   root.userData.isCadAssembly = true;
 
+  const cy = (assembly.heightMm * 0.001) / 2;
+  const explodeScale = Math.min(1.5, Math.max(0, explodeFactor)) * 0.65;
+
   for (const part of assembly.parts) {
     const geo = createShapeGeometryMm(part);
+    const L = Math.max(10, part.dimensionsMm.length) * 0.001;
+    const W = Math.max(10, part.dimensionsMm.width) * 0.001;
+
+    let pivotOffsetX = 0;
+    let pivotOffsetZ = 0;
+    let posShiftX = 0;
+    let posShiftY = 0;
+
+    if (part.role === 'front') {
+      if (part.motion.type === 'hinge_l') {
+        geo.translate(L / 2, 0, 0);
+        pivotOffsetX = L / 2;
+        posShiftX = -L / 2;
+      } else if (part.motion.type === 'hinge_r') {
+        geo.translate(-L / 2, 0, 0);
+        pivotOffsetX = -L / 2;
+        posShiftX = L / 2;
+      } else if (part.motion.type === 'lift') {
+        geo.translate(0, 0, W / 2);
+        pivotOffsetZ = W / 2;
+        posShiftY = W / 2;
+      }
+      geo.computeBoundingBox();
+    }
+
     const isMetal = part.role === 'hardware';
     const mat = new THREE.MeshStandardMaterial({
       color: isMetal ? '#b4bcc6' : defaultHex,
@@ -1235,11 +1266,22 @@ export function buildAssemblyThreeGroup(
     mesh.name = part.name;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    mesh.position.set(
-      part.localPosMm.x * 0.001,
-      part.localPosMm.y * 0.001,
-      part.localPosMm.z * 0.001
-    );
+    let px = part.localPosMm.x * 0.001 + posShiftX;
+    let py = part.localPosMm.y * 0.001 + posShiftY;
+    let pz = part.localPosMm.z * 0.001;
+
+    if (explodeScale > 0) {
+      const dx = part.localPosMm.x * 0.001;
+      const dy = part.localPosMm.y * 0.001 - cy;
+      const dz =
+        part.localPosMm.z * 0.001 +
+        (part.role === 'front' ? 0.12 : part.role === 'back' ? -0.12 : 0);
+      px += dx * explodeScale;
+      py += dy * explodeScale;
+      pz += dz * explodeScale;
+    }
+
+    mesh.position.set(px, py, pz);
     mesh.rotation.set(
       THREE.MathUtils.degToRad(part.localRotDeg.x),
       THREE.MathUtils.degToRad(part.localRotDeg.y),
@@ -1248,7 +1290,11 @@ export function buildAssemblyThreeGroup(
     mesh.userData.cadPartId = part.id;
     mesh.userData.partRole = part.role;
     mesh.userData.assignedMatId = part.materialId || null;
-    attachHandleToFrontMesh(mesh, part, assembly.handleType);
+    mesh.userData.pivotShiftMm = {
+      x: Math.round(posShiftX * 1000 * 10) / 10,
+      y: Math.round(posShiftY * 1000 * 10) / 10
+    };
+    attachHandleToFrontMesh(mesh, part, assembly.handleType, pivotOffsetX, pivotOffsetZ);
     root.add(mesh);
   }
 
@@ -1346,7 +1392,10 @@ export function assemblyToPanelCuttingList(assembly: FurnitureAssembly) {
             : p.grain === 'width'
               ? 'Pe Lățime'
               : 'Fără Fibră',
-        edgeBanding: edgeList.length > 0 ? edgeList.join(' | ') : 'Fără Cant'
+        edgeBanding: edgeList.length > 0 ? edgeList.join(' | ') : 'Fără Cant',
+        shape: p.shape,
+        shapeParams: p.shapeParams,
+        edges: p.edges
       };
     });
 }
