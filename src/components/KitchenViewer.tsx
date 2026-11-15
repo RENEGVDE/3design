@@ -46,10 +46,15 @@ import {
 
 import TopBar from './TopBar';
 import CameraPresetsBar from './CameraPresetsBar';
-import UniversalFurnitureStudioSection from './UniversalFurnitureStudioSection';
-import ModularKitchenStudioSection from './ModularKitchenStudioSection';
-import ParametricCabinetSection from './ParametricCabinetSection';
-import { exportToGlbArrayBuffer } from '../utils/parametricCabinet';
+const UniversalFurnitureStudioSection = lazy(() => import('./UniversalFurnitureStudioSection'));
+const ModularKitchenStudioSection = lazy(() => import('./ModularKitchenStudioSection'));
+const ParametricCabinetSection = lazy(() => import('./ParametricCabinetSection'));
+import { useSceneHistory } from '../hooks/useSceneHistory';
+import { useViewerShortcuts } from '../hooks/useViewerShortcuts';
+import {
+  applyDefaultWhiteToMesh,
+  applyMatEntryToMesh
+} from '../utils/meshMaterials';
 
 const MaterialStudioSection = lazy(() => import('./MaterialStudioSection'));
 const GlbImporterSection = lazy(() => import('./GlbImporterSection'));
@@ -216,15 +221,11 @@ export default function KitchenViewer() {
   } | null>(null);
 
   // Undo & Redo History State
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
-  const historyRef = useRef([]);
-  const historyIndexRef = useRef(-1);
   const isRestoringHistoryRef = useRef(false);
-  const lastContinuousActionRef = useRef(null);
   const glbBinaryCacheRef = useRef(new Map());
   const captureSnapshotRef = useRef(null);
   const pushHistoryRef = useRef(null);
+  const resetHistoryRef = useRef(null);
 
   const [toastMsg, setToastMsg] = useState('');
   const tooltipRef = useRef(null);
@@ -451,92 +452,6 @@ export default function KitchenViewer() {
     };
   }, []);
   captureSnapshotRef.current = captureSnapshot;
-
-  const pushHistory = useCallback(
-    (desc = '', isContinuous = false) => {
-      if (isRestoringHistoryRef.current || sceneRef.current?.isRestoring) return;
-      const snapshot = captureSnapshot(desc);
-      if (!snapshot) return;
-
-      const now = performance.now();
-      const last = lastContinuousActionRef.current;
-
-      if (isContinuous && last && last.desc === desc && now - last.time < 1200) {
-        const curIdx = historyIndexRef.current;
-        if (curIdx >= 0 && historyRef.current[curIdx]) {
-          historyRef.current[curIdx] = snapshot;
-          lastContinuousActionRef.current = { desc, time: now };
-          return;
-        }
-      }
-
-      lastContinuousActionRef.current = isContinuous ? { desc, time: now } : null;
-
-      const curIdx = historyIndexRef.current;
-      const truncated = historyRef.current.slice(0, curIdx + 1);
-      truncated.push(snapshot);
-      if (truncated.length > 60) {
-        truncated.shift();
-      }
-      historyRef.current = truncated;
-      const nextIdx = truncated.length - 1;
-      historyIndexRef.current = nextIdx;
-
-      setCanUndo(nextIdx > 0);
-      setCanRedo(false);
-    },
-    [captureSnapshot]
-  );
-  pushHistoryRef.current = pushHistory;
-
-  // Mesh Material Helper Functions
-  const applyDefaultWhiteToMesh = useCallback((mesh, isXray) => {
-    if (!mesh || !mesh.material) return;
-    mesh.material.color.set(DEFAULT_WHITE_HEX);
-    mesh.material.map = null;
-    mesh.material.roughness = 0.42;
-    mesh.material.metalness = 0.02;
-    mesh.material.transparent = Boolean(isXray);
-    mesh.material.opacity = isXray ? 0.28 : 1.0;
-    mesh.material.depthWrite = !isXray;
-    mesh.material.userData.assignedMatId = null;
-    mesh.material.needsUpdate = true;
-  }, []);
-
-  const applyMatEntryToMesh = useCallback(
-    (mesh, matEntry, isXray) => {
-      if (!mesh || !mesh.material) return;
-      if (!matEntry) {
-        applyDefaultWhiteToMesh(mesh, isXray);
-        return;
-      }
-      const fin = FINISH_MODES[matEntry.finishIdx] || FINISH_MODES[0];
-      if (matEntry.texture) {
-        const rep = 1.0 / Math.max(0.15, matEntry.scale);
-        matEntry.texture.repeat.set(rep, rep);
-        matEntry.texture.rotation = matEntry.rotate90 ? Math.PI / 2 : 0;
-        matEntry.texture.needsUpdate = true;
-      }
-
-      mesh.material.color.set(matEntry.colorHex || '#ffffff');
-      mesh.material.map = matEntry.texture || null;
-      mesh.material.roughness = fin.roughness;
-      mesh.material.metalness = fin.metalness;
-
-      if (fin.transparent) {
-        mesh.material.transparent = true;
-        mesh.material.opacity = isXray ? 0.25 : fin.opacity;
-        mesh.material.depthWrite = false;
-      } else {
-        mesh.material.transparent = Boolean(isXray);
-        mesh.material.opacity = isXray ? 0.28 : 1.0;
-        mesh.material.depthWrite = !isXray;
-      }
-      mesh.material.userData.assignedMatId = matEntry.id;
-      mesh.material.needsUpdate = true;
-    },
-    [applyDefaultWhiteToMesh]
-  );
 
   const update3DDimensionsDisplay = useCallback((partId) => {
     const ctx = sceneRef.current;
@@ -999,39 +914,38 @@ export default function KitchenViewer() {
     ]
   );
 
-  const handleUndo = useCallback(async () => {
-    if (historyIndexRef.current <= 0) return;
-    const targetIdx = historyIndexRef.current - 1;
-    const snapshot = historyRef.current[targetIdx];
-    if (!snapshot) return;
+  const isRestoringExternal = useCallback(
+    () => isRestoringHistoryRef.current || Boolean(sceneRef.current?.isRestoring),
+    []
+  );
 
-    historyIndexRef.current = targetIdx;
-    setCanUndo(targetIdx > 0);
-    setCanRedo(true);
+  const handleUndoToast = useCallback(
+    (snapshot) => {
+      const dict = I18N[stateRef.current.lang] || I18N.ro;
+      const desc = snapshot.desc ? ` (${snapshot.desc})` : '';
+      showToast(`↩️ ${dict.undoToast || 'Anulat'}${desc}`);
+    },
+    [showToast]
+  );
 
-    await restoreSnapshot(snapshot);
+  const handleRedoToast = useCallback(
+    (snapshot) => {
+      const dict = I18N[stateRef.current.lang] || I18N.ro;
+      const desc = snapshot.desc ? ` (${snapshot.desc})` : '';
+      showToast(`↪️ ${dict.redoToast || 'Refăcut'}${desc}`);
+    },
+    [showToast]
+  );
 
-    const dict = I18N[stateRef.current.lang] || I18N.ro;
-    const desc = snapshot.desc ? ` (${snapshot.desc})` : '';
-    showToast(`↩️ ${dict.undoToast || 'Anulat'}${desc}`);
-  }, [restoreSnapshot, showToast]);
-
-  const handleRedo = useCallback(async () => {
-    if (historyIndexRef.current >= historyRef.current.length - 1) return;
-    const targetIdx = historyIndexRef.current + 1;
-    const snapshot = historyRef.current[targetIdx];
-    if (!snapshot) return;
-
-    historyIndexRef.current = targetIdx;
-    setCanUndo(true);
-    setCanRedo(targetIdx < historyRef.current.length - 1);
-
-    await restoreSnapshot(snapshot);
-
-    const dict = I18N[stateRef.current.lang] || I18N.ro;
-    const desc = snapshot.desc ? ` (${snapshot.desc})` : '';
-    showToast(`↪️ ${dict.redoToast || 'Refăcut'}${desc}`);
-  }, [restoreSnapshot, showToast]);
+  const { canUndo, canRedo, pushHistory, handleUndo, handleRedo, resetHistory } = useSceneHistory({
+    captureSnapshot,
+    restoreSnapshot,
+    isRestoringExternal,
+    onUndoSuccess: handleUndoToast,
+    onRedoSuccess: handleRedoToast
+  });
+  pushHistoryRef.current = pushHistory;
+  resetHistoryRef.current = resetHistory;
 
   // Sync TransformControls gizmo attachment & mode
   useEffect(() => {
@@ -1051,52 +965,22 @@ export default function KitchenViewer() {
     tc.visible = true;
   }, [selectedGlbId, gizmoMode, importedModels, loading]);
 
-  // Keyboard shortcuts for Undo/Redo (Ctrl+Z / Ctrl+Y) and TransformControls (W, E, R, Esc)
-  useEffect(() => {
-    const onKeyDown = (e) => {
-      const isCtrlOrMeta = e.ctrlKey || e.metaKey;
-      if (isCtrlOrMeta) {
-        const tag = document.activeElement?.tagName?.toLowerCase() || '';
-        const activeInput = document.activeElement as HTMLInputElement;
-        const isTextInput =
-          tag === 'input' &&
-          activeInput?.type !== 'range' &&
-          activeInput?.type !== 'color';
-        if (!isTextInput && tag !== 'textarea') {
-          if ((e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
-            e.preventDefault();
-            handleUndo();
-            return;
-          } else if (
-            e.key === 'y' ||
-            e.key === 'Y' ||
-            ((e.key === 'z' || e.key === 'Z') && e.shiftKey)
-          ) {
-            e.preventDefault();
-            handleRedo();
-            return;
-          }
-        }
-      }
+  const hasSelectedModelForShortcuts = useCallback(
+    () => Boolean(stateRef.current.selectedGlbId),
+    []
+  );
+  const handleCancelPlacementShortcut = useCallback(
+    () => setPlaceOnSurfaceMode(false),
+    []
+  );
 
-      if (
-        !stateRef.current.selectedGlbId ||
-        ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)
-      ) {
-        return;
-      }
-      const k = e.key.toLowerCase();
-      if (k === 'w') setGizmoMode('translate');
-      else if (k === 'e') setGizmoMode('rotate');
-      else if (k === 'r') setGizmoMode('scale');
-      else if (k === 'escape') {
-        setGizmoMode(null);
-        setPlaceOnSurfaceMode(false);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [handleUndo, handleRedo]);
+  useViewerShortcuts({
+    onUndo: handleUndo,
+    onRedo: handleRedo,
+    hasSelectedModel: hasSelectedModelForShortcuts,
+    onSetGizmoMode: setGizmoMode,
+    onCancelPlacement: handleCancelPlacementShortcut
+  });
 
   // Initialize Three.js Scene
   useEffect(() => {
@@ -1713,10 +1597,7 @@ export default function KitchenViewer() {
       // Register initial base state in undo/redo stack
       const baseSnap = captureSnapshotRef.current?.('Stare inițială');
       if (baseSnap) {
-        historyRef.current = [baseSnap];
-        historyIndexRef.current = 0;
-        setCanUndo(false);
-        setCanRedo(false);
+        resetHistoryRef.current?.(baseSnap);
       }
 
       // Raycasting & Pointer Events
@@ -4933,6 +4814,7 @@ export default function KitchenViewer() {
       panelGroup.name = name;
       panelGroup.add(panelMesh);
 
+      const { exportToGlbArrayBuffer } = await import('../utils/parametricCabinet');
       const buffer = await exportToGlbArrayBuffer(panelGroup);
       const b64 = arrayBufferToBase64(buffer);
       const modelId = `panel_custom_${Date.now()}`;
