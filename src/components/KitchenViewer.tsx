@@ -46,16 +46,17 @@ import {
 
 import TopBar from './TopBar';
 import CameraPresetsBar from './CameraPresetsBar';
-import MaterialStudioSection from './MaterialStudioSection';
 import UniversalFurnitureStudioSection from './UniversalFurnitureStudioSection';
 import ModularKitchenStudioSection from './ModularKitchenStudioSection';
 import ParametricCabinetSection from './ParametricCabinetSection';
 import { exportToGlbArrayBuffer } from '../utils/parametricCabinet';
-import GlbImporterSection from './GlbImporterSection';
-import LightingStudioSection from './LightingStudioSection';
-import ModelTreePanel from './ModelTreePanel';
-import ArchitecturalRoomSection from './ArchitecturalRoomSection';
-import ApplianceCatalogSection from './ApplianceCatalogSection';
+
+const MaterialStudioSection = lazy(() => import('./MaterialStudioSection'));
+const GlbImporterSection = lazy(() => import('./GlbImporterSection'));
+const LightingStudioSection = lazy(() => import('./LightingStudioSection'));
+const ModelTreePanel = lazy(() => import('./ModelTreePanel'));
+const ArchitecturalRoomSection = lazy(() => import('./ArchitecturalRoomSection'));
+const ApplianceCatalogSection = lazy(() => import('./ApplianceCatalogSection'));
 import { createFastenerMeshes } from '../utils/furnitureEngineering';
 import {
   buildArchitecturalRoom,
@@ -72,7 +73,9 @@ import {
   resolveTapeSnapPoint,
   createTapeSnapIndicator,
   updateTapeSnapIndicator,
+  applyTapeAxisLock,
   TapeSnapType,
+  TapeLockedAxis,
   TapeMeasurement
 } from '../utils/tapeMeasure3d';
 
@@ -152,6 +155,7 @@ export default function KitchenViewer() {
   const [tapeHasPointA, setTapeHasPointA] = useState(false);
   const [tapeMeasurement, setTapeMeasurement] = useState<TapeMeasurement | null>(null);
   const [tapeSnapType, setTapeSnapType] = useState<TapeSnapType>('surface');
+  const [tapeLockedAxis, setTapeLockedAxis] = useState<TapeLockedAxis>(null);
   const [tapeLiveDistCm, setTapeLiveDistCm] = useState<number | null>(null);
 
   // Architectural Space & Appliances State
@@ -1176,6 +1180,32 @@ export default function KitchenViewer() {
       (transformControls as any).visible = false;
       scene.add(transformControls as any);
 
+      transformControls.addEventListener('objectChange', () => {
+        if (
+          stateRef.current.magneticSnapEnabled &&
+          stateRef.current.selectedGlbId &&
+          (stateRef.current.gizmoMode === 'translate' || !stateRef.current.gizmoMode)
+        ) {
+          const gid = stateRef.current.selectedGlbId;
+          const entry = sceneRef.current?.importedMap?.[gid];
+          if (entry) {
+            const snapResult = calculateMagneticSnap(
+              gid,
+              stateRef.current.importedModels,
+              sceneRef.current.importedMap,
+              0.045
+            );
+            if (snapResult) {
+              entry.wrapperGroup.position.set(
+                snapResult.position[0],
+                snapResult.position[1],
+                snapResult.position[2]
+              );
+            }
+          }
+        }
+      });
+
       transformControls.addEventListener('dragging-changed', (event) => {
         controls.enabled = !event.value;
         if (!event.value && stateRef.current.selectedGlbId) {
@@ -1820,11 +1850,24 @@ export default function KitchenViewer() {
             const hits = intersectAcceleratedTargets(raycaster, allTargets);
             if (hits.length > 0) {
               const snap = resolveTapeSnapPoint(hits[0]);
-              updateTapeSnapIndicator(ctx.tapeSnapIndicator, snap, camera);
+              let finalPoint = snap.point;
+              let axisLock: TapeLockedAxis = null;
+
+              if (ctx.tapePointA && lastPointerEvent?.shiftKey) {
+                const locked = applyTapeAxisLock(ctx.tapePointA, snap.point);
+                finalPoint = locked.point;
+                axisLock = locked.axis;
+              }
+              setTapeLockedAxis(axisLock);
+              updateTapeSnapIndicator(
+                ctx.tapeSnapIndicator,
+                { point: finalPoint, snapType: snap.snapType },
+                camera
+              );
               setTapeSnapType(snap.snapType);
 
               if (ctx.tapePointA) {
-                const livePt = snap.point;
+                const livePt = finalPoint;
                 setTapeLiveDistCm(ctx.tapePointA.distanceTo(livePt) * 100.0);
                 if (!ctx.tapePreviewLine) {
                   const geo = new THREE.BufferGeometry().setFromPoints([ctx.tapePointA, livePt]);
@@ -2185,7 +2228,11 @@ export default function KitchenViewer() {
                 setTapeLiveDistCm(0);
                 showToast(curLang === 'ro' ? '📍 Punctul 1 marcat! Dă click pe al 2-lea punct' : '📍 Point 1 set! Click 2nd point to measure');
               } else {
-                const ptB = hitPoint.clone();
+                const locked = e?.shiftKey
+                  ? applyTapeAxisLock(ctx.tapePointA, hitPoint)
+                  : null;
+                const ptB = locked ? locked.point : hitPoint.clone();
+                setTapeLockedAxis(null);
                 if (ctx.tapePreviewLine) {
                   tapeDimsGroup.remove(ctx.tapePreviewLine);
                   ctx.tapePreviewLine = null;
@@ -5062,6 +5109,11 @@ export default function KitchenViewer() {
                       ? (lang === 'ro' ? '📐 Muchie' : '📐 Edge')
                       : (lang === 'ro' ? '● Suprafață' : '● Surface')}
                 </span>
+                {tapeLockedAxis && (
+                  <span className="rounded-md border border-amber-400/50 bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-200">
+                    🔒 Axă {tapeLockedAxis}
+                  </span>
+                )}
                 {tapeLiveDistCm !== null && (
                   <span className="rounded-md bg-rose-500/25 px-1.5 py-0.5 text-[11px] font-mono font-bold text-rose-100">
                     {fmtCm(tapeLiveDistCm)} cm
@@ -5260,6 +5312,7 @@ export default function KitchenViewer() {
 
         {/* Studio Content Area */}
         <div className="flex-1">
+          <Suspense fallback={<div className="p-4 text-xs text-slate-400">Se încarcă...</div>}>
           {activeStudioTab === 'architecture' && (
             <ArchitecturalRoomSection
               lang={lang}
@@ -5473,6 +5526,7 @@ export default function KitchenViewer() {
               }}
             />
           )}
+          </Suspense>
         </div>
       </aside>
 

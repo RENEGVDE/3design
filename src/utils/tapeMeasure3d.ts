@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
 export type TapeSnapType = 'vertex' | 'edge' | 'surface';
+export type TapeLockedAxis = 'X' | 'Y' | 'Z' | null;
 
 export interface TapeSnapResult {
   point: THREE.Vector3;
@@ -159,5 +160,30 @@ export function updateTapeSnapIndicator(
   const ring = indicator.getObjectByName('snapRing') as THREE.Mesh | undefined;
   if (core) (core.material as THREE.MeshBasicMaterial).color.setHex(color);
   if (ring) (ring.material as THREE.MeshBasicMaterial).color.setHex(color);
+}
+
+/**
+ * Locks `pointB` onto the dominant orthogonal axis (X, Y, or Z) relative to `pointA`
+ * when Shift is held during 3D tape measurement.
+ */
+export function applyTapeAxisLock(
+  pointA: THREE.Vector3,
+  pointB: THREE.Vector3
+): { point: THREE.Vector3; axis: 'X' | 'Y' | 'Z' } {
+  const dx = Math.abs(pointB.x - pointA.x);
+  const dy = Math.abs(pointB.y - pointA.y);
+  const dz = Math.abs(pointB.z - pointA.z);
+
+  const locked = pointA.clone();
+  if (dx >= dy && dx >= dz) {
+    locked.x = pointB.x;
+    return { point: locked, axis: 'X' };
+  }
+  if (dy >= dx && dy >= dz) {
+    locked.y = pointB.y;
+    return { point: locked, axis: 'Y' };
+  }
+  locked.z = pointB.z;
+  return { point: locked, axis: 'Z' };
 }
 
