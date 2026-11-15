@@ -46,9 +46,13 @@ import {
 
 import TopBar from './TopBar';
 import CameraPresetsBar from './CameraPresetsBar';
-const UniversalFurnitureStudioSection = lazy(() => import('./UniversalFurnitureStudioSection'));
-const ModularKitchenStudioSection = lazy(() => import('./ModularKitchenStudioSection'));
-const ParametricCabinetSection = lazy(() => import('./ParametricCabinetSection'));
+const FurnitureCadStudioSection = lazy(() => import('./FurnitureCadStudioSection'));
+import {
+  buildAssemblyThreeGroup,
+  assemblyToPanelCuttingList,
+  FurnitureAssembly,
+  PlacedAssemblyUnit
+} from '../utils/furnitureCadEngine';
 import { useSceneHistory } from '../hooks/useSceneHistory';
 import { useViewerShortcuts } from '../hooks/useViewerShortcuts';
 import {
@@ -201,7 +205,7 @@ export default function KitchenViewer() {
 
   // Studio Tabs & Navigation State
   const [activeStudioTab, setActiveStudioTab] = useState('furniture'); // 'furniture' | 'appliances' | 'materials' | 'models' | 'architecture' | 'tree' | 'lighting'
-  const [furnitureSubTab, setFurnitureSubTab] = useState('kitchen'); // 'kitchen' | 'universal' | 'single'
+  const [selectedCadPartId, setSelectedCadPartId] = useState<string | null>(null);
 
   // CAD Engineering & Model Tree States
   const [explodedProgress, setExplodedProgress] = useState(0);
@@ -355,7 +359,10 @@ export default function KitchenViewer() {
       scale: im.scale,
       subParts: im.subParts,
       isParametric: Boolean(im.isParametric),
-      parametricConfig: im.parametricConfig || null
+      parametricConfig: im.parametricConfig || null,
+      isCadAssembly: Boolean(im.isCadAssembly),
+      cadAssembly: im.cadAssembly || null,
+      panelCuttingList: im.panelCuttingList || null
     }));
 
     const partAssignments = {};
@@ -421,7 +428,10 @@ export default function KitchenViewer() {
       hasNativeAnimations: im.hasNativeAnimations,
       subParts: im.subParts ? im.subParts.map((sp) => ({ ...sp })) : [],
       isParametric: Boolean(im.isParametric),
-      parametricConfig: im.parametricConfig ? { ...im.parametricConfig } : null
+      parametricConfig: im.parametricConfig ? { ...im.parametricConfig } : null,
+      isCadAssembly: Boolean(im.isCadAssembly),
+      cadAssembly: im.cadAssembly ? JSON.parse(JSON.stringify(im.cadAssembly)) : null,
+      panelCuttingList: im.panelCuttingList ? [...im.panelCuttingList] : null
     }));
 
     const roomConfigSnap = stateRef.current.roomConfig
@@ -625,6 +635,129 @@ export default function KitchenViewer() {
     [applyMatEntryToMesh]
   );
 
+  // Helper to mount a live parametric FurnitureAssembly directly into the 3D scene
+  const mountCadAssemblyIntoScene = useCallback(
+    (
+      assembly: FurnitureAssembly,
+      initTransform: { position?: number[]; rotationYDeg?: number; scale?: number[] } | null = null,
+      availableMats: any[] = [],
+      savedSubParts: any[] | null = null
+    ) => {
+      const ctx = sceneRef.current;
+      if (!ctx) return null;
+
+      const wrapperGroup = new THREE.Group();
+      wrapperGroup.name = assembly.name;
+      wrapperGroup.userData.importedId = assembly.id;
+      wrapperGroup.userData.isCadAssembly = true;
+
+      const asmGroup = buildAssemblyThreeGroup(assembly);
+      const meshes: THREE.Mesh[] = [];
+      const subParts: any[] = [];
+
+      asmGroup.traverse((child: any) => {
+        if (child.isMesh) {
+          const subIdx = meshes.length;
+          const part = assembly.parts.find((p) => p.id === child.userData.cadPartId);
+          child.userData.importedId = assembly.id;
+          child.userData.importedModelId = assembly.id;
+          child.userData.subMeshIdx = subIdx;
+          child.userData.basePos = child.position.clone();
+          child.userData.baseRot = child.rotation.clone();
+          child.userData.baseScale = child.scale.clone();
+          child.userData.originalGlbMaterial = child.material.clone();
+          child.userData.mechProgress = 0;
+          child.userData.mechTarget = 0;
+
+          const savedSp = savedSubParts?.[subIdx];
+          if (savedSp?.assignedMatId) {
+            const matEntry = availableMats.find((m) => m.id === savedSp.assignedMatId);
+            if (matEntry) {
+              applyMatEntryToMesh(child, matEntry, stateRef.current.xrayActive);
+            }
+          }
+
+          meshes.push(child);
+          if (!ctx.importedMeshes.includes(child)) ctx.importedMeshes.push(child);
+          if (!ctx.paintableMeshes.includes(child)) ctx.paintableMeshes.push(child);
+
+          const mechType =
+            part?.motion.type === 'hinge_l'
+              ? 'door_left'
+              : part?.motion.type === 'hinge_r'
+                ? 'door_right'
+                : part?.motion.type === 'drawer'
+                  ? 'drawer'
+                  : part?.motion.type === 'lift'
+                    ? 'flap_top'
+                    : part?.motion.type === 'sliding'
+                      ? 'sliding_x'
+                      : 'none';
+
+          subParts.push({
+            subIdx,
+            name: part?.name || child.name,
+            cadPartId: part?.id,
+            mechType,
+            isOpen: Boolean(savedSp?.isOpen),
+            assignedMatId: savedSp?.assignedMatId || part?.materialId || null,
+            dimsCm: part
+              ? {
+                  w: Number((part.dimensionsMm.length / 10).toFixed(1)),
+                  h: Number((part.dimensionsMm.width / 10).toFixed(1)),
+                  d: Number((part.dimensionsMm.thickness / 10).toFixed(1))
+                }
+              : undefined
+          });
+        }
+      });
+
+      wrapperGroup.add(asmGroup);
+      const pos = initTransform?.position || [0.8, 0, 1.8];
+      const rotYDeg = typeof initTransform?.rotationYDeg === 'number' ? initTransform.rotationYDeg : 0;
+      const scl = initTransform?.scale || [1, 1, 1];
+      wrapperGroup.position.set(pos[0], pos[1], pos[2]);
+      wrapperGroup.rotation.set(0, THREE.MathUtils.degToRad(rotYDeg), 0);
+      wrapperGroup.scale.set(scl[0], scl[1], scl[2]);
+      updateModelBoundingStructure(wrapperGroup);
+
+      ctx.importedRootGroup.add(wrapperGroup);
+
+      const baseDimsCm = {
+        w: Number((assembly.widthMm / 10).toFixed(1)),
+        h: Number((assembly.heightMm / 10).toFixed(1)),
+        d: Number((assembly.depthMm / 10).toFixed(1))
+      };
+
+      const entryObj = {
+        id: assembly.id,
+        name: assembly.name,
+        wrapperGroup,
+        meshes,
+        baseDimsCm,
+        hasNativeAnimations: false
+      };
+      ctx.importedMap[assembly.id] = entryObj;
+      updateGlbMechanismsIn3D(entryObj, subParts, ctx);
+
+      return {
+        id: assembly.id,
+        name: assembly.name,
+        position: pos,
+        rotationYDeg: rotYDeg,
+        scale: scl,
+        baseDimsCm,
+        hasNativeAnimations: false,
+        subParts,
+        isCadAssembly: true,
+        cadAssembly: assembly,
+        panelCuttingList: assemblyToPanelCuttingList(assembly),
+        metrics: inspectModelMetrics(wrapperGroup)
+      } as any;
+    },
+    [applyMatEntryToMesh]
+  );
+
   const restoreSnapshot = useCallback(
     async (snapshot) => {
       const ctx = sceneRef.current;
@@ -750,6 +883,27 @@ export default function KitchenViewer() {
       const restoredGlbList = [];
       for (const im of snapshot.importedModels || []) {
         let entry = ctx.importedMap[im.id];
+        if (im.isCadAssembly && im.cadAssembly) {
+          if (entry) {
+            if (ctx.transformControls?.object === entry.wrapperGroup) {
+              ctx.transformControls.detach();
+              ctx.transformControls.visible = false;
+            }
+            ctx.importedRootGroup.remove(entry.wrapperGroup);
+            ctx.importedMeshes = ctx.importedMeshes.filter((m) => m.userData?.importedId !== im.id);
+            ctx.paintableMeshes = ctx.paintableMeshes.filter((m) => m.userData?.importedId !== im.id);
+            disposeModelHierarchy(entry.wrapperGroup);
+            delete ctx.importedMap[im.id];
+          }
+          const mounted = mountCadAssemblyIntoScene(
+            im.cadAssembly,
+            { position: im.position, rotationYDeg: im.rotationYDeg, scale: im.scale },
+            nextMaterials,
+            im.subParts
+          );
+          if (mounted) restoredGlbList.push(mounted);
+          continue;
+        }
         if (!entry) {
           const b64 = im.b64Data || glbBinaryCacheRef.current.get(im.id);
           if (b64) {
@@ -1539,6 +1693,20 @@ export default function KitchenViewer() {
         if (Array.isArray(saved.importedModels) && saved.importedModels.length) {
           const restoredGlbs = [];
           for (const sim of saved.importedModels) {
+            if (sim.isCadAssembly && sim.cadAssembly) {
+              const mounted = mountCadAssemblyIntoScene(
+                sim.cadAssembly,
+                {
+                  position: sim.position,
+                  rotationYDeg: sim.rotationYDeg,
+                  scale: sim.scale
+                },
+                restoredMats,
+                sim.subParts
+              );
+              if (mounted) restoredGlbs.push(mounted);
+              continue;
+            }
             if (!sim.b64Data) continue;
             // Guard: Automatically purge legacy corrupt models created with broken parser
             const isCorruptedLegacy =
@@ -2226,6 +2394,9 @@ export default function KitchenViewer() {
               if (typeof clickedSubIdx === 'number') {
                 setSelectedSubPart({ modelId: impId, subIdx: clickedSubIdx });
               }
+              if (hitObj.userData?.cadPartId) {
+                setSelectedCadPartId(hitObj.userData.cadPartId);
+              }
 
               const parsedEntry = importedMap[impId];
               const impRecord = stateRef.current.importedModels.find(
@@ -2670,6 +2841,104 @@ export default function KitchenViewer() {
         showToast(`❌ Eroare la citirea fișierului ${file.name}`);
       }
     }
+  };
+
+  const handleMountCadAssembly = (
+    assembly: FurnitureAssembly,
+    position: [number, number, number] = [0.8, 0, 1.8],
+    rotationYDeg = 0
+  ) => {
+    const mounted = mountCadAssemblyIntoScene(
+      assembly,
+      { position, rotationYDeg, scale: [1, 1, 1] },
+      stateRef.current.materials
+    );
+    if (!mounted) return;
+    setImportedModels((prev) => {
+      const updated = [...prev, mounted];
+      setSelectedGlbId(assembly.id);
+      setGizmoMode('translate');
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+    pushHistoryRef.current?.(`Adăugare ${assembly.name}`);
+    showToast(`📐 "${assembly.name}" adăugat în scenă`);
+  };
+
+  const handleMountMultipleCadAssemblies = (
+    units: PlacedAssemblyUnit[],
+    title: string
+  ) => {
+    const newlyMounted: any[] = [];
+    for (const u of units) {
+      const m = mountCadAssemblyIntoScene(
+        u.assembly,
+        { position: u.position, rotationYDeg: u.rotationYDeg, scale: [1, 1, 1] },
+        stateRef.current.materials
+      );
+      if (m) newlyMounted.push(m);
+    }
+    if (newlyMounted.length === 0) return;
+    setImportedModels((prev) => {
+      const updated = [...prev, ...newlyMounted];
+      setSelectedGlbId(newlyMounted[0].id);
+      setGizmoMode('translate');
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+    pushHistoryRef.current?.(title);
+    showToast(`🍳 ${title}`);
+  };
+
+  const handleUpdateCadAssembly = (
+    assemblyId: string,
+    nextAssembly: FurnitureAssembly
+  ) => {
+    const ctx = sceneRef.current;
+    if (!ctx) return;
+    const oldEntry = ctx.importedMap[assemblyId];
+    const oldModel = stateRef.current.importedModels.find((m) => m.id === assemblyId);
+    const pos = oldEntry
+      ? [oldEntry.wrapperGroup.position.x, oldEntry.wrapperGroup.position.y, oldEntry.wrapperGroup.position.z]
+      : oldModel?.position || [0.8, 0, 1.8];
+    const rotYDeg = oldEntry
+      ? Math.round(THREE.MathUtils.radToDeg(oldEntry.wrapperGroup.rotation.y))
+      : oldModel?.rotationYDeg || 0;
+    const scl = oldEntry
+      ? [oldEntry.wrapperGroup.scale.x, oldEntry.wrapperGroup.scale.y, oldEntry.wrapperGroup.scale.z]
+      : oldModel?.scale || [1, 1, 1];
+
+    if (oldEntry) {
+      if (ctx.transformControls?.object === oldEntry.wrapperGroup) {
+        ctx.transformControls.detach();
+      }
+      ctx.importedRootGroup.remove(oldEntry.wrapperGroup);
+      ctx.importedMeshes = ctx.importedMeshes.filter((m) => m.userData?.importedId !== assemblyId);
+      ctx.paintableMeshes = ctx.paintableMeshes.filter((m) => m.userData?.importedId !== assemblyId);
+      disposeModelHierarchy(oldEntry.wrapperGroup);
+      delete ctx.importedMap[assemblyId];
+    }
+
+    const rebuilt = mountCadAssemblyIntoScene(
+      nextAssembly,
+      { position: pos, rotationYDeg: rotYDeg, scale: scl },
+      stateRef.current.materials,
+      oldModel?.subParts
+    );
+    if (!rebuilt) return;
+
+    const newEntry = ctx.importedMap[assemblyId];
+    if (newEntry && stateRef.current.selectedGlbId === assemblyId && stateRef.current.gizmoMode) {
+      ctx.transformControls?.attach(newEntry.wrapperGroup);
+      if (ctx.transformControls) ctx.transformControls.visible = true;
+    }
+
+    setImportedModels((prev) => {
+      const updated = prev.map((m) => (m.id === assemblyId ? rebuilt : m));
+      persistWorkspace({ importedModels: updated });
+      return updated;
+    });
+    pushHistoryRef.current?.(`Editare ${nextAssembly.name}`, true);
   };
 
   const handleMountGeneratedFurniture = async (
@@ -5216,84 +5485,24 @@ export default function KitchenViewer() {
           )}
 
           {activeStudioTab === 'furniture' && (
-            <div className="flex flex-col gap-3">
-              {/* Furniture Sub-navigation Pill Switcher */}
-              <div className="grid grid-cols-3 gap-1 rounded-lg border border-white/[0.08] bg-[#14171C] p-1">
-                <button
-                  type="button"
-                  className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                    furnitureSubTab === 'universal'
-                      ? 'bg-[#0F5773] text-white'
-                      : 'text-[#8B949E] hover:text-[#F5F7FA]'
-                  }`}
-                  onClick={() => setFurnitureSubTab('universal')}
-                >
-                  <span>🌟</span>
-                  <span>{dict.subUniversal}</span>
-                </button>
-                <button
-                  type="button"
-                  className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                    furnitureSubTab === 'kitchen'
-                      ? 'bg-[#0F5773] text-white'
-                      : 'text-[#8B949E] hover:text-[#F5F7FA]'
-                  }`}
-                  onClick={() => setFurnitureSubTab('kitchen')}
-                >
-                  <span>🍳</span>
-                  <span>{dict.subKitchen}</span>
-                </button>
-                <button
-                  type="button"
-                  className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                    furnitureSubTab === 'single'
-                      ? 'bg-[#0F5773] text-white'
-                      : 'text-[#8B949E] hover:text-[#F5F7FA]'
-                  }`}
-                  onClick={() => setFurnitureSubTab('single')}
-                >
-                  <span>🧱</span>
-                  <span>{dict.subSingleCabinet}</span>
-                </button>
-              </div>
-
-              {furnitureSubTab === 'universal' && (
-                <UniversalFurnitureStudioSection
-                  lang={lang}
-                  materials={materials}
-                  activeMatId={activeMatId}
-                  onMountGeneratedFurniture={handleMountGeneratedFurniture}
-                  onCaptureScreenshot={handleCaptureScreenshot}
-                />
-              )}
-
-              {furnitureSubTab === 'kitchen' && (
-                <ModularKitchenStudioSection
-                  lang={lang}
-                  materials={materials}
-                  activeMatId={activeMatId}
-                  onMountGeneratedKitchen={handleMountGeneratedKitchen}
-                  onCaptureScreenshot={handleCaptureScreenshot}
-                />
-              )}
-
-              {furnitureSubTab === 'single' && (
-                <ParametricCabinetSection
-                  lang={lang}
-                  materials={materials}
-                  activeMatId={activeMatId}
-                  onMountGeneratedCabinet={handleMountGeneratedCabinet}
-                  placedCabinets={importedModels.filter((im) => im.isParametric)}
-                  onDeleteCabinet={handleDeleteGlb}
-                  onSelectCabinet={(id) => {
-                    setSelectedGlbId(id);
-                    setGizmoMode('translate');
-                  }}
-                  selectedCabinetId={selectedGlbId}
-                  onCaptureScreenshot={handleCaptureScreenshot}
-                />
-              )}
-            </div>
+            <FurnitureCadStudioSection
+              lang={lang}
+              placedAssemblies={importedModels
+                .filter((im) => im.isCadAssembly && im.cadAssembly)
+                .map((im) => ({ id: im.id, name: im.name, cadAssembly: im.cadAssembly }))}
+              selectedModelId={selectedGlbId}
+              selectedPartId={selectedCadPartId}
+              onSelectModel={(id) => {
+                setSelectedGlbId(id);
+                setGizmoMode('translate');
+              }}
+              onSelectPartId={setSelectedCadPartId}
+              onMountAssembly={handleMountCadAssembly}
+              onMountMultipleAssemblies={handleMountMultipleCadAssemblies}
+              onUpdateAssembly={handleUpdateCadAssembly}
+              onDeleteAssembly={handleDeleteGlb}
+              onOpenTechnicalReport={() => setTechnicalReportOpen(true)}
+            />
           )}
 
           {activeStudioTab === 'materials' && (
